@@ -3832,6 +3832,35 @@ app.get('/api/resolved-errors', requireRole('user'), async (req, res) => {
 // POST /api/my-sanitization/restore { shortId } (owner only; logic in sanAssign.handleErrorReview /
 // handleRestore). Approve writes COLLECTIONS.sanitizationExcluded (the ticket leaves sanitization
 // tracking everywhere); return sends the error mark back to the contractor with the owner's note.
+// GET /api/my-sanitization/approvals -> every error ticket still awaiting the owner's approval,
+// grouped by the contractor who marked it. Owner-only; feeds the approval pop-up, which approves
+// across contractors in one call. Uses the shared loaders, so no extra database passes.
+app.get('/api/my-sanitization/approvals', requireSanOwner, async (req, res) => {
+  try {
+    const [docs, marks, approved] = await Promise.all([sanActiveAsgShared(), sanMarksShared(), sanApprovedShared()]);
+    const done = new Set((approved || []).map(a => a && a.shortId).filter(Boolean));
+    const latest = new Map();                      // newest 'error' mark per ticket
+    (marks || []).forEach(m => {
+      if (!m || !m.shortId || String(m.status || '') !== 'error') return;
+      const p = latest.get(m.shortId);
+      if (!p || String(m.at || '') > String(p.at || '')) latest.set(m.shortId, m);
+    });
+    const meta = new Map();                        // title / url from the assignment it came in
+    (docs || []).forEach(a => (a && a.tickets || []).forEach(t => { if (t && t.shortId && !meta.has(t.shortId)) meta.set(t.shortId, t); }));
+    const byAgent = {};
+    latest.forEach((m, sid) => {
+      if (done.has(sid)) return;                   // already approved
+      const login = String(m.login || '').trim().toLowerCase();
+      const t = meta.get(sid) || {};
+      (byAgent[login] = byAgent[login] || []).push({ shortId: sid, url: t.url || '', title: String(t.title || ''), note: String(m.reason || ''), at: m.at || null });
+    });
+    const agents = Object.keys(byAgent).sort().map(l => ({ login: l, tickets: byAgent[l].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')) || a.shortId.localeCompare(b.shortId)) }));
+    res.json({ agents: agents, total: agents.reduce((n, a) => n + a.tickets.length, 0) });
+  } catch (e) {
+    console.error('my-sanitization approvals error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the tickets awaiting approval.' });
+  }
+});
 app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleErrorReview(req.body, {

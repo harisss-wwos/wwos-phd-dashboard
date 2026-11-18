@@ -211,6 +211,26 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 @keyframes stErrPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,35,24,.55)}50%{box-shadow:0 0 0 5px rgba(180,35,24,0)}}
 .st-con-cards .stv-chip.is-errn:not(.is-zero){animation:stErrPulse 1.4s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.st-con-cards .stv-chip.is-errn:not(.is-zero){animation:none;outline:2px solid #ffb3a7;outline-offset:1px}}
+/* ---- Error-approval pop-up ---- */
+#apvModal .tbl-card.apv-card{width:90vw!important;max-width:90vw!important}
+@media (max-width:720px){#apvModal.tbl-bg{padding:2vw}#apvModal .tbl-card.apv-card{width:96vw!important;max-width:96vw!important}}
+.apv-bar{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:.86em;color:#2a3340}
+.apv-sec{border:1px solid #e3e8ed;border-radius:8px;margin-bottom:8px;overflow:hidden}
+.apv-sec h3{margin:0;font-size:1em}
+.apv-h{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:#f7f9fb;border:0;cursor:pointer;font:inherit;text-align:left}
+.apv-h:hover{background:#eef1f4}
+.apv-cv{display:inline-flex;transition:transform .15s}
+.apv-h[aria-expanded="true"] .apv-cv{transform:rotate(180deg)}
+.apv-n{color:#5c6773;font-size:.84em;font-weight:600}
+.apv-p{margin-left:auto;color:#8a3a00;font-size:.84em;font-weight:800}
+.apv-b{padding:10px 12px}
+.apv-all{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;font-size:.86em;font-weight:700;color:#2a3340}
+#apvBody .stv-t{width:100%}
+#apvBody .stv-t td,#apvBody .stv-t th{vertical-align:top}
+/* clickable KPI tile */
+.st-kpi.is-click{padding:0}
+.st-kpi-btn{display:block;width:100%;height:100%;padding:16px 18px 15px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.st-kpi-btn:hover{background:#fff8f1}
 /* ---- Overlap fix ----
    The tags are content-sized, and with the long labels their total width exceeded .stv-cst,
    so they spilled out and sat on top of the bar and the chevron. Let the group wrap and let
@@ -476,6 +496,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 </div>
 
 <!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
+<!-- Error-approval pop-up (owner only): all tickets awaiting approval, grouped by agent. -->
+<div class="tbl-bg" id="apvModal" style="display:none" onclick="if(event.target===this)apvClose()">
+  <div class="tbl-card tbl-form apv-card" role="dialog" aria-modal="true" aria-labelledby="apvT">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="flag" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization</div><h2 class="tbl-title" id="apvT">Error tickets that need approval</h2></div>
+      <button type="button" class="tbl-x" onclick="apvClose()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub">Approving marks a ticket as sanitized. Only harisss can approve.</p>
+    </div>
+    <div class="tbl-body">
+      <div id="apvBody"></div>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-cancel" onclick="apvClose()">Cancel</button>
+        <button type="button" class="tbl-submit" id="apvGo" onclick="apvApprove()" disabled>Approve</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
   <div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAddTitle" aria-describedby="tsAddDesc">
     <div class="tbl-head">
@@ -602,6 +640,13 @@ function kpisHtml(){
       '<span class="shimmer st-sk-v"></span><span class="shimmer st-sk-s"></span></li>';
     return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals" aria-busy="true">'+sk+sk+sk+sk+sk+'</ul>';
   }
+  // Same tile, but clickable (the approvals pop-up). Owner only.
+  function kBtn(cls,icon,label,val,act){
+    return '<li class="st-kpi '+cls+(done?'':' is-na')+' is-click"><button type="button" class="st-kpi-btn" data-act="'+act+'">'+
+      '<span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
+      '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span>'+
+      '<span class="st-kpi-s" style="display:block">Click to review and approve</span></button></li>';
+  }
   function k(cls,icon,label,val,sub){
     return '<li class="st-kpi '+cls+(done?'':' is-na')+'"><span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
       '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span><span class="st-kpi-s" style="display:block">'+sub+'</span></li>';
@@ -611,7 +656,7 @@ function kpisHtml(){
     k('is-bad','alert-triangle','Total tickets that needs to be santizied',done?num(t.need):'','')+
     k('is-base','clock','Total tickets Temporarily santizied',done?num(t.wait):'','')+
     k('is-bad','alert-triangle','Total tickets in which error was deducted after upload',done?num(t.ded):'','')+
-    k('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'','')+
+    (S.isOwner()?kBtn('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'','apvOpen'):k('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'',''))+
     '</ul>';
 }
 function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
@@ -1094,6 +1139,85 @@ function bindInfo(){
   // Times in the account timezone (IST / MST), like the rest of the app.
   if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); } } }).catch(function(){});
   loadList(false);
+// ---- Error-approval pop-up (owner only) -------------------------------------------------
+// One agent section at a time; checkboxes + select-all per section; Approve posts every picked
+// ticket in a single call to the existing owner-only error-review endpoint.
+var APV={open:false,loading:false,err:'',agents:[],sel:{},sec:null,busy:false};
+function apvCount(){ return Object.keys(APV.sel).filter(function(k){return APV.sel[k];}).length; }
+function apvHtml(){
+  if(APV.loading) return '<p class="stv-help">Loading the tickets awaiting approval\u2026</p>';
+  if(APV.err) return '<div class="st-err" role="alert">'+esc(APV.err)+'</div>';
+  if(!APV.agents.length) return '<p class="stv-help">Nothing is waiting for approval.</p>';
+  var n=apvCount();
+  var h='<div class="apv-bar"><b>'+n+'</b> selected'+
+    (n?' <button type="button" class="tb-san-btn stv-link" data-apv="clear">Clear</button>':'')+'</div>';
+  h+=APV.agents.map(function(a){
+    var open=APV.sec===a.login, ids=a.tickets.map(function(x){return x.shortId;});
+    var picked=ids.filter(function(s){return APV.sel[s];}).length;
+    return '<section class="apv-sec"><h3><button type="button" class="apv-h" aria-expanded="'+(open?'true':'false')+'" data-apv="sec" data-login="'+esc(a.login)+'">'+
+      '<span class="apv-cv" aria-hidden="true">'+ic('chevron-down',14)+'</span><b>'+esc(a.login)+'</b>'+
+      '<span class="apv-n">'+a.tickets.length+' ticket'+(a.tickets.length===1?'':'s')+'</span>'+
+      (picked?'<span class="apv-p">'+picked+' selected</span>':'')+'</button></h3>'+
+      (open?('<div class="apv-b"><label class="apv-all"><input type="checkbox" data-apv="all" data-login="'+esc(a.login)+'"'+(picked===ids.length?' checked':'')+'> Select all '+ids.length+'</label>'+
+        '<table class="stv-t"><thead><tr><th></th><th>Ticket</th><th>Title</th><th>Error message from the agent</th></tr></thead><tbody>'+
+        a.tickets.map(function(x){
+          return '<tr><td><input type="checkbox" data-apv="one" data-sid="'+esc(x.shortId)+'"'+(APV.sel[x.shortId]?' checked':'')+'></td>'+
+            '<td>'+(x.url?('<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.shortId)+'</a>'):esc(x.shortId))+'</td>'+
+            '<td>'+esc(x.title||'\u2014')+'</td><td>'+esc(x.note||'\u2014')+'</td></tr>';
+        }).join('')+'</tbody></table></div>'):'')+'</section>';
+  }).join('');
+  return h;
+}
+function apvRender(){
+  var b=$('apvBody'); if(b) b.innerHTML=apvHtml();
+  var btn=$('apvGo'); if(btn){ var n=apvCount(); btn.disabled=APV.busy||!n; btn.textContent=APV.busy?'Approving\u2026':(n?('Approve '+n+' ticket'+(n===1?'':'s')):'Approve'); }
+}
+function apvClose(){ APV.open=false; var bg=$('apvModal'); if(bg){ bg.style.display='none'; if(window.PHDLoginUI) window.PHDLoginUI.closed(bg); } }
+window.apvClose=apvClose;
+function apvOpen(){
+  if(!S.isOwner()) return;
+  APV.open=true; APV.loading=true; APV.err=''; APV.sel={}; APV.sec=null; APV.busy=false;
+  var bg=$('apvModal'); if(!bg) return;
+  bg.style.display='flex'; if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,apvClose,null);
+  apvRender();
+  A.api('GET','/api/my-sanitization/approvals').then(function(r){
+    APV.loading=false;
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.agents)){ APV.agents=r.data.agents; if(APV.agents.length===1) APV.sec=APV.agents[0].login; }
+    else APV.err=(r&&r.data&&r.data.error)||'Could not load the tickets awaiting approval.';
+    apvRender();
+  }).catch(function(){ APV.loading=false; APV.err='Could not load the tickets awaiting approval.'; apvRender(); });
+}
+window.apvOpen=apvOpen;
+function apvApprove(){
+  var ids=Object.keys(APV.sel).filter(function(k){return APV.sel[k];});
+  if(!ids.length||APV.busy) return;
+  APV.busy=true; apvRender();
+  A.api('POST','/api/my-sanitization/error-review',{shortIds:ids,action:'approve'}).then(function(r){
+    APV.busy=false;
+    if(r&&r.ok){
+      announce('Approved '+ids.length+' ticket'+(ids.length===1?'':'s')+'.');
+      apvClose();
+      loadList(true);            // tiles + rows + the open agent view all refresh from the server
+    }else{ APV.err=(r&&r.data&&r.data.error)||'Could not approve those tickets.'; apvRender(); }
+  }).catch(function(){ APV.busy=false; APV.err='Could not approve those tickets.'; apvRender(); });
+}
+window.apvApprove=apvApprove;
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest) return;
+  if(t.closest('[data-act="apvOpen"]')){ apvOpen(); return; }
+  var w=t.closest('#apvBody'); if(!w) return;
+  var a=t.closest('[data-apv]'); if(!a) return;
+  var k=a.getAttribute('data-apv');
+  if(k==='sec'){ var lg=a.getAttribute('data-login'); APV.sec=(APV.sec===lg)?null:lg; apvRender(); return; }
+  if(k==='clear'){ APV.sel={}; apvRender(); return; }
+  if(k==='all'){
+    var lg2=a.getAttribute('data-login'), ag=null;
+    APV.agents.forEach(function(x){ if(x.login===lg2) ag=x; });
+    if(ag){ var on=a.checked; ag.tickets.forEach(function(x){ if(on) APV.sel[x.shortId]=true; else delete APV.sel[x.shortId]; }); }
+    apvRender(); return;
+  }
+  if(k==='one'){ var sid=a.getAttribute('data-sid'); if(a.checked) APV.sel[sid]=true; else delete APV.sel[sid]; apvRender(); return; }
+});
 })();
 </script>
 </body>
