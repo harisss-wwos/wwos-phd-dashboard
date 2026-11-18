@@ -180,6 +180,34 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-hero dd b,.st-con-cards .stv-chip dd b{font-weight:800}
 .st-con-cards .stv-chip dt,.st-con-cards .stv-hero-r{font-weight:700;text-transform:uppercase;letter-spacing:.2px}
 .st-con-cards .st-card-who{font-weight:800}
+/* ---- Three zones on the row ----
+   LEFT   : avatar | login | Selected | the to-sanitize tag
+   CENTRE : Temporarily sanitized | Successfully sanitized  (green, white text)
+   RIGHT  : Error deducted | Errors needing approvals | % bar  (red, white text)
+   Ordering and the two auto-margins do the splitting, so the markup is untouched. */
+.st-con-cards .st-card-tot{display:none}            /* 'N assigned' removed per request */
+.st-con-cards .stv-cst>.stv-sr{display:none}        /* and its screen-reader twin */
+.st-con-cards .stv-hero{order:1}
+.st-con-cards .stv-chip.is-wait{order:2;margin-left:auto}   /* auto margin = centre group */
+.st-con-cards .stv-chip.is-ok{order:3}
+.st-con-cards .stv-chip.is-ded{order:4;margin-left:auto}    /* auto margin = right group */
+.st-con-cards .stv-chip.is-errn{order:5}
+/* centre pair: green */
+.st-con-cards .stv-chip.is-ok,.st-con-cards .stv-chip.is-wait,
+.st-con-cards .stv-chip.is-ok.is-zero,.st-con-cards .stv-chip.is-wait.is-zero{
+  background:#1a7a43;border-color:#15673a}
+/* right pair: red */
+.st-con-cards .stv-chip.is-ded,.st-con-cards .stv-chip.is-errn,
+.st-con-cards .stv-chip.is-ded.is-zero,.st-con-cards .stv-chip.is-errn.is-zero{
+  background:#b42318;border-color:#9a1d14}
+/* white text in all four, including the zero state which was greyed out */
+.st-con-cards .stv-chip.is-ok dt,.st-con-cards .stv-chip.is-ok dd,.st-con-cards .stv-chip.is-ok dd b,
+.st-con-cards .stv-chip.is-wait dt,.st-con-cards .stv-chip.is-wait dd,.st-con-cards .stv-chip.is-wait dd b,
+.st-con-cards .stv-chip.is-ded dt,.st-con-cards .stv-chip.is-ded dd,.st-con-cards .stv-chip.is-ded dd b,
+.st-con-cards .stv-chip.is-errn dt,.st-con-cards .stv-chip.is-errn dd,.st-con-cards .stv-chip.is-errn dd b,
+.st-con-cards .stv-chip.is-zero dt,.st-con-cards .stv-chip.is-zero dd,.st-con-cards .stv-chip.is-zero dd b{color:#fff}
+/* the bar sits last on the right, after the two red tags */
+.st-con-cards .stv-sbar.is-card{order:6;margin-left:10px;flex:0 0 130px}
 /* the expanded panel always gets its own full-width line */
 .st-con-cards .st-card-exp{flex:0 0 100%;width:100%;grid-column:auto}
 @media (max-width:1240px){
