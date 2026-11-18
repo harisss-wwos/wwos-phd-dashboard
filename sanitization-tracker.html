@@ -206,6 +206,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-chip.is-ded dt,.st-con-cards .stv-chip.is-ded dd,.st-con-cards .stv-chip.is-ded dd b,
 .st-con-cards .stv-chip.is-errn dt,.st-con-cards .stv-chip.is-errn dd,.st-con-cards .stv-chip.is-errn dd b,
 .st-con-cards .stv-chip.is-zero dt,.st-con-cards .stv-chip.is-zero dd,.st-con-cards .stv-chip.is-zero dd b{color:#fff}
+/* Errors needing approvals: pulse while the count is above zero (the .is-zero class is added
+   by cardStatsHtml when the value is 0, so :not(.is-zero) == there is something to approve). */
+@keyframes stErrPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,35,24,.55)}50%{box-shadow:0 0 0 5px rgba(180,35,24,0)}}
+.st-con-cards .stv-chip.is-errn:not(.is-zero){animation:stErrPulse 1.4s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.st-con-cards .stv-chip.is-errn:not(.is-zero){animation:none;outline:2px solid #ffb3a7;outline-offset:1px}}
 /* the bar sits last on the right, after the two red tags */
 .st-con-cards .stv-sbar.is-card{order:6;margin-left:10px;flex:0 0 130px}
 /* the expanded panel always gets its own full-width line */
@@ -767,7 +772,8 @@ function applyList(d){
   if(ST.state!=='done'){ announce(ST.err); return; }
   // ?login= deep link first; else a contractor sees their own tickets, the owner the one with most needing correction.
   var want=String(new URLSearchParams(location.search).get('login')||'').trim().toLowerCase();
-  var pick=findC(want)?want:((!S.isOwner()&&findC(ME))?ME:(ST.list[0]&&ST.list[0].login));
+  // Every agent row starts collapsed; only an explicit ?login= deep link expands one.
+  var pick=findC(want)?want:'';
   announce('Loaded '+ST.list.length+' contractors.');
   if(pick) select(pick,false); else setUrl('');
 }
