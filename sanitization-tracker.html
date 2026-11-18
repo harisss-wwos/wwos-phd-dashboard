@@ -156,6 +156,21 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-sbar.is-card{flex:0 0 150px;margin:0 0 0 auto}
 .st-con-cards .stv-sbar-t{height:7px}
 .st-con-cards .stv-sbar b{font-size:.68em}
+/* ---- Row format: [avatar name  N assigned] [to-sanitize TAG] [4 count TAGS] [bar] [chevron] ---- */
+/* Counts only: the per-chip and hero percentages are dropped to keep the line readable. */
+.st-con-cards .stv-chip .stv-chip-p,.st-con-cards .stv-hero-p{display:none}
+/* 5px radius on every tag (they were fully rounded pills). */
+.st-con-cards .stv-chip{border-radius:5px}
+/* the headline count becomes a tag of its own */
+.st-con-cards .stv-hero{flex:0 0 auto;padding:4px 10px;border-radius:5px;border:1px solid #f3c3b8;background:#fdf1ef}
+.st-con-cards .stv-hero dd{gap:6px}
+.st-con-cards .stv-hero dd b{font-size:1.15em}
+.st-con-cards .stv-hero-r{max-width:none;font-size:.62em;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+/* expand / collapse indicator, last on the row */
+.st-con-cards .st-card-cv{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+  margin-left:4px;border-radius:5px;color:var(--mut);background:#f4f6f8;border:1px solid #e3e8ed;transition:transform .16s ease,color .16s}
+.st-con-cards .st-card.is-on .st-card-cv{transform:rotate(180deg);color:#fff;background:var(--acc);border-color:var(--acc)}
+@media (prefers-reduced-motion:reduce){.st-con-cards .st-card-cv{transition:none}}
 /* the expanded panel always gets its own full-width line */
 .st-con-cards .st-card-exp{flex:0 0 100%;width:100%;grid-column:auto}
 @media (max-width:1240px){
@@ -557,6 +572,7 @@ function cardHtml(c){
       '<span class="st-card-who">'+esc(c.login)+'</span><span class="st-card-sel">'+ic('check',11)+'Selected</span>'+
       '<span class="st-card-tot" aria-hidden="true">'+num(c.assigned)+' assigned</span></span></button>'+
     V.cardStatsHtml(c,{showErr:showErr,id:sid})+
+    '<span class="st-card-cv" aria-hidden="true">'+ic('chevron-down',15)+'</span>'+
     (on?'<div class="st-card-exp" id="stCardExp"></div>':'')+
     '</div></li>';
 }
