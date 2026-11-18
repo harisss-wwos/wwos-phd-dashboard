@@ -547,7 +547,7 @@ function findC(login){ for(var i=0;i<ST.list.length;i++) if(ST.list[i].login===l
 // Most tickets to sanitize first, ties by login A-Z.
 function sortList(l){ return l.slice().sort(function(a,b){
   return (Number(b.needsCorrection)||0)-(Number(a.needsCorrection)||0) || String(a.login).localeCompare(String(b.login)); }); }
-function totals(){ var t={assigned:0,cleared:0,need:0,wait:0,err:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.wait+=Number(c.awaiting)||0; t.err+=Number(c.errorTickets)||0; }); return t; }
+function totals(){ var t={assigned:0,cleared:0,need:0,wait:0,err:0,ded:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.wait+=Number(c.awaiting)||0; t.err+=Number(c.errorTickets)||0; t.ded+=Number(c.errorDeducted)||0; }); return t; }
 
 // ---- Hero / login gate ----
 // CON = the Contractors section is on the page (owner + contractors; removed if the server says 403).
@@ -585,11 +585,11 @@ function kpisHtml(){
       '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span><span class="st-kpi-s" style="display:block">'+sub+'</span></li>';
   }
   return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals"'+(done?'':' aria-busy="true"')+'>'+
-    k('is-base','users','Contractors',done?num(ST.list.length):'','With sanitization access')+
-    k('is-base','ticket','Tickets assigned',done?num(t.assigned):'','Active assignments')+
-    k('is-bad','alert-triangle','To sanitize',done?num(t.need):'',done?('Not marked yet or failed the check \u00b7 '+num(t.wait)+' temporarily cleared, '+num(t.err)+' error'):'Not marked yet or failed the check')+
-    k('is-ok','check-circle','Sanitized',done?num(t.cleared):'','Verified on the SIM closure code after an upload, or an approved error')+
-    k('is-acc','bar-chart','Pass rate',done?(pct(t.cleared,t.assigned)+'%'):'','Sanitized of assigned')+
+    k('is-ok','check-circle','Total tickets successfully santizied',done?num(t.cleared):'','')+
+    k('is-bad','alert-triangle','Total tickets that needs to be santizied',done?num(t.need):'','')+
+    k('is-base','clock','Total tickets Temporarily santizied',done?num(t.wait):'','')+
+    k('is-bad','alert-triangle','Total tickets in which error was deducted after upload',done?num(t.ded):'','')+
+    k('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'','')+
     '</ul>';
 }
 function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
