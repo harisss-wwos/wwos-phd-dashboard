@@ -443,6 +443,12 @@ function _ilqCsHidden(q,ro){
   if(!(ro && ilIsCsEsc(ro.rootCause))) return false;
   return IL_CS_ONLY.indexOf(q.key)<0;
 }
+// True if question q is hidden by the automatic default rules (POI Community Member, region /
+// Flex / pet, Customer Service Escalation). Used ONLY to seed the initial shown-set when the
+// editor opens (see _ilqSeedShown); after open the user-controlled _ilqShown map is authoritative.
+function _ilqAutoHidden(q,a,ro){
+  return _ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro) || _ilqCsHidden(q,ro);
+}
 // Pet incident rule (same order and keywords as Page ZERO's classifyTicket, server/page-zero.js):
 //   1. the SIM Root Cause Details "Issue:" value is one of the Issue Types "Pet" category
 //      (IZ_CATS: Attack w/pet, Unsecured pet - bite/injury / evasion injury / no contact) or contains a
@@ -517,11 +523,20 @@ function _ilqCanon(def,v){
 // as text) is joined onto the current answer with "\n"; blank lines between such lines are kept.
 // Continuations of an unrecognised line stay with it in `unknown`.
 function ilParseInvestigation(text){
-  var answers={}, unknown=[], seen={}, rawOf={}, defOf={}, order=[];
+  var answers={}, unknown=[], seen={}, rawOf={}, defOf={}, order=[], shown=null;
   var s=String(text==null?'':text).replace(/\r\n/g,'\n');
-  if(s.trim()==='-' || !s.trim()) return {answers:answers, unknown:unknown};
+  if(s.trim()==='-' || !s.trim()) return {answers:answers, unknown:unknown, shown:null};
   var cur=null, blanks=0, contMin=IL_INVEST_CONT_INDENT.length;   // cur = {key|null, indent}
   s.split('\n').forEach(function(raw){
+    // Explicit shown-set marker (new logs): "<!-- phd-shown: k1,k2,… -->". Records the user's
+    // shown/omitted layout without adding any visible line. Kept out of `unknown` so it never
+    // surfaces in "Other notes" or round-trips as text. An empty list "<!-- phd-shown:  -->"
+    // records "the user hid everything" (shown=[]); its absence leaves shown=null (old-log path).
+    var sm=raw.match(/^\s*<!--\s*phd-shown:\s*([^>]*?)\s*-->\s*$/i);
+    if(sm){
+      shown=sm[1].split(',').map(function(x){ return x.trim(); }).filter(function(x){ return x; });
+      return;   // do NOT treat as a continuation or an unknown line
+    }
     if(!raw.trim()){ if(cur) blanks++; return; }
     var ind=_ilqIndentOf(raw);
     var m=raw.match(/^\s*(?:[-*\u2022]\s*)?([^:]+?)\s*:[ \t]?(.*)$/);
@@ -564,7 +579,9 @@ function ilParseInvestigation(text){
   // raw = the original lines (incl. continuation lines) per answered key, so a caller can keep a
   // hidden question's saved lines byte-for-byte (see ilRegionKeptLines).
   var raw={}; Object.keys(answers).forEach(function(k){ if(rawOf[k]) raw[k]=rawOf[k].slice(); });
-  return {answers:answers, unknown:unknown, raw:raw};
+  // shown = the explicit shown-set from a "<!-- phd-shown -->" marker (array), or null when the
+  // body has no marker (pre-change log -> reconstruct the shown-set from saved answers + defaults).
+  return {answers:answers, unknown:unknown, raw:raw, shown:shown};
 }
 // Saved lines of the usCa questions (and their shown sub-questions) from a parsed section, keyed
 // by question: {clear:[...], station:[...], netra:[...]}. Only questions with a saved answer.
@@ -584,13 +601,20 @@ function _ilqSubShown(q,a){ return !!(q.sub && a[q.key]==='Yes'); }
 // Serialize answers (+ preserved unknown lines) back into the section body. Unanswered questions
 // keep their line with an empty answer so the structure is stable. Returns '' when nothing at all
 // is answered and there are no preserved lines (the section then saves as the usual "-").
-// ro (optional) = {usca:boolean, kept:{key:[lines]}}: usca===false leaves out the usCa questions;
-// for those, ro.kept lines (from the saved entry, ilRegionKeptLines) are written back unchanged in
-// their place — the Save path passes them, the Copy path does not.
+// ro (optional) = {usca:boolean, kept:{key:[lines]}, shown:{key:true}, emitShownMarker:boolean}:
+// - ro.shown (the user-controlled shown-set): when present, a question emits a line iff it is shown;
+//   an omitted US/CA-only question still writes its kept saved lines (ro.kept) unchanged. When
+//   ro.shown is absent (pure-model / old call sites), fall back to the automatic-rule skips so the
+//   function stays usable without a shown-set.
+// - ro.emitShownMarker (Save path only; never on Copy): append one "<!-- phd-shown: … -->" comment
+//   line recording the shown keys, so the layout round-trips through save/open. The marker is the
+//   LAST line of the body and is kept out of every copy.
 // The POD checkbox ('check') writes its line only when checked.
 function ilSerializeInvestigation(answers,unknown,ro){
   var a=answers||{}, extra=(unknown||[]).filter(function(l){ return String(l).trim(); });
   var kept=(ro&&ro.kept)||{};
+  var hasShown=!!(ro && ro.shown);
+  var isShown=function(key){ return !hasShown || !!ro.shown[key]; };
   var val=function(k){ return String(a[k]==null?'':a[k]).trim(); };
   var any=extra.length>0;
   var lines=[];
@@ -602,12 +626,20 @@ function ilSerializeInvestigation(answers,unknown,ro){
     for(var i=1;i<ls.length;i++) lines.push(ls[i] ? IL_INVEST_CONT_INDENT+ls[i] : '');
   };
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqCsHidden(q,ro)) return;   // Customer Service Escalation -> only IL_CS_ONLY gets a line
-    if(_ilqRegionHidden(q,ro)){   // not a US / CA ticket (or Flex DP) -> no line, except saved answers kept as-is
-      if(kept[q.key] && kept[q.key].length){ any=true; lines.push.apply(lines, kept[q.key]); }
-      return;
+    if(hasShown){
+      if(!isShown(q.key)){   // user-omitted -> no line, except a non-US/CA ticket's kept US/CA saved lines
+        if(kept[q.key] && kept[q.key].length){ any=true; lines.push.apply(lines, kept[q.key]); }
+        return;
+      }
+    } else {
+      // No shown-set given: use the original automatic-rule skips (keeps pure-model callers working).
+      if(_ilqCsHidden(q,ro)) return;   // Customer Service Escalation -> only IL_CS_ONLY gets a line
+      if(_ilqRegionHidden(q,ro)){   // not a US / CA ticket (or Flex DP) -> no line, except saved answers kept as-is
+        if(kept[q.key] && kept[q.key].length){ any=true; lines.push.apply(lines, kept[q.key]); }
+        return;
+      }
+      if(_ilqPoiHidden(q,a)) return;   // hidden for a Community Member POI -> no line
     }
-    if(_ilqPoiHidden(q,a)) return;   // hidden for a Community Member POI -> no line
     var v=val(q.key);
     if(q.type==='check'){ if(v==='Yes'){ any=true; push('- '+q.label+': ','Yes'); } return; }   // unchecked -> no line
     if(q.poiWho && v==='No' && val('poiWho')) v='No ('+val('poiWho')+')';
@@ -615,16 +647,27 @@ function ilSerializeInvestigation(answers,unknown,ro){
     push('- '+q.label+': ',v);
     if(_ilqSubShown(q,a)){ var sv=val(q.sub.key); if(sv) any=true; push(IL_INVEST_SUB_INDENT+'- '+q.sub.label+': ',sv); }
   });
-  return any ? lines.concat(extra).join('\n') : '';
+  var body=any ? lines.concat(extra).join('\n') : '';
+  // Save path: append the shown-set marker as the last line so the layout survives a round-trip.
+  // Emitted whenever the user has an explicit shown-set (even when empty -> "the user hid
+  // everything"), so an all-omitted layout also round-trips. Never emitted on the Copy path.
+  if(ro && ro.emitShownMarker && hasShown){
+    var shownKeys=IL_INVEST_QS.filter(function(q){ return isShown(q.key); }).map(function(q){ return q.key; });
+    var marker='<!-- phd-shown: '+shownKeys.join(',')+' -->';
+    body=body ? body+'\n'+marker : marker;
+  }
+  return body;
 }
 // Copy gating for this section: every VISIBLE question answered. Selects non-empty, number fields
 // non-empty integers >= 0, shown sub-questions required; "Who is the POI?" is optional.
 // Returns the list of keys that are missing/invalid (empty array = complete).
 function ilInvestMissing(answers,ro){
   var a=answers||{}, miss=[];
+  var hasShown=!!(ro && ro.shown);
   var val=function(k){ return String(a[k]==null?'':a[k]).trim(); };
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;   // hidden questions are not required
+    if(hasShown){ if(!ro.shown[q.key]) return; }   // user-omitted question -> not required / not emitted
+    else if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;   // no shown-set: old rule-based skip
     if(q.type==='check') return;                                // a checkbox is never "missing"
     var v=val(q.key);
     if(q.type==='number' ? !/^\d+$/.test(v) : !v) miss.push(q.key);
@@ -644,11 +687,14 @@ function ilInvestDecidedFromSaved(text){
   if(any) IL_INVEST_QS.forEach(function(q){ if(q.type==='check') out[q.key]=true; });
   return out;
 }
-// Visible questions / shown sub-questions (same rules as the form) still at their untouched default.
+// Visible questions / shown sub-questions still at their untouched default. When ro.shown is given
+// (the user-controlled shown-set), only shown questions are considered; otherwise fall back to the
+// automatic-rule skip so pure-model callers keep working.
 function ilInvestDefaultKeys(decided,answers,ro){
-  var d=decided||{}, a=answers||{}, out=[];
+  var d=decided||{}, a=answers||{}, out=[], hasShown=!!(ro && ro.shown);
   IL_INVEST_QS.forEach(function(q){
-    if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;
+    if(hasShown){ if(!ro.shown[q.key]) return; }
+    else if(_ilqCsHidden(q,ro) || _ilqRegionHidden(q,ro) || _ilqPoiHidden(q,a)) return;
     if(_ilqDefaultable(q) && !d[q.key]) out.push(q.key);
     if(_ilqSubShown(q,a) && _ilqDefaultable(q.sub) && !d[q.sub.key]) out.push(q.sub.key);
   });
@@ -2391,11 +2437,16 @@ function ilLogImportClose(apply){
       var defs={};
       _ilqAllDefs().forEach(function(d){ defs[d.key]=d; });
       _ilfiUnlock('ilPhdInvestigation');
+      // Map a sub / poiWho key back to its parent so an imported child marks the parent shown.
+      var topOf={};
+      IL_INVEST_QS.forEach(function(q){ topOf[q.key]=q.key; if(q.poiWho) topOf[q.poiWho.key]=q.key; if(q.sub) topOf[q.sub.key]=q.key; });
       keys.forEach(function(k){
         var d=defs[k]; if(!d) return;
         delete _ilqOld[k];
         _ilqSetControl(d, r.invest[k]);
         _ilqDecided[k]=true; n++;
+        // An imported answer must make its question shown, else it would be invisible yet serialized.
+        if(topOf[k]) _ilqShown[topOf[k]]=true;
       });
       ilInvestChanged();
     }
@@ -2431,6 +2482,37 @@ var IL_TICKET_SID='';  // the ticket ShortId the modal is currently open for (fo
 // ---- Questionnaire DOM: container #ilPhdInvestigation, one control per question (id "ilq_<key>") ----
 var _ilqUnknown=[];   // saved lines that matched no question; shown read-only and re-appended on save
 var _ilqKept={};      // non-US/CA ticket: saved US/CA-only answer lines, re-written unchanged on Save (not copied)
+// _ilqShown: the user-controlled shown/omitted split (key -> true when SHOWN; absent = omitted).
+// Covers top-level IL_INVEST_QS keys only; children (poiWho, sub) follow their parent. Seeded once
+// per open from the automatic rules (or a saved "<!-- phd-shown -->" marker), then changed ONLY by
+// the user's picker-chip (add) and × (remove) clicks — no silent auto-hide/show after open.
+var _ilqShown={};
+// A shallow copy so the pure functions never hold a live reference to _ilqShown.
+function _ilqShownSnapshot(){ var o={}; Object.keys(_ilqShown).forEach(function(k){ o[k]=true; }); return o; }
+// True if top-level key k is a real IL_INVEST_QS question (guards a stale marker key).
+function _ilqKeyExists(k){ for(var i=0;i<IL_INVEST_QS.length;i++){ if(IL_INVEST_QS[i].key===k) return true; } return false; }
+// Top-level keys that (or whose child / poiWho) have a saved answer in the parsed entry p.
+function _ilqTopKeysWithAnswers(p){
+  var a=(p&&p.answers)||{}, out={};
+  IL_INVEST_QS.forEach(function(q){
+    if(String(a[q.key]==null?'':a[q.key]).trim()) out[q.key]=true;
+    if(q.poiWho && String(a[q.poiWho.key]==null?'':a[q.poiWho.key]).trim()) out[q.key]=true;
+    if(q.sub && String(a[q.sub.key]==null?'':a[q.sub.key]).trim()) out[q.key]=true;
+  });
+  return Object.keys(out);
+}
+// Seed _ilqShown for a freshly opened ticket: a question is shown if it has a saved answer
+// (savedKeys) OR the automatic default rules would show it. savedKeys is empty for a new log / Add
+// mode, so the seed is then exactly the automatic default visible set (e.g. CSE -> dup/poi/susp/histCx).
+function _ilqSeedShown(savedKeys){
+  var a=_ilqReadAnswers(), ro=_ilqRO(false), has={};
+  (savedKeys||[]).forEach(function(k){ has[k]=true; });
+  _ilqShown={};
+  IL_INVEST_QS.forEach(function(q){
+    if(has[q.key]){ _ilqShown[q.key]=true; return; }        // saved answer -> shown
+    if(!_ilqAutoHidden(q,a,ro)) _ilqShown[q.key]=true;      // else follow the default rules
+  });
+}
 function _ilqEl(key){ return document.getElementById('ilq_'+key); }
 // flex = the SIM Root Cause Details in the form currently says "Driv: Flex DP".
 function _ilFlexNow(){ var el=document.getElementById('ilSimRcd'); return !!(el && ilIsFlexDriv(el.value)); }
@@ -2438,7 +2520,9 @@ function _ilFlexNow(){ var el=document.getElementById('ilSimRcd'); return !!(el 
 function _ilPetNow(){ var el=document.getElementById('ilSimRcd'); return ilIsPetIncident(ilSimIssue(el?el.value:''), IL_TICKET_TITLE); }
 // rootCause = the form's Root Cause select (drives the Customer Service Escalation rule).
 function _ilRootCauseNow(){ var el=document.getElementById('ilRootCause'); return el?String(el.value||'').trim():''; }
-function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), pet:_ilPetNow(), rootCause:_ilRootCauseNow(), kept:forSave?_ilqKept:null}; }
+// shown = the user-controlled shown-set (always passed from the DOM). emitShownMarker is set only
+// on the Save path (forSave) so the "<!-- phd-shown -->" marker never leaks into a Copy.
+function _ilqRO(forSave){ return {usca:_ilUsca, flex:_ilFlexNow(), pet:_ilPetNow(), rootCause:_ilRootCauseNow(), kept:forSave?_ilqKept:null, shown:_ilqShownSnapshot(), emitShownMarker:!!forSave}; }
 // The Root Cause select changed: re-apply the questionnaire's show/hide rules (the Customer Service
 // Escalation rule narrows it to IL_CS_ONLY). Called from the select's onchange and after an Import
 // sets the value programmatically. Answers stay in their controls, so switching back restores them.
@@ -2544,6 +2628,19 @@ function ilSetInvestigation(text){
   }
   _ilqOld={};
   _ilqAllDefs().forEach(function(d){ _ilqSetControl(d, p.answers[d.key]); });
+  // Seed the shown/omitted layout. A new log written after this change carries an explicit
+  // "<!-- phd-shown -->" marker (p.shown is an array) -> honour it (intersected with keys the
+  // ticket's region permits, so a non-US/CA ticket never tries to show clear/station/netra; those
+  // keys were seeded omitted and their saved lines live in _ilqKept). An old log has no marker
+  // (p.shown===null) -> reconstruct "saved-answer keys ∪ automatic defaults".
+  if(p.shown){
+    var ro=_ilqRO(false), permit={};
+    IL_INVEST_QS.forEach(function(q){ if(!_ilqRegionHidden(q,ro)) permit[q.key]=true; });
+    _ilqShown={};
+    p.shown.forEach(function(k){ if(_ilqKeyExists(k) && permit[k]) _ilqShown[k]=true; });
+  } else {
+    _ilqSeedShown(_ilqTopKeysWithAnswers(p));
+  }
   var ex=document.getElementById('ilqExtra'), wrap=document.getElementById('ilqExtraWrap');
   if(ex) ex.textContent=_ilqUnknown.join('\n');
   if(wrap) wrap.hidden=!_ilqUnknown.length;
@@ -2600,13 +2697,13 @@ function _ilqSyncVisibility(){
   var a=_ilqReadAnswers();
   var ro=_ilqRO(false);
   IL_INVEST_QS.forEach(function(q){
-    var row, off=_ilqPoiHidden(q,a) || _ilqRegionHidden(q,ro) || _ilqCsHidden(q,ro);
-    // Rows that any rule can hide: the Community Member / region / Flex / pet flags, plus — for the
-    // Customer Service Escalation rule — every question outside IL_CS_ONLY (e.g. negFb, which
-    // carries no flag of its own).
-    if(IL_POI_CM_HIDE.indexOf(q.key)>=0 || q.usCa || q.noFlex || q.petOnly || IL_CS_ONLY.indexOf(q.key)<0){ row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=off; }
-    if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=(a[q.key]!=='No'); }
-    if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=off || !_ilqSubShown(q,a); }
+    // Top-level row visibility is now driven ONLY by the user-controlled shown-set, not the
+    // automatic rules (those only seed _ilqShown on open). Children follow their parent plus their
+    // own conditional (poiWho shown when poi==='No'; sub shown when the parent answer is 'Yes').
+    var row, shown=!!_ilqShown[q.key];
+    row=document.querySelector('[data-ilq-row="'+q.key+'"]'); if(row) row.hidden=!shown;
+    if(q.poiWho){ row=document.querySelector('[data-ilq-row="'+q.poiWho.key+'"]'); if(row) row.hidden=!shown || (a[q.key]!=='No'); }
+    if(q.sub){ row=document.querySelector('[data-ilq-row="'+q.sub.key+'"]'); if(row) row.hidden=!shown || !_ilqSubShown(q,a); }
   });
   // Controls revealed by the row checkbox, the state tag (Yes/No rows: "Yes" / "No"; dropdown rows:
   // "No" and number rows: "0" while unchecked) and old-answer notes.
@@ -2632,6 +2729,54 @@ function _ilqSyncVisibility(){
     row.classList.toggle('is-changed', on && !row.hidden);
   });
   _ilqSyncDefaults(a,ro);
+  _ilqSyncPicker();
+}
+// "Add question" picker: reveal a chip for every omitted top-level question; hide the chips of
+// shown questions; hide the whole row when nothing is omitted.
+function _ilqSyncPicker(){
+  if(typeof document==='undefined') return;
+  var row=document.getElementById('ilqAddRow'); if(!row) return;
+  var anyOmitted=false;
+  IL_INVEST_QS.forEach(function(q){
+    var b=document.getElementById('ilqAdd_'+q.key); if(!b) return;
+    var omitted=!_ilqShown[q.key];
+    b.hidden=!omitted;
+    if(omitted) anyOmitted=true;
+  });
+  row.hidden=!anyOmitted;
+}
+// Add an omitted question back to the questionnaire. Its row already exists in natural
+// IL_INVEST_QS order and only toggles hidden, so it reappears in its canonical position with its
+// prior session answer (the control value was never cleared on remove).
+function ilqAddQuestion(key){
+  if(typeof document==='undefined' || _ilqShown[key] || !_ilqKeyExists(key)) return;
+  _ilqShown[key]=true;
+  _ilqSyncVisibility();
+  ilMarkEmpty(document.getElementById('ilPhdInvestigation'));
+  _ilqFocusRow(key);
+}
+// Remove a shown question (the user's × control). Sends it back to the picker; its child row goes
+// with it (the child's hidden includes !parentShown). The control value is NOT cleared, so a later
+// re-add restores it (see ilqAddQuestion). Applies to default questions too.
+function ilqRemoveQuestion(key){
+  if(typeof document==='undefined' || !_ilqShown[key]) return;
+  delete _ilqShown[key];
+  _ilqSyncVisibility();
+  ilMarkEmpty(document.getElementById('ilPhdInvestigation'));
+  _ilqFocusAfterRemove(key);
+}
+// Focus the newly added row's primary control (row checkbox for checkbox-led rows, else the
+// select / input). Wrapped like ilAddSection's focus call.
+function _ilqFocusRow(key){
+  var el=_ilqCb(key)||_ilqEl(key);
+  if(el) try{ el.focus(); }catch(e){}
+}
+// After a remove, focus that question's picker chip (now visible); fall back to the picker row.
+function _ilqFocusAfterRemove(key){
+  var b=document.getElementById('ilqAdd_'+key);
+  if(b && !b.hidden){ try{ b.focus(); }catch(e){} return; }
+  var row=document.getElementById('ilqAddRow');
+  if(row) try{ row.focus(); }catch(e){}
 }
 // "DEFAULT" tag (left of the control) on every shown question still at its untouched default
 // (ilInvestDefaultKeys) + the row's amber .is-default mark, plus the hint pill in the field header
@@ -2917,7 +3062,7 @@ function ilCopyMissingNow(opts){
   var g=function(id){ var el=document.getElementById(id); return el?String(el.value||'').trim():''; };
   ilHistSync(); _ilhCapture();
   return ilCopyMissing({findings:g('ilPhdFindings'), sim:g('ilSimRcd'), histRows:_ilhRows, rootCause:g('ilRootCause'),
-    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd')), pet:_ilPetNow(), rootCause:g('ilRootCause')}, opts||{}));
+    res:ilCurrentResolution(), notes:g('ilPhdNotes')}, _ilqReadAnswers(), Object.assign({usca:_ilUsca, flex:ilIsFlexDriv(g('ilSimRcd')), pet:_ilPetNow(), rootCause:g('ilRootCause'), shown:_ilqShownSnapshot()}, opts||{}));
 }
 // True when every field has a value (the questionnaire: every visible question answered).
 function ilAllFilled(){ return ilCopyMissingNow().length===0; }
@@ -3385,10 +3530,26 @@ var IncidentLogEditor=(function(){
       ? '<span class="ail-qlead" aria-hidden="true"></span>'
       : '<span class="ail-qlead"><input type="checkbox" id="ilqc_'+k+'" class="ail-qctl ail-qcb" onchange="ilqToggle(\''+k+'\')"></span>';
     var dflt=_ilqDefaultable(def);
+    // × remove control (top-level rows only): sends the question back to the "Add question" picker.
+    // Part of the .ail-qctl group so it locks/unlocks with the rest. Children (poiWho, sub) get no ×;
+    // they leave with their parent.
+    var rm=isSub?'':'<button type="button" class="ail-qctl ail-qrm" id="ilqRm_'+k+'" onclick="ilqRemoveQuestion(\''+k+'\')" title="Remove from the investigation" aria-label="Remove '+_ileEsc(def.label)+' from the investigation">\u00d7</button>';
     return '<div class="ail-qrow'+(isSub?' ail-qsub':'')+(kind==='text'?' ail-qrow-txt':'')+(def.type==='textarea'?' ail-qrow-ta':'')+'" data-ilq-row="'+k+'"'+(isSub?' hidden':'')+'>'+
       lead+'<label class="ail-qlabel" for="'+(plain?'ilq_':'ilqc_')+k+'">'+_ileEsc(def.label)+(def.optional?' <span class="ail-qopt">(optional)</span>':'')+
         (dflt?'<span id="ilqds_'+k+'" hidden>default value, not changed</span>':'')+'</label>'+
-      '<div class="ail-qctls">'+(dflt?'<span class="ail-qdef" id="ilqd_'+k+'" aria-hidden="true" title="Default value - not changed yet" hidden>Default</span>':'')+qControl(def,kind)+'</div></div>';
+      '<div class="ail-qctls">'+(dflt?'<span class="ail-qdef" id="ilqd_'+k+'" aria-hidden="true" title="Default value - not changed yet" hidden>Default</span>':'')+qControl(def,kind)+rm+'</div></div>';
+  }
+  // "Add question" picker row (same look / interaction as the "Add section" chip row): one chip per
+  // top-level question. All chips start hidden; _ilqSyncPicker reveals only the omitted ones and
+  // hides the whole row when nothing is omitted. No country / issue / root-cause filter — every
+  // omitted question is offered, and the user decides whether to add it.
+  function qAddRow(){
+    return '<div class="ail-addsec ail-qaddsec" id="ilqAddRow" role="group" aria-labelledby="ilqAddLbl">'+
+      '<span class="ail-addsec-lbl" id="ilqAddLbl">Add question</span>'+
+      IL_INVEST_QS.map(function(q){
+        return '<button type="button" class="ail-addsec-btn" id="ilqAdd_'+q.key+'" onclick="ilqAddQuestion(\''+q.key+'\')" aria-label="Add question: '+_ileEsc(q.label)+'" hidden>+ '+_ileEsc(q.label)+'</button>';
+      }).join('')+
+    '</div>';
   }
   function investigationField(){
     var id='ilPhdInvestigation', label='PHD Investigation for mitigation';
@@ -3403,6 +3564,7 @@ var IncidentLogEditor=(function(){
         '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button>'+
         '<button type="button" class="ail-fcopy" data-for="'+id+'" data-label="'+label+'" onclick="ilCopyField(this)" title="Copy this field" aria-label="Copy '+label+'"></button></div>'+
       '<div id="'+id+'" class="ail-qn" role="group" aria-labelledby="ilPhdInvestigationLbl" aria-describedby="ilqStatus">'+rows+'</div>'+
+      qAddRow()+
       '<p class="ail-qn-status" id="ilqStatus" aria-live="polite" hidden></p>'+
       '<div class="ail-qn-extra" id="ilqExtraWrap" hidden><div class="ail-qn-extra-h">Other notes from the saved entry (kept as-is on save)</div>'+
         '<pre id="ilqExtra"></pre></div>'+
@@ -3878,6 +4040,15 @@ var IncidentLogEditor=(function(){
     '#incidentModal button.ail-addsec-btn{display:inline-flex;align-items:center;min-height:28px;margin:0;padding:0 10px;border:1px dashed #b8c2cc;border-radius:999px;background:#fff;color:#1577a0;font-family:inherit;font-size:.78em;font-weight:700;cursor:pointer;box-shadow:none}',
     '#incidentModal button.ail-addsec-btn:hover{border-color:#1577a0;background:rgba(21,119,160,.06)}',
     '#incidentModal button.ail-addsec-btn:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    // "Add question" picker row: reuses the "Add section" chip look; sits under the last question,
+    // above "Other notes". A little top space separates it from the questionnaire rows.
+    '.ail-qaddsec{margin-top:10px}',
+    // × remove control on a shown question (right of its answer control). Small icon button in the
+    // .ail-qctl group so it locks with the rest; muted by default, red on hover / focus.
+    '#incidentModal button.ail-qrm{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:26px;height:26px;min-height:0;margin:0;padding:0;border:1px solid #e3e8ee;border-radius:6px;background:#fff;color:#8a94a0;font-family:inherit;font-size:1em;line-height:1;cursor:pointer;box-shadow:none}',
+    '#incidentModal button.ail-qrm:hover:not(:disabled){border-color:#d33a3a;color:#c0392b;background:#fdf2f2}',
+    '#incidentModal button.ail-qrm:focus-visible{outline:2px solid #d33a3a;outline-offset:2px}',
+    '#incidentModal button.ail-qrm:disabled{opacity:.5;cursor:default}',
     // Tools row (below Comments): quick-links toolbar in a tinted panel (same frame as the Comments bar,
     // orange accent, white panel). [Tools + region chip] [tool chips] [Clear + Open selected] on one
     // row; chip = [custom check | monogram + short name]; .is-sel = ticked for "Open selected".
@@ -4229,6 +4400,6 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
   ilSetTicketRegion:ilSetTicketRegion, ilSetSavedSeverity:ilSetSavedSeverity, ilGetSeverity:ilGetSeverity,
   ilIsFlexDriv:ilIsFlexDriv, ilIsPetIncident:ilIsPetIncident, ilSimIssue:ilSimIssue,
-  ilIsCsEsc:ilIsCsEsc, IL_CS_ESC:IL_CS_ESC, IL_CS_ONLY:IL_CS_ONLY, _ilqCsHidden:_ilqCsHidden,
+  ilIsCsEsc:ilIsCsEsc, IL_CS_ESC:IL_CS_ESC, IL_CS_ONLY:IL_CS_ONLY, _ilqCsHidden:_ilqCsHidden, _ilqAutoHidden:_ilqAutoHidden, _ilqPoiHidden:_ilqPoiHidden, _ilqRegionHidden:_ilqRegionHidden,
   ilToolLinks:ilToolLinks, ilToolId:ilToolId, ilToolsListHtml:ilToolsListHtml, ilToolsBtnLabel:ilToolsBtnLabel,
   ilToolsSelectedUrls:ilToolsSelectedUrls, ilToolsOpenUrls:ilToolsOpenUrls, IL_RAISE_EXCL_URL:IL_RAISE_EXCL_URL, IL_TOOLS_SEL_KEY:IL_TOOLS_SEL_KEY };
