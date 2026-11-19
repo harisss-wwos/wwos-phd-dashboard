@@ -1383,7 +1383,10 @@ function pcSectionHtml(sec){
       '<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+_ttl+'</h2>';
   }
   // A plain-English read of the table, as a bullet directly above it.
-  if(_no>=3){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar))+'<p style="margin:0;font-size:1px;line-height:8px">&nbsp;</p>'; }
+  var _gap='<p style="margin:0;font-size:1px;line-height:8px">&nbsp;</p>';
+      if(_no>=3){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar))+_gap; }
+      // Section 2 gets no narrative bullet, so its table would butt against the brief.
+      else if(_no===2) h+=_gap;
   if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
