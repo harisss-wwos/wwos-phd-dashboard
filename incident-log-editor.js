@@ -3868,6 +3868,10 @@ var IncidentLogEditor=(function(){
     // Row whose answer differs from the default (Yes, a number above 0, a CLEAR / POI change).
     '.ail-qrow.is-changed{background:#fff8f1;box-shadow:inset 3px 0 0 #ec7211;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
     '.ail-qrow.is-changed .ail-qlabel{font-weight:700}',
+    // Hovering a row\'s checkbox or its × remove control tints the whole row, so the user can see
+    // which question the control belongs to. Neutral blue-grey so it reads over plain, is-default
+    // and is-changed rows alike (it is a light background only; the state box-shadow stays).
+    '.ail-qrow:has(.ail-qcb:hover),.ail-qrow:has(.ail-qrm:hover){background:#f1f5fb;border-radius:6px;padding-left:8px;padding-right:8px;margin:0 -8px}',
     // Revealed controls (number buttons + "Other", CLEAR / POI dropdowns).
     '.ail-qrev{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 8px;animation:ailqIn .18s ease-out}',
     '.ail-qnums{display:inline-flex;flex-wrap:wrap;gap:4px}',
