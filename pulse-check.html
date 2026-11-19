@@ -1323,26 +1323,52 @@ function pcSecNo(title){ var m=String(title||'').match(/^\s*(\d+)\./); return m?
 //    N% sits across the other types and is a small number."
 // Rows whose label starts with "Imm. Resolved by" are the auto/rule groups and are listed
 // separately in the table, so they are excluded from the sentence and from the remainder.
+// Plain-English read of whichever table a section prints. Three shapes are handled:
+//   A. a Percentage column  -> "8 (8.8%) cases of X, ..." + the remaining percentage
+//   B. an Agent column      -> "nobregak resolved 11, ..." using the Total column
+//   C. label + count        -> "130 tickets 0-3 days, ..." + the total
+// Rows labelled "Imm. Resolved by ..." are a separate grouping: kept out of the list and out
+// of the remainder, otherwise the remainder would be nonsense.
+function pcNarrTxt(el){ return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim(); }
 function pcNarrative(sec,D){
   var t=sec.querySelector('table'); if(!t) return '';
-  var items=[], listed=0, grouped=0;
+  var heads=Array.prototype.map.call(t.querySelectorAll('thead th'),pcNarrTxt);
+  if(!heads.length) return '';
+  var pctCol=-1, totCol=-1;
+  heads.forEach(function(h,i){
+    if(pctCol<0&&/percent/i.test(h)) pctCol=i;
+    if(/^total$/i.test(h)) totCol=i;
+  });
+  var isAgent=/agent/i.test(heads[0]||'');
+  var when=(D&&D.reportDate&&typeof ordinalDayMonth==='function')?ordinalDayMonth(D.reportDate):'the reporting day';
+  var items=[], listed=0, grouped=0, sum=0;
   Array.prototype.forEach.call(t.querySelectorAll('tbody tr'),function(tr){
-    var td=tr.querySelectorAll('td'); if(td.length<3) return;
-    var label=String(td[0].textContent||'').replace(/\s+/g,' ').trim();
-    var count=String(td[1].textContent||'').replace(/\s+/g,' ').trim();
-    var pctTxt=String(td[2].textContent||'').replace(/\s+/g,' ').trim();
-    var p=parseFloat(pctTxt.replace('%',''));
-    if(!label||!count||isNaN(p)) return;
-    if(/^imm\.?\s*resolved\s*by/i.test(label)){ grouped+=p; return; }
-    listed+=p;
-    items.push(count+' ('+pctTxt+') cases of '+label);
+    var td=tr.querySelectorAll('td'); if(td.length<2) return;
+    var label=pcNarrTxt(td[0]); if(!label||/^(sub\s*)?total$/i.test(label)) return;
+    var isGrp=/^imm\.?\s*resolved\s*by/i.test(label);
+    if(pctCol>0&&td.length>pctCol){
+      var cnt=pcNarrTxt(td[1]), pctTxt=pcNarrTxt(td[pctCol]), p=parseFloat(pctTxt.replace('%',''));
+      if(!cnt||isNaN(p)) return;
+      if(isGrp){ grouped+=p; return; }
+      listed+=p; items.push(cnt+' ('+pctTxt+') cases of '+label);
+      return;
+    }
+    var vCol=(isAgent&&totCol>0)?totCol:(td.length-1);
+    var v=pcNarrTxt(td[vCol]), nv=parseFloat(v.replace(/,/g,''));
+    if(v===''||isNaN(nv)) return;
+    sum+=nv;
+    items.push(isAgent?(label+' resolved '+v):(label+': '+v));
   });
   if(!items.length) return '';
-  var when=(D&&D.reportDate&&typeof ordinalDayMonth==='function')?ordinalDayMonth(D.reportDate):'the reporting day';
-  var s='For '+when+' we resolved '+items.slice(0,-1).join(', ')+(items.length>1?' and ':'')+items[items.length-1];
-  var rest=Math.round((100-listed-grouped)*10)/10;
-  if(rest>0.05) s+='. The remaining '+rest+'% is spread across the other types and constitutes a small number';
-  return s+'.';
+  var list=items.length>1?(items.slice(0,-1).join(', ')+' and '+items[items.length-1]):items[0];
+  if(pctCol>0){
+    var s='For '+when+' we resolved '+list;
+    var rest=Math.round((100-listed-grouped)*10)/10;
+    if(rest>0.05) s+='. The remaining '+rest+'% is spread across the other entries';
+    return s+'.';
+  }
+  if(isAgent) return 'For '+when+', '+list+(sum?(' \u2014 '+sum+' tickets in total'):'')+'.';
+  return 'For '+when+', '+list+(sum?(' \u2014 '+sum+' in total'):'')+'.';
 }
 function pcSectionHtml(sec){
   var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
@@ -1357,7 +1383,7 @@ function pcSectionHtml(sec){
       '<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+_ttl+'</h2>';
   }
   // A plain-English read of the table, as a bullet directly above it.
-  if(PC_TOP5[_no]){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar)); }
+  if(_no>=3){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar)); }
   if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
