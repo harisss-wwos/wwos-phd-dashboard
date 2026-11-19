@@ -1521,11 +1521,12 @@
       +   '#tbHomeChrome .home-navgrp-blue .home-navgrp-h{display:none}'
       + '}'
 // ---- Manual sidebar collapse (the tab straddles the rail's right edge) ----
-+ '#tbHomeChrome .home-recent-col{overflow:visible;transition:flex-basis .18s ease,width .18s ease}'
++ '#tbHomeChrome .home-recent-col{overflow:visible;z-index:190;transition:flex-basis .18s ease,width .18s ease}'
++ '#tbHomeChrome .home-main{position:relative;z-index:1}'
 + '#tbHomeChrome .home-main{transition:none}'
 // The tab: 26px wide, pushed out by half its width so it sits half on, half off the rail.
 + '#tbHomeChrome .home-navtg{position:absolute;top:50%;right:-13px;transform:translateY(-50%);width:26px;height:44px;'
-+   'display:inline-flex;align-items:center;justify-content:center;padding:0;z-index:30;cursor:pointer;'
++   'display:inline-flex;align-items:center;justify-content:center;padding:0;z-index:195;cursor:pointer;'
 +   'border:1px solid #a94a05;border-radius:7px;background:linear-gradient(180deg,#ec7211,#c2570a);color:#fff;'
 +   'box-shadow:0 4px 12px -4px rgba(5,10,20,.55);transition:filter .14s}'
 + '#tbHomeChrome .home-navtg:hover{filter:brightness(1.08)}'
