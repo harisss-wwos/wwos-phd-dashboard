@@ -1315,13 +1315,46 @@ var PC_BRIEF={
 // Sections whose export is deliberately trimmed to the five biggest rows.
 var PC_TOP5={3:true,4:true,5:true};
 function pcSecNo(title){ var m=String(title||'').match(/^\s*(\d+)\./); return m?+m[1]:0; }
+// Narrative line for a Top-5 section, read straight off the table that is about to be printed:
+//   "For 18th November we resolved 8 (8.8%) cases of Verbal abuse, 6 (6.6%) ... ; the remaining
+//    N% sits across the other types and is a small number."
+// Rows whose label starts with "Imm. Resolved by" are the auto/rule groups and are listed
+// separately in the table, so they are excluded from the sentence and from the remainder.
+function pcNarrative(sec,D){
+  var t=sec.querySelector('table'); if(!t) return '';
+  var items=[], listed=0, grouped=0;
+  Array.prototype.forEach.call(t.querySelectorAll('tbody tr'),function(tr){
+    var td=tr.querySelectorAll('td'); if(td.length<3) return;
+    var label=String(td[0].textContent||'').replace(/\s+/g,' ').trim();
+    var count=String(td[1].textContent||'').replace(/\s+/g,' ').trim();
+    var pctTxt=String(td[2].textContent||'').replace(/\s+/g,' ').trim();
+    var p=parseFloat(pctTxt.replace('%',''));
+    if(!label||!count||isNaN(p)) return;
+    if(/^imm\.?\s*resolved\s*by/i.test(label)){ grouped+=p; return; }
+    listed+=p;
+    items.push(count+' ('+pctTxt+') cases of '+label.charAt(0).toLowerCase()+label.slice(1));
+  });
+  if(!items.length) return '';
+  var when=(D&&D.reportDate&&typeof ordinalDayMonth==='function')?ordinalDayMonth(D.reportDate):'the reporting day';
+  var s='For '+when+' we resolved '+items.slice(0,-1).join(', ')+(items.length>1?' and ':'')+items[items.length-1];
+  var rest=Math.round((100-listed-grouped)*10)/10;
+  if(rest>0.05) s+='. The remaining '+rest+'% is spread across the other types and constitutes a small number';
+  return s+'.';
+}
 function pcSectionHtml(sec){
   var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
   pcCurTitle=h2?h2.textContent.replace(/\s+/g,' ').trim():'';
   var h='<p style="margin:0;font-size:1px;line-height:1px">&nbsp;</p>'+'<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
   var _no=pcSecNo(pcCurTitle);
-  if(PC_BRIEF[_no]) h+='<p style="margin:0 0 7px;'+PC_FONT+'font-size:12.5px;color:#5c6773">'+esc(PC_BRIEF[_no])+'</p>';
-  if(PC_TOP5[_no]) h+='<p style="margin:0 0 6px;'+PC_FONT+'font-size:12px;font-weight:bold;color:#8a3a00">(Only Top-5 is being showed)</p>';
+  // Heading carries the Top-5 marker and the brief inline: "3. Title (Only Top-5) : brief".
+  if(PC_TOP5[_no]||PC_BRIEF[_no]){
+    var _ttl=esc(pcCurTitle)+(PC_TOP5[_no]?' (Only Top-5)':'')+
+      (PC_BRIEF[_no]?(' <span style="font-weight:normal;font-size:13px;color:#3d4753">: '+esc(PC_BRIEF[_no])+'</span>'):'');
+    h='<p style="margin:0;font-size:1px;line-height:1px">&nbsp;</p>'+
+      '<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+_ttl+'</h2>';
+  }
+  // A plain-English read of the table, as a bullet directly above it.
+  if(PC_TOP5[_no]){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar)); }
   if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
