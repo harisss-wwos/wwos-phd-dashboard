@@ -180,6 +180,44 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-hero dd b,.st-con-cards .stv-chip dd b{font-weight:800}
 .st-con-cards .stv-chip dt,.st-con-cards .stv-hero-r{font-weight:700;text-transform:uppercase;letter-spacing:.2px}
 .st-con-cards .st-card-who{font-weight:800}
+/* ---- Error-approval pop-up ----
+   (Restored: an earlier edit to the contractor-row block overwrote these rules.) */
+#apvModal .tbl-card.apv-card{width:90vw!important;max-width:90vw!important}
+@media (max-width:720px){#apvModal.tbl-bg{padding:2vw}#apvModal .tbl-card.apv-card{width:96vw!important;max-width:96vw!important}}
+.apv-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border-radius:8px;
+  background:#fff7ef;border:1px solid #f6d7b6;font-size:.86em;font-weight:700;color:#8a3a00}
+.apv-bar b{font-size:1.15em}
+.apv-sec{border:1px solid #dfe5ea;border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff}
+.apv-sec h3{margin:0;font-size:1em}
+.apv-h{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:#f5f7f9;border:0;
+  border-bottom:1px solid transparent;cursor:pointer;font:inherit;text-align:left;transition:background .14s}
+.apv-h:hover{background:#eceff3}
+.apv-h[aria-expanded="true"]{background:#fff3e8;border-bottom-color:#f6d7b6}
+.apv-h b{font-size:.98em;text-transform:capitalize}
+.apv-cv{display:inline-flex;color:#5c6773;transition:transform .15s}
+.apv-h[aria-expanded="true"] .apv-cv{transform:rotate(180deg);color:#b5530a}
+.apv-n{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;background:#e8edf2;color:#3d4753;font-size:.78em;font-weight:800}
+.apv-p{margin-left:auto;padding:2px 9px;border-radius:5px;background:#b42318;color:#fff;font-size:.78em;font-weight:800}
+.apv-b{padding:12px 14px 14px}
+.apv-all{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 11px;border-radius:6px;
+  background:#f5f7f9;border:1px solid #e3e8ed;font-size:.84em;font-weight:800;color:#2a3340;cursor:pointer}
+.apv-all:hover{background:#eceff3}
+.apv-all input,.apv-t input{width:16px;height:16px;cursor:pointer;accent-color:#b5530a}
+.apv-t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.84em}
+.apv-t col.c1{width:38px}.apv-t col.c2{width:132px}.apv-t col.c3{width:auto}.apv-t col.c4{width:34%}
+.apv-t thead th{position:sticky;top:0;z-index:1;padding:8px 10px;text-align:left;background:#eef1f4;
+  border-bottom:1px solid #dfe5ea;font-size:.92em;font-weight:800;color:#3d4753;white-space:nowrap}
+.apv-t td{padding:9px 10px;border-bottom:1px solid #eef1f4;vertical-align:top;line-height:1.45;overflow-wrap:anywhere}
+.apv-t tbody tr:hover{background:#fbfcfd}
+.apv-t tbody tr.is-sel{background:#fff7ef}
+.apv-t tbody tr:last-child td{border-bottom:none}
+.apv-t .apv-sid a{font-weight:800;color:#1f4f99;white-space:nowrap}
+.apv-t .apv-msg{color:#8a3a00;font-weight:600}
+/* the approvals KPI tile is clickable (role=button sits on the tile itself) */
+.st-kpi.is-click{cursor:pointer;transition:background .14s,border-color .14s}
+.st-kpi.is-click:hover{background:#fff8f1;border-color:#f0b27a}
+.st-kpi.is-click:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+
 /* ---- Contractor row, v2 -------------------------------------------------------------------
    The first pass used solid green/red fills with tiny all-caps labels, which read as warning
    banners and buried the numbers. This version: soft tints, dark coloured text, number first
@@ -636,11 +674,13 @@ function kpisHtml(){
     return '<ul class="st-kpis" id="stKpis" aria-label="Sanitization totals" aria-busy="true">'+sk+sk+sk+sk+sk+'</ul>';
   }
   // Same tile, but clickable (the approvals pop-up). Owner only.
+  // Clickable variant of k(): identical markup so the tile layout is untouched; the <li> itself
+  // carries the action. (Wrapping the spans in a <button> re-centred everything.)
   function kBtn(cls,icon,label,val,act){
-    return '<li class="st-kpi '+cls+(done?'':' is-na')+' is-click"><button type="button" class="st-kpi-btn" data-act="'+act+'">'+
+    return '<li class="st-kpi '+cls+(done?'':' is-na')+' is-click" data-act="'+act+'" role="button" tabindex="0">'+
       '<span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
       '<span class="st-kpi-v" style="display:block">'+(done?val:'\u2014')+'</span>'+
-      '<span class="st-kpi-s" style="display:block">Click to review and approve</span></button></li>';
+      '<span class="st-kpi-s" style="display:block">Click to review and approve</span></li>';
   }
   function k(cls,icon,label,val,sub){
     return '<li class="st-kpi '+cls+(done?'':' is-na')+'"><span class="st-kpi-l"><span class="st-kpi-ic" aria-hidden="true">'+ic(icon,15)+'</span>'+label+'</span>'+
@@ -1204,6 +1244,7 @@ window.apvApprove=apvApprove;
 document.addEventListener('click',function(e){
   var t=e.target; if(!t||!t.closest) return;
   if(t.closest('[data-act="apvOpen"]')){ apvOpen(); return; }
+  // (keydown handler below gives the tile Enter / Space support)
   var w=t.closest('#apvBody'); if(!w) return;
   var a=t.closest('[data-apv]'); if(!a) return;
   var k=a.getAttribute('data-apv');
@@ -1217,6 +1258,12 @@ document.addEventListener('click',function(e){
   }
   if(k==='one'){ var sid=a.getAttribute('data-sid'); if(a.checked) APV.sel[sid]=true; else delete APV.sel[sid]; apvRender(); return; }
 });
+  // Enter / Space on the approvals tile (it is role=button, so it must act like one).
+  document.addEventListener('keydown',function(ev){
+    if(ev.key!=='Enter'&&ev.key!==' ') return;
+    var el=ev.target; if(!el||!el.closest) return;
+    if(el.closest('[data-act="apvOpen"]')){ ev.preventDefault(); apvOpen(); }
+  });
 })();
 </script>
 </body>
