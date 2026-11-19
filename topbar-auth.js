@@ -1520,6 +1520,29 @@
       +   '#tbHomeChrome .home-navgrp-h{font-size:0;height:1px;padding:0;margin:4px 6px 8px;background:rgba(255,178,107,.35)}'
       +   '#tbHomeChrome .home-navgrp-blue .home-navgrp-h{display:none}'
       + '}'
+// ---- Manual sidebar collapse (the tab straddles the rail's right edge) ----
++ '#tbHomeChrome .home-recent-col{overflow:visible;transition:flex-basis .18s ease,width .18s ease}'
++ '#tbHomeChrome .home-main{transition:none}'
+// The tab: 26px wide, pushed out by half its width so it sits half on, half off the rail.
++ '#tbHomeChrome .home-navtg{position:absolute;top:50%;right:-13px;transform:translateY(-50%);width:26px;height:44px;'
++   'display:inline-flex;align-items:center;justify-content:center;padding:0;z-index:30;cursor:pointer;'
++   'border:1px solid #a94a05;border-radius:7px;background:linear-gradient(180deg,#ec7211,#c2570a);color:#fff;'
++   'box-shadow:0 4px 12px -4px rgba(5,10,20,.55);transition:filter .14s}'
++ '#tbHomeChrome .home-navtg:hover{filter:brightness(1.08)}'
++ '#tbHomeChrome .home-navtg:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}'
++ '#tbHomeChrome .home-navtg svg{width:14px;height:14px;transition:transform .18s}'
++ '#tbHomeChrome.is-navmin .home-navtg svg{transform:rotate(180deg)}'
+// Collapsed: icon-only rail. .home-main is flex:1 1 0, so it takes the freed width automatically.
++ '#tbHomeChrome.is-navmin .home-recent-col{flex:0 0 62px!important;width:62px!important;max-width:62px!important;padding:10px 7px!important}'
++ '#tbHomeChrome.is-navmin .home-nav-lbl,#tbHomeChrome.is-navmin .home-act-lbl{display:none!important}'
++ '#tbHomeChrome.is-navmin .home-nav-btn,#tbHomeChrome.is-navmin .home-upload-btn,#tbHomeChrome.is-navmin .home-viewlog-btn,#tbHomeChrome.is-navmin .home-logout-btn{width:auto!important;justify-content:center!important;gap:0!important;padding:6px!important}'
++ '#tbHomeChrome.is-navmin .home-navgrp-h{font-size:0;height:1px;padding:0;margin:4px 6px 8px;background:rgba(255,178,107,.35)}'
++ '#tbHomeChrome.is-navmin .home-act-row{flex-direction:column}'
+// Expanded by choice, even on narrower screens: beat the 1175px icon-only rule.
++ '#tbHomeChrome.is-navmax .home-nav-lbl,#tbHomeChrome.is-navmax .home-act-lbl{display:inline!important}'
++ '#tbHomeChrome.is-navmax .home-recent-col{flex:0 0 clamp(180px,16vw,240px)!important;width:clamp(180px,16vw,240px)!important}'
++ '#tbHomeChrome.is-navinit .home-recent-col,#tbHomeChrome.is-navinit .home-navtg svg{transition:none!important}'
++ '@media(prefers-reduced-motion:reduce){#tbHomeChrome .home-recent-col,#tbHomeChrome .home-navtg svg{transition:none}}'
       ;
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
@@ -3193,7 +3216,7 @@
           : '')
       + '</div>';
     var recent = '<div class="home-recent-col' + (li ? '' : ' home-navcol-disabled') + '" id="tbhRecentCol">'
-      + navRef + navTop + navMid + navBot
+      + '<button type="button" class="home-navtg" id="tbhNavTg" aria-expanded="true" aria-controls="tbhRecentCol" title="Collapse the menu" aria-label="Collapse the menu">' + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>' + '</button>' + navRef + navTop + navMid + navBot
       + '</div>';
     return { hdr: hdr, recent: recent };
   }
@@ -3318,7 +3341,11 @@
   function tbhWrapMain(main) {
     if (!main || main.closest('#tbHomeChrome') || main.closest('.home-main')) return false;
     var c = tbhChromeHtml();
-    var page = document.createElement('div'); page.id = 'tbHomeChrome'; page.className = 'tb-home-chrome';
+    var page = document.createElement('div'); page.id = 'tbHomeChrome';
+    // Read the saved sidebar state NOW and put it in the initial className. Applying it later (on
+    // DOMContentLoaded) made the rail paint expanded and then snap shut on every page load.
+    var _navMin = false; try { _navMin = localStorage.getItem('phd_nav_collapsed') === '1'; } catch (e) {}
+    page.className = 'tb-home-chrome ' + (_navMin ? 'is-navmin' : 'is-navmax') + ' is-navinit';
     page.innerHTML = c.hdr + '<div class="home-layout">' + c.recent + '<div class="home-main"></div></div>';
     main.parentNode.insertBefore(page, main);
     page.querySelector('.home-main').appendChild(main);
@@ -5802,4 +5829,39 @@
 
     // Quarter buttons are hardcoded in buildToolbarHtml (Q3 live + Q2), no dynamic fetch needed.
   })();
+})();
+
+
+// ---- Sidebar collapse toggle --------------------------------------------------------------
+// The rail has no manual control by default: it only collapses under a 1175px media query.
+// is-navmin = collapsed by choice, is-navmax = expanded by choice (overrides that query).
+// .home-main is flex:1 1 0, so the page content widens / narrows with the rail on its own.
+(function () {
+  var KEY = 'phd_nav_collapsed';
+  function chrome() { return document.getElementById('tbHomeChrome'); }
+  function apply(min) {
+    var c = chrome(); if (!c) return;
+    c.classList.toggle('is-navmin', !!min);
+    c.classList.toggle('is-navmax', !min);
+    var b = document.getElementById('tbhNavTg');
+    if (b) {
+      b.setAttribute('aria-expanded', min ? 'false' : 'true');
+      var t = min ? 'Expand the menu' : 'Collapse the menu';
+      b.setAttribute('title', t); b.setAttribute('aria-label', t);
+    }
+  }
+  function saved() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+  window.PHDNavApply = function () { apply(saved()); var c = chrome(); if (c) requestAnimationFrame(function () { c.classList.remove('is-navinit'); }); };
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('#tbhNavTg');
+    if (!b) return;
+    e.preventDefault();
+    var min = !saved();
+    try { localStorage.setItem(KEY, min ? '1' : '0'); } catch (err) {}
+    apply(min);
+  });
+  // The chrome is injected by this script, so apply once the DOM settles and again shortly after.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', window.PHDNavApply);
+  else window.PHDNavApply();
+  setTimeout(window.PHDNavApply, 300);   // safety net if the chrome is injected late
 })();
