@@ -1335,7 +1335,7 @@ function pcNarrative(sec,D){
     if(!label||!count||isNaN(p)) return;
     if(/^imm\.?\s*resolved\s*by/i.test(label)){ grouped+=p; return; }
     listed+=p;
-    items.push(count+' ('+pctTxt+') cases of '+label.charAt(0).toLowerCase()+label.slice(1));
+    items.push(count+' ('+pctTxt+') cases of '+label);
   });
   if(!items.length) return '';
   var when=(D&&D.reportDate&&typeof ordinalDayMonth==='function')?ordinalDayMonth(D.reportDate):'the reporting day';
