@@ -2995,7 +2995,7 @@ function _ilCmtSync(sid){
       var ta=document.getElementById('ilCmtText');
       if(ta && sid!==_ilCmtSid) ta.value='';   // keep a draft only when reopening the same ticket
       _ilCmtErr('');
-      ilCmtsToggle(true);   // expanded every time the editor opens (user can collapse it afterwards)
+      ilCmtsToggle(false);  // collapsed every time the editor opens (user can expand it afterwards)
       ilCmtLoadInto(document.getElementById('ilCmtList'),sid,true);
       _ilScrollBodyTop();   // show the Comments/Title area first, regardless of a previous scroll
     }
