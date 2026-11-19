@@ -197,6 +197,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .pc-row-risk>:first-child{box-shadow:inset 3px 0 0 var(--acc)}
 .pc-row-breach>*{background:#fdf0ef!important}
 .pc-row-breach>:first-child{box-shadow:inset 3px 0 0 var(--red)}
+/* Executive Summary reads as a block of prose, so justify it (page + export match). */
+#pcExec,.pc-card p.pc-warn{text-align:justify;text-justify:inter-word}
+#pcExec{hyphens:none}
 /* Section 3 (Issue Type Distribution): full-height table (no inner scroll bar), red "missing RCD" row,
    slate-tinted "closed without agent work" group at the bottom under a thin labelled divider. */
 .pc-scroll.pc-full{max-height:none;overflow-y:visible}
@@ -1167,7 +1170,7 @@ function pcExportText(){
 var PC_FONT='font-family:Segoe UI,Arial,sans-serif;';
 var PC_TBL='border-collapse:collapse;border:1px solid #c8d0dc;'+PC_FONT+'font-size:13px';
 var PC_CELL='border:1px solid #c8d0dc;padding:4px;vertical-align:top;';
-var PC_P='margin:6px 0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340;';
+var PC_P='margin:6px 0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340;text-align:justify;';
 var PC_H3='margin:12px 0 4px;'+PC_FONT+'font-size:14px;font-weight:bold;color:#1a2230;';
 var PC_GAP='<div style="height:8px;line-height:8px;font-size:8px">&nbsp;</div>';
 // Left indent of copied tables (matches the bullet lists' 20px + a little breathing room).
@@ -1259,7 +1262,7 @@ function pcParaStyle(el){
 }
 // Action items: the severity badge becomes bold text, e.g. "CRITICAL \u2014 title", followed by the body paragraph.
 // Bullets: every prose block is emitted as a marked <li>; pcMergeBullets wraps each run of consecutive items in one <ul>.
-var PC_LI='<li style="margin:2px 0">', PC_UL='<ul style="margin:4px 0 10px 20px;padding:0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340">';
+var PC_LI='<li style="margin:2px 0;text-align:justify">', PC_UL='<ul style="margin:4px 0 10px 20px;padding:0;'+PC_FONT+'font-size:13px;line-height:1.5;color:#2a3340">';
 function pcLi(inner){ return '\u0001'+PC_LI+inner+'</li>'; }
 function pcMergeBullets(h){
   var re=new RegExp('(?:\\u0001'+PC_LI.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?</li>)+','g');
