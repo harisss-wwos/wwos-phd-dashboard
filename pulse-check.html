@@ -1300,10 +1300,28 @@ function pcBlockHtml(n){
   if(n.id==='pcExec') return pcExecExportSentences(n.textContent).map(function(s){ return pcLi(esc(s)); }).join('');
   return pcLi(inner);
 }
+// One-line brief per export section, shown above its table so the numbers have context.
+// Keyed by the section number in the heading ("3. Issue Type Distribution").
+var PC_BRIEF={
+  2:'A single view of volume, workload and SLA for the reporting day: what came in, what is still open and what has been resolved.',
+  3:'Which incident types the day\u2019s tickets fall into, highest first, with the auto-resolved and rule-resolved groups shown separately.',
+  4:'The underlying cause recorded on each resolved ticket, highest first \u2014 what actually drove the incidents.',
+  5:'The mitigation applied when the ticket was closed, highest first \u2014 what the team actually did about them.',
+  6:'Tickets resolved per PHD agent, split by how they were closed (immediately resolved vs fully worked), highest total first.',
+  7:'Tickets that came back on the same customer or location, indicating a mitigation that has not held.',
+  8:'Tickets where a station request was raised, showing how often the field was pulled in.',
+  9:'How long open tickets have been waiting, bucketed by age, with the 240-hour SLA breach and at-risk counts.'
+};
+// Sections whose export is deliberately trimmed to the five biggest rows.
+var PC_TOP5={3:true,4:true,5:true};
+function pcSecNo(title){ var m=String(title||'').match(/^\s*(\d+)\./); return m?+m[1]:0; }
 function pcSectionHtml(sec){
   var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
   pcCurTitle=h2?h2.textContent.replace(/\s+/g,' ').trim():'';
-  var h='<h2 style="margin:20px 0 6px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
+  var h='<p style="margin:0;font-size:1px;line-height:1px">&nbsp;</p>'+'<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+esc(pcCurTitle)+'</h2>';
+  var _no=pcSecNo(pcCurTitle);
+  if(PC_BRIEF[_no]) h+='<p style="margin:0 0 7px;'+PC_FONT+'font-size:12.5px;color:#5c6773">'+esc(PC_BRIEF[_no])+'</p>';
+  if(PC_TOP5[_no]) h+='<p style="margin:0 0 6px;'+PC_FONT+'font-size:12px;font-weight:bold;color:#8a3a00">(Only Top-5 is being showed)</p>';
   if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
