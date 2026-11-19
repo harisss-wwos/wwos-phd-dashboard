@@ -183,6 +183,16 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* ---- Error-approval pop-up ----
    (Restored: an earlier edit to the contractor-row block overwrote these rules.) */
 #apvModal .tbl-card.apv-card{width:90vw!important;max-width:90vw!important}
+/* The shared shell puts a SPINNER on any disabled .tbl-submit (it assumes disabled == saving).
+   Approve starts disabled because nothing is selected, so it spun forever. Suppress it and show
+   a plainly unavailable button instead; the real spinner is driven by aria-busy below. */
+#apvModal .tbl-card button.tbl-submit:disabled::before{content:none;display:none}
+#apvModal .tbl-card button.tbl-submit:disabled{cursor:not-allowed;opacity:.5;filter:none;box-shadow:none;
+  background:#d4dade!important;border-color:#c2cad2!important;color:#5c6773!important}
+#apvModal .tbl-card button.tbl-submit[aria-busy="true"]::before{content:"";display:block;width:16px;height:16px;
+  flex-shrink:0;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:tbspin .7s linear infinite}
+#apvModal .tbl-card button.tbl-submit[aria-busy="true"]{opacity:1;cursor:progress;color:#fff!important;
+  background:linear-gradient(180deg,#c2570a,#a94a05)!important;border-color:#9a4100!important}
 @media (max-width:720px){#apvModal.tbl-bg{padding:2vw}#apvModal .tbl-card.apv-card{width:96vw!important;max-width:96vw!important}}
 .apv-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border-radius:8px;
   background:#fff7ef;border:1px solid #f6d7b6;font-size:.86em;font-weight:700;color:#8a3a00}
