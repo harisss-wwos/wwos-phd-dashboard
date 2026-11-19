@@ -1343,32 +1343,32 @@ function pcNarrative(sec,D){
   var when=(D&&D.reportDate&&typeof ordinalDayMonth==='function')?ordinalDayMonth(D.reportDate):'the reporting day';
   var items=[], listed=0, grouped=0, sum=0;
   Array.prototype.forEach.call(t.querySelectorAll('tbody tr'),function(tr){
-    var td=tr.querySelectorAll('td'); if(td.length<2) return;
+    var td=tr.querySelectorAll('th,td'); if(td.length<2) return;
     var label=pcNarrTxt(td[0]); if(!label||/^(sub\s*)?total$/i.test(label)) return;
     var isGrp=/^imm\.?\s*resolved\s*by/i.test(label);
     if(pctCol>0&&td.length>pctCol){
       var cnt=pcNarrTxt(td[1]), pctTxt=pcNarrTxt(td[pctCol]), p=parseFloat(pctTxt.replace('%',''));
       if(!cnt||isNaN(p)) return;
       if(isGrp){ grouped+=p; return; }
-      listed+=p; items.push(cnt+' ('+pctTxt+') cases of '+label);
+      listed+=p; items.push(cnt+' tickets ('+pctTxt+' of the day) were '+label);
       return;
     }
     var vCol=(isAgent&&totCol>0)?totCol:(td.length-1);
     var v=pcNarrTxt(td[vCol]), nv=parseFloat(v.replace(/,/g,''));
     if(v===''||isNaN(nv)) return;
     sum+=nv;
-    items.push(isAgent?(label+' resolved '+v):(label+': '+v));
+    items.push(isAgent?(label+' resolved '+v+' tickets'):(v+' tickets in '+label));
   });
   if(!items.length) return '';
   var list=items.length>1?(items.slice(0,-1).join(', ')+' and '+items[items.length-1]):items[0];
   if(pctCol>0){
-    var s='For '+when+' we resolved '+list;
+    var s='On '+when+', '+list;
     var rest=Math.round((100-listed-grouped)*10)/10;
-    if(rest>0.05) s+='. The remaining '+rest+'% is spread across the other entries';
+    if(rest>0.05) s+='. The other '+rest+'% of the day\u2019s tickets is spread thinly across the remaining entries, none of them individually significant';
     return s+'.';
   }
-  if(isAgent) return 'For '+when+', '+list+(sum?(' \u2014 '+sum+' tickets in total'):'')+'.';
-  return 'For '+when+', '+list+(sum?(' \u2014 '+sum+' in total'):'')+'.';
+  if(isAgent) return 'On '+when+', '+list+(sum?(', '+sum+' tickets in total'):'')+'.';
+  return 'On '+when+', '+list+(sum?(', '+sum+' tickets in total'):'')+'.';
 }
 function pcSectionHtml(sec){
   var head=sec.querySelector('.pc-card-head'), h2=head&&head.querySelector('.pc-card-title'), aside=head&&head.querySelector('.pc-head-aside'), body=sec.querySelector('.pc-card-body');
@@ -1383,7 +1383,7 @@ function pcSectionHtml(sec){
       '<h2 style="margin:18px 0 4px;'+PC_FONT+'font-size:16px;font-weight:bold;color:#1a2230">'+_ttl+'</h2>';
   }
   // A plain-English read of the table, as a bullet directly above it.
-  if(_no>=3){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar)); }
+  if(_no>=3){ var _nar=pcNarrative(sec,PC.data); if(_nar) h+=pcLi(esc(_nar))+'<p style="margin:0;font-size:1px;line-height:8px">&nbsp;</p>'; }
   if(aside&&!pcSkip(aside)&&aside.textContent.trim()) h+=pcLi(pcInline(aside).trim());
   if(body) h+=Array.prototype.map.call(body.childNodes,pcBlockHtml).join('');
   return h;
