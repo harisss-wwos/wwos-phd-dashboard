@@ -1325,9 +1325,12 @@
       + '@keyframes tbAsgGlow{0%,100%{box-shadow:0 0 0 0 rgba(236,114,17,0)}50%{box-shadow:0 0 0 4px rgba(236,114,17,.28)}}'
       + '@media (prefers-reduced-motion:reduce){#tbHomeChrome .home-hdr-asg.is-blink,#tbHomeChrome .home-hdr-asg.is-blink .home-hdr-asg-n{animation:none}#tbHomeChrome .home-hdr-asg.is-blink{box-shadow:0 0 0 3px rgba(236,114,17,.35)}}'
       // Its pop-up: the .tbl-* dialog shell, widened, with a compact ticket table.
-      + '.tbl-bg .tbl-card.tb-asg-card{width:90vw!important;max-width:90vw!important}'
-      + '@media(max-width:719px){.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important}}'
-      + '.tb-asg-card .tb-asg-scroll{overflow:auto;max-height:min(52vh,460px);border:1px solid #e2e6ea;border-radius:10px}'
+      + '.tbl-bg .tbl-card.tb-asg-card{width:90vw!important;max-width:90vw!important;height:80vh!important;max-height:80vh!important;display:flex;flex-direction:column;overflow:hidden}'
+      + '.tb-asg-card .tbl-head{flex:0 0 auto}'
+      + '.tb-asg-card .tbl-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}'
+      + '.tb-asg-card .tbl-actions{flex:0 0 auto;margin-top:12px}'
+      + '@media(max-width:719px){.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important;height:88vh!important;max-height:88vh!important}}'
+      + '.tb-asg-card .tb-asg-scroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid #e2e6ea;border-radius:10px}'
       + '.tb-asg-card table{width:100%;border-collapse:separate;border-spacing:0;font-size:.84em}'
       + '.tb-asg-card th,.tb-asg-card td{padding:8px 10px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:middle;color:#2a3340}'
       + '.tb-asg-card thead th{position:sticky;top:0;background:#f5f6f8;color:#5c6773;font-size:.76em;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}'
@@ -1336,6 +1339,8 @@
       + '.tb-asg-card .tb-asg-id{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}'
       + '.tb-asg-card .tb-asg-id a{color:#2b66c1;font-weight:800;text-decoration:none}'
       + '.tb-asg-card .tb-asg-id a:hover{text-decoration:underline}'
+      + '.tb-asg-card .tb-asg-id a:visited,.tb-asg-card .tb-asg-id a.is-open{color:#9aa4ae;font-weight:700}'
+      + '.tb-asg-card .tb-asg-id a.is-open:hover{color:#6b7682}'
       + '.tb-asg-card .tb-asg-cp{display:grid;place-items:center;width:26px;height:24px;padding:0;border-radius:6px;border:1px solid #d4dade;background:#fff;color:#6b7681;cursor:pointer}'
       + '.tb-asg-card .tb-asg-cp:hover{color:#2b66c1;border-color:#9cbbe8}'
       + '.tb-asg-card .tb-asg-sev{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:.92em;font-weight:800;white-space:nowrap;background:#e9f0fb;border:1px solid #c9daf3;color:#1f5fbf}'
@@ -2963,7 +2968,13 @@
       + '<button type="button" class="tbl-cancel" id="tbMyAsgX">Close</button>'
       + '<button type="button" class="tbl-submit" id="tbMyAsgAll"' + (n ? '' : ' disabled') + '>' + ic('external-link', 15) + 'Open all</button></div></div></div>';
     ov.onclick = function (e) {
-      if (e.target === ov) { tbMyAsgClose(); return; }
+      // Backdrop clicks are ignored on purpose: this list is easy to mis-click, so it closes only
+        // via Close, the header X or Escape.
+        if (e.target === ov) return;
+        // A clicked ticket link is marked opened so it greys out immediately, without relying on
+        // the browser's :visited history.
+        var _lnk = e.target.closest && e.target.closest('.tb-asg-id a');
+        if (_lnk) { _lnk.classList.add('is-open'); }
       // Open every listed ticket in a new tab (same URL as the ticket ID links). Browsers may block
       // all but the first pop-up; window.open returns null for a blocked one -> show the note.
       // (The 'noopener' feature makes window.open always return null, which would hide that, so the
@@ -2972,6 +2983,7 @@
       if (all) {
         if (all.disabled) return;
         var blocked = 0;
+        Array.prototype.forEach.call(document.querySelectorAll('#tbMyAsgDlg .tb-asg-id a'),function(el){ el.classList.add('is-open'); });
         ((tbMyAsg.data && tbMyAsg.data.tickets) || []).forEach(function (t) {
           var w = window.open(tbMyAsgUrl(t), '_blank');
           if (w) { try { w.opener = null; } catch (err) {} } else blocked++;
