@@ -3173,46 +3173,46 @@
     // Eyebrow label for a nav group (also its accessible name via aria-labelledby).
     var grpHead = function (id, text) { return '<span class="home-navgrp-h" id="' + id + '">' + text + '</span>'; };
     // Group 1 (top): blue buttons (My Tickets is highlighted in orange).
-    var myTicketsInner = '<span class="home-nav-ic">' + ic('ticket', 15) + '</span><span class="home-nav-lbl">My Tickets</span>';
+    var myTicketsInner = '<span class="home-nav-ic">' + ic('ticket', 15) + '</span><span class="home-nav-lbl">My Queue</span>';
     // Page ZERO: owner and admins get it directly below My Tickets; managers get it INSTEAD of My Tickets;
     // everyone else keeps My Tickets only.
     var _pzRole = (li && A && A.role) ? A.role() : '';
     var _pzOwner = _pzRole === 'owner' || _pzRole === 'admin', _pzMgr = _pzRole === 'manager';
     var onMyTickets = hereFile === 'my-tickets';
-    var myTicketsBtn = li ? '<a class="home-nav-btn home-nav-mytickets' + (onMyTickets ? ' is-current' : '') + '" href="my-tickets.html" title="My Tickets"' + (onMyTickets ? ' aria-current="page"' : '') + '>' + myTicketsInner + '</a>'
-                          : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Tickets">' + myTicketsInner + '</span>';
+    var myTicketsBtn = li ? '<a class="home-nav-btn home-nav-mytickets' + (onMyTickets ? ' is-current' : '') + '" href="my-tickets.html" title="My Queue"' + (onMyTickets ? ' aria-current="page"' : '') + '>' + myTicketsInner + '</a>'
+                          : '<span class="home-nav-btn home-nav-mytickets" aria-disabled="true" title="My Queue">' + myTicketsInner + '</span>';
     var pageZeroBtn = navBtn('page-zero.html', 'Page ZERO', 'grid');
     var navTop = '<nav class="home-navgrp home-navgrp-blue" aria-labelledby="tbhNavWork">' + grpHead('tbhNavWork', 'Workspace')
       + (_pzMgr ? pageZeroBtn : myTicketsBtn + (_pzOwner ? pageZeroBtn : ''))
-      + navBtn('tools.html', 'PHD Tools', 'tool')
-      + navBtn('agent-analytics.html', 'Team Analytics', 'bar-chart')
+      + navBtn('tools.html', 'Toolkit', 'tool')
+      + navBtn('agent-analytics.html', 'Team Performance', 'bar-chart')
       + navBtn('performance-summary.html', 'Performance Summary', 'clipboard')
       + navBtn('pulse-check.html', 'Pulse Check (24h)', 'line-chart')
       + '</nav>';
     // Resolutions: first item of the second group (directly above SLA Breaches), tagged .home-nav-res;
     // navBtn already marks it current (aria-current) while on resolutions.html.
-    var resBtn = navBtn('resolutions.html', 'Resolutions', 'check-circle')
+    var resBtn = navBtn('resolutions.html', 'Resolution Trends', 'check-circle')
       .replace('class="home-nav-btn', 'class="home-nav-btn home-nav-res');
     // Group 2 (middle): ticket insight pages.
     var navMid = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavIns">' + grpHead('tbhNavIns', 'Ticket insights')
       + resBtn
       // Incident Explorer: any logged-in user (same as Resolutions; /api/incident-explorer/* = requireRole('user')).
       + navBtn('incident-explorer.html', 'Incident Explorer', 'globe')
-      + navBtn('sla-breach.html', 'SLA Breaches (>240h)', 'clock')
-      + navBtn('station-request.html', 'Station Request Tickets', 'map-pin')
-      + navBtn('hashtags.html', 'Hashtags', 'hash')
-      + navBtn('hi-resolved.html', 'Repeat Incidents', 'repeat')
-      + navBtn('important-cases.html', 'Unique Cases', 'star')
+      + navBtn('sla-breach.html', 'Breaches (>240h)', 'clock')
+      + navBtn('station-request.html', 'Station Requests', 'map-pin')
+      + navBtn('hashtags.html', '#Hashtags (Trends)', 'hash')
+      + navBtn('hi-resolved.html', 'Recurring Cases', 'repeat')
+      + navBtn('important-cases.html', 'One-Off Cases', 'star')
       + '</nav>';
     // Group 0 (top): Program & Reference — the Home page's history + reference guides.
     // (The 'history' glyph in icons.js is a list, so it marks PHD Resolutions; Program History uses clock-rewind.)
     var navRef = '<nav class="home-navgrp home-navgrp-dark" aria-labelledby="tbhNavRef">' + grpHead('tbhNavRef', 'Program &amp; Reference')
-      + navBtn('archive.html?ds=archive', 'Prog. History (21\u201325)', 'clock-rewind', 'Program History (2021\u201325)')
-      + navBtn('issue-types.html', 'Issue Standardization', 'book')
+      + navBtn('archive.html?ds=archive', 'History (2021\u20132025)', 'clock-rewind', 'History (2021\u20132025)')
+      + navBtn('issue-types.html', 'Issue Type Guide', 'book')
       // Ticket Sanitization (one page with the Sanitization Tracker; ticket-sanitization.html redirects there):
       // every logged-in user (checklist); its Contractors / Scores / Log sections are gated on the page + API.
-      + navBtn('sanitization-tracker.html', 'Ticket Sanitization', 'eraser')
-      + navBtn('phd-resolutions.html', 'PHD Resolutions', 'history')
+      + navBtn('sanitization-tracker.html', 'Clean Up Center', 'eraser')
+      + navBtn('phd-resolutions.html', 'Mitigation Catalogue', 'history')
       + '</nav>';
     // Group 3 (bottom): Upload / View log (upload-gated, logged-in only) + Log out.
     var navBot = '<div class="home-navgrp home-navgrp-action"' + (canUpload ? ' role="group" aria-labelledby="tbhNavData"' : '') + '>'
