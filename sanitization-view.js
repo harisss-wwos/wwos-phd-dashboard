@@ -98,6 +98,8 @@
   // Stacked bar (green sanitized, blue temp, amber error tickets, red errors detected, light red to
   // sanitize) + '% sanitized'. Errors detected are their own segment: they are in neither To sanitize
   // nor Sanitized, so the bar would not add up without them.
+  // Only the selected contractor's summary (sumStatsHtml, 'is-sum') draws it; the tracker's agent rows
+  // show the '% sanitized' text alone (the bar was not helping there).
   function barHtml(B, a, cls) {
     var seg = function (k) { var r = B[k]; return r && r[4] ? '<span class="' + r[0] + '" style="width:' + (a ? Math.min(100, r[4] / a * 100).toFixed(2) : 0) + '%"></span>' : ''; };
     return '<div class="stv-sbar' + (cls ? ' ' + cls : '') + '"><span class="stv-sbar-t" aria-hidden="true">' + seg('ok') + seg('wait') + seg('err') + seg('ded') + seg('bad')
@@ -105,8 +107,8 @@
   }
   // Card stats: a <dl> laid out as a grid: total assigned (sr-only; the card header shows it), the hero
   // row ('To sanitize' number left, '% tickets to sanitize' right), then 2-3 equal stat chips (Sanitized | Temp sanitized | Errors), then the
-  // stacked bar. Short labels on screen; the full labels are sr-only text and title tooltips.
-  // o.showErr: the error chip / segment; o.id: dl id (the card button's aria-describedby).
+  // '% sanitized' label. Short labels on screen; the full labels are sr-only text and title tooltips.
+  // o.showErr: the error chip; o.id: dl id (the card button's aria-describedby).
   function cardStatsHtml(T, o) {
     T = T || {}; o = o || {};
     var B = buckets(T, o.showErr), a = B.tot[4], bad = B.bad;
@@ -120,7 +122,7 @@
       + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
       + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r"><span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span> <span aria-hidden="true">needs work</span></span></dd></div>'
       + chip(B.ok) + chip(B.wait) + (B.err ? chip(B.err) : '') + chip(B.ded) + '</dl>'
-      + barHtml(B, a, 'is-card');
+      + '<div class="stv-cpct">' + pctOf(B.ok[4], a) + '% sanitized</div>';
   }
   // Selected contractor's summary: one strip of KPI tiles (Total assigned | To sanitize | Temporarily
   // sanitized | Sanitized successfully | Errors awaiting approval), each label / big number / % of

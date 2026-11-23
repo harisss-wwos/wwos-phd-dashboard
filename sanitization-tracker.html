@@ -152,11 +152,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-chip dd{font-size:.78em;gap:5px;justify-content:flex-start;flex-wrap:nowrap}
 .st-con-cards .stv-chip dd b{font-size:1.12em}
 .st-con-cards .stv-chip .stv-chip-p{margin-left:0;font-size:.88em;font-weight:700}
-/* 3. progress, pinned right */
-.st-con-cards .stv-sbar.is-card{flex:0 0 150px;margin:0 0 0 auto}
-.st-con-cards .stv-sbar-t{height:7px}
-.st-con-cards .stv-sbar b{font-size:.68em}
-/* ---- Row format: [avatar name  N assigned] [to-sanitize TAG] [4 count TAGS] [bar] [chevron] ---- */
+/* 3. '% sanitized', pinned right */
+.st-con-cards .stv-cpct{flex:0 0 auto;margin:0 0 0 auto;font-size:.68em}
+/* ---- Row format: [avatar name  N assigned] [to-sanitize TAG] [4 count TAGS] [% sanitized] [chevron] ---- */
 /* Counts only: the per-chip and hero percentages are dropped to keep the line readable. */
 .st-con-cards .stv-chip .stv-chip-p,.st-con-cards .stv-hero-p{display:none}
 /* 5px radius on every tag (they were fully rounded pills). */
@@ -175,8 +173,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .st-card{font-size:.8rem}
 .st-con-cards .st-card-who,.st-con-cards .st-card-tot,
 .st-con-cards .stv-hero dd,.st-con-cards .stv-hero dd b,.st-con-cards .stv-hero-r,
-.st-con-cards .stv-chip dt,.st-con-cards .stv-chip dd,.st-con-cards .stv-chip dd b,
-.st-con-cards .stv-sbar b{font-size:1em}
+.st-con-cards .stv-chip dt,.st-con-cards .stv-chip dd,.st-con-cards .stv-chip dd b{font-size:1em}
 .st-con-cards .stv-hero dd b,.st-con-cards .stv-chip dd b{font-weight:800}
 .st-con-cards .stv-chip dt,.st-con-cards .stv-hero-r{font-weight:700;text-transform:uppercase;letter-spacing:.2px}
 .st-con-cards .st-card-who{font-weight:800}
@@ -274,32 +271,28 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards .stv-chip.is-errn{order:5}
 /* approvals still need attention when non-zero: a thin red rule, not a pulse */
 .st-con-cards .stv-chip.is-errn:not(.is-zero){border-color:#d1443a;box-shadow:inset 3px 0 0 #d1443a}
-/* progress, then the chevron */
-.st-con-cards .stv-sbar.is-card{order:6;flex:0 0 150px;margin:0 0 0 12px;align-self:center}
-.st-con-cards .stv-sbar-t{height:7px}
-.st-con-cards .stv-sbar b{font-size:.72em;font-weight:700;color:#5c6773}
+/* '% sanitized', then the chevron */
+.st-con-cards .stv-cpct{order:6;flex:0 0 auto;margin:0 0 0 12px;align-self:center;font-size:.72em;font-weight:700;color:#5c6773}
 @media (max-width:1300px){
   .st-con-cards .stv-cst{flex-wrap:wrap;row-gap:6px}
   .st-con-cards .stv-chip{min-width:0}
-  .st-con-cards .stv-sbar.is-card{flex:0 0 120px}
 }
 @media (max-width:900px){
   .st-con-cards .st-card{flex-direction:column;align-items:stretch}
   .st-con-cards .st-card-btn,.st-con-cards .stv-hero{flex:1 1 auto}
   .st-con-cards .stv-chip.is-ded{margin-left:0}
-  .st-con-cards .stv-sbar.is-card{flex:1 1 100%;margin:0}
+  .st-con-cards .stv-cpct{margin:0}
 }
 /* the expanded panel always gets its own full-width line */
 .st-con-cards .st-card-exp{flex:0 0 100%;width:100%;grid-column:auto}
 @media (max-width:1240px){
   .st-con-cards .stv-cst{flex-wrap:wrap;gap:8px 12px}
-  .st-con-cards .stv-sbar.is-card{flex:0 0 120px}
 }
 @media (max-width:860px){
   .st-con-cards .st-card{flex-direction:column;align-items:stretch;gap:10px}
   .st-con-cards .st-card-btn{flex:1 1 auto}
   .st-con-cards .stv-hero{flex:1 1 auto}
-  .st-con-cards .stv-sbar.is-card{flex:1 1 100%;margin:0}
+  .st-con-cards .stv-cpct{margin:0}
 }
 .st-grid>li{display:flex;min-width:0}
 .st-card{position:relative;width:100%;display:flex;flex-direction:column;gap:12px;padding:14px 16px 13px;min-width:0;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;cursor:pointer;
@@ -308,7 +301,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-card.is-on{border-color:var(--acc);background:#fff8f1;box-shadow:0 0 0 2px rgba(236,114,17,.22),0 10px 22px -16px rgba(236,114,17,.6)}
 @media (prefers-reduced-motion:reduce){.st-card{transition:none}.st-card:hover{transform:none}}
 /* Header = the selection button (avatar + login + 'Selected' pill, 'N assigned' right); its ::after
-   covers the card (click anywhere) and carries the focus ring. Then the stats <dl> + bar (sanitization-view.js cardStatsHtml). */
+   covers the card (click anywhere) and carries the focus ring. Then the stats <dl> + '% sanitized' (sanitization-view.js cardStatsHtml). */
 .st-card-btn{display:block;width:100%;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .st-card-btn::after{content:'';position:absolute;inset:0;border-radius:12px}
 /* The overlay that makes the whole header clickable must stop before the expanded panel,
@@ -350,9 +343,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-chip.is-zero{background:var(--soft);border-top-color:#d4dade}.stv-chip.is-zero dd b,.stv-chip.is-zero .stv-chip-p{color:#8a949e}
 /* Errors detected on the last upload: light red like its section (.tb-san-sec.is-ded), also at 0. */
 .stv-chip.is-ded,.stv-chip.is-ded.is-zero{background:#fdf0f0;border-top-color:#d14343}.stv-chip.is-ded dd b,.stv-chip.is-ded.is-zero dd b{color:#a61b1b}.stv-chip.is-ded .stv-chip-p{color:#7a1616}
-/* Stacked bar: green sanitized, blue temp, amber error tickets, red errors detected, light red to sanitize; '% sanitized' right. */
+/* Card stats end on the '% sanitized' label (cardStatsHtml; the stacked bar that used to sit here was dropped). */
+.stv-cpct{margin-top:auto;flex-shrink:0;font-size:.72em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* Stacked bar (the selected contractor's summary): green sanitized, blue temp, amber error tickets, red errors detected, light red to sanitize; '% sanitized' right. */
 .stv-sbar{display:flex;align-items:center;gap:8px;width:100%}
-.stv-sbar.is-card{margin-top:auto}
 .stv-sbar-t{flex:1 1 auto;display:flex;height:6px;border-radius:99px;background:#eef1f4;overflow:hidden}
 .stv-sbar-t span{display:block;height:100%}
 .stv-sbar-t .is-ok{background:#1a7a43}.stv-sbar-t .is-wait{background:#1f5fbf}.stv-sbar-t .is-errn{background:#d98a1a}.stv-sbar-t .is-ded{background:#b42318}.stv-sbar-t .is-bad{background:#f2aaa0}
@@ -401,8 +395,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-sk-bl{height:11px;width:130px;min-width:0}
 .st-sk-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .st-sk-chip{height:44px;border-radius:8px!important}
-.st-sk-bar{flex:1 1 auto;height:6px;border-radius:99px!important}
-.st-sk-pct{flex-shrink:0;height:11px;width:34px}
+.st-sk-pct{flex-shrink:0;height:11px;width:60px}
 @media (prefers-reduced-motion:reduce){.st .shimmer::after{animation:none;display:none}}
 /* 'How it works' info button (Contractors header, outside the toggle); the tooltip (#stInfoTip) is in <body>. */
 .st-info{padding-left:0}
@@ -663,7 +656,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=241"></script>
-<script src="sanitization-view.js?v=21"></script>
+<script src="sanitization-view.js?v=22"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=9"></script>
@@ -760,9 +753,9 @@ function renderKpis(){ var k=$('stKpis'); if(k) k.outerHTML=kpisHtml(); }
 
 // ---- Contractor cards (owner) ----
 // A card = the selection button (avatar + login + 'Selected' pill + 'N assigned'; its ::after covers the
-// whole card, so a click anywhere selects) + the stats <dl> (hero 'to sanitize', stat chips) and stacked
-// bar (sanitization-view.js cardStatsHtml; the dl is not inside the button because a button may hold
-// only phrasing content). 'N assigned' is aria-hidden: the dl has the total as sr-only text.
+// whole card, so a click anywhere selects) + the stats <dl> (hero 'to sanitize', stat chips) and the
+// '% sanitized' label (sanitization-view.js cardStatsHtml; the dl is not inside the button because a
+// button may hold only phrasing content). 'N assigned' is aria-hidden: the dl has the total as sr-only text.
 function cardHtml(c){
   var on=c.login===SEL, sid='stCardS-'+String(c.login).replace(/[^a-z0-9_-]/gi,'');
   var showErr=S.isOwner()||c.login===ME;   // Errors chip: the owner, and a contractor on their own card
@@ -780,11 +773,11 @@ function cardHtml(c){
 function errNeedText(n){ return V.plural(n,'ticket')+' marked Error and need approval'; }
 function cardsBody(){
   if(ST.state==='loading'){
-    // Skeleton: 6 cards in the real card grid (header row, big number left + '% to sanitize' right, 3 chips, bar + %).
+    // Skeleton: 6 cards in the real card grid (header row, big number left + '% to sanitize' right, 3 chips, '% sanitized').
     var sk='<li><div class="st-card is-sk"><span class="st-card-top"><span class="shimmer st-sk-av"></span><span class="shimmer st-sk-who"></span><span class="shimmer st-sk-tot"></span></span>'+
       '<span class="st-sk-hero"><span class="shimmer st-sk-big"></span><span class="shimmer st-sk-bl"></span></span>'+
       '<span class="st-sk-chips"><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span></span>'+
-      '<span class="stv-sbar is-card"><span class="shimmer st-sk-bar"></span><span class="shimmer st-sk-pct"></span></span></div></li>';
+      '<span class="shimmer st-sk-pct"></span></div></li>';
     return '<div role="status"><span class="st-sr">Loading contractors\u2026</span><ul class="st-grid" aria-hidden="true" style="--n3:3;--n2:2">'+sk+sk+sk+sk+sk+sk+'</ul></div>';
   }
   if(ST.state==='error') return '<div class="st-err" role="alert">'+esc(ST.err)+'<button type="button" class="st-btn is-ghost" id="stRetry">Try again</button></div>';
