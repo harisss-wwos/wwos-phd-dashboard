@@ -109,7 +109,8 @@ function tsCount(){ return tsRuleLines()+tsDbLines(); }
 // ---- end section grouping helpers ----
 
 // Sub-section open state: in memory only, kept across re-renders. On every page load the checklist
-// card is open and ALL its sub-sections (SIM Title / Root Cause Details / Hashtags / ClosureCode) are collapsed.
+// card is open and ALL its sub-sections (the read-only rule groups of TS_RULES, then the Hashtags
+// rows from the database) are collapsed.
 var TS_OPEN={};
 function tsSetSec(key,open){
   TS_OPEN[key]=!!open;

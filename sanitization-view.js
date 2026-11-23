@@ -14,7 +14,7 @@
 // single items (errDetTable + apvFieldsHtml, one ticket at a time) or sends it back for rework. Those
 // tickets count in neither the sanitized nor the to-sanitize total until the owner acts.
 // Error tickets go to the owner for review (owner-only section; contractors get only the count) and
-// stay until approved or sent back (`returned` note on the to-sanitize row). The four sections are a one-open-at-a-time accordion
+// stay until approved or sent back (`returned` note on the to-sanitize row). The five sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
 // defect / pill / pager / codeTag).
 // Markup reuses the .tb-asg-card / .tb-san-card base styles from topbar-auth.js; .stv-* rules live in
@@ -71,10 +71,10 @@
     return '<span class="tb-san-sc" style="--sc-h:' + hueRatio(p / n) + '">' + p + ' / ' + n + '</span>';
   }
   function pillHtml(t) { return hasReq(t) ? ratioHtml(t.passedNow, t.requiredNow) : scoreHtml(t && t.scoreNow); }
-  // Contractor stats (tracker cards + the selected contractor's summary). The 5 buckets:
+  // Contractor stats (tracker cards + the selected contractor's summary). The 6 buckets:
   // [cls, full label (sr-only / tooltip), short label, tooltip, value]. T = contractor totals
-  // { assigned, needsCorrection, awaiting, cleared, errorTickets }; showErr: include the error bucket
-  // (the owner, or the contractor's own view).
+  // { assigned, needsCorrection, awaiting, cleared, errorTickets, errorDetected }; showErr: include the
+  // error bucket (the owner, or the contractor's own view).
   function buckets(T, showErr) {
     var n = function (v) { return Number(v) || 0; };
     var b = {

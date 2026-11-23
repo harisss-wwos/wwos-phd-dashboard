@@ -22,7 +22,6 @@ const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_
 const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved, clearSplit: sanClearSplit, ticketCleared: sanTicketCleared } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
-const sanValidate = require('./sanitization-validate');
 const sanValidateStore = require('./sanitization-validate-store');
 const resolvedErrors = require('./resolved-errors');
 const { createSingleFlight } = require('./single-flight');
