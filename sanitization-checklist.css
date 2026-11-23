@@ -90,6 +90,15 @@
 .ts-sec-body[hidden]{display:none}
 .ts-sec-body>.ts-steps,.ts-sec-body>.ts-empty{margin:14px}
 .ts-text b{font-weight:800;color:var(--ink)}
+/* Read-only validation rules (sanitization-checklist.js TS_RULES, kept in sync with
+   server/sanitization-validate.js RULES): a plain bulleted list, no step dots and no editor buttons. */
+.ts-rules-n{display:flex;align-items:flex-start;gap:9px;margin:0 0 4px;padding:10px 12px;border:1px solid #cfe0f5;border-radius:10px;background:#eef4fc;
+  color:#1f4f99;font-size:.86em;line-height:1.5}
+.ts-rules-n svg{flex-shrink:0;margin-top:1px}
+.ts-rules-n b{font-weight:800}
+.ts-sec-body>.ts-rules{list-style:none;margin:14px;padding:0;display:flex;flex-direction:column;gap:8px}
+.ts-rules>li{position:relative;padding:8px 12px 8px 30px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:.92em;line-height:1.5}
+.ts-rules>li::before{content:'';position:absolute;left:13px;top:17px;width:6px;height:6px;border-radius:50%;background:#ec7211}
 .ts-empty{display:flex;align-items:center;gap:10px;padding:14px;border:1px dashed #d4dade;border-radius:10px;color:var(--mut);font-size:.9em;font-style:italic}
 
 /* Editor "Add new check" (header button) + its pop-up: the shared .tbl-* dialog shell from topbar-auth.js. */

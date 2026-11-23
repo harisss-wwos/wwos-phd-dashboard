@@ -355,7 +355,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-sbar.is-card{margin-top:auto}
 .stv-sbar-t{flex:1 1 auto;display:flex;height:6px;border-radius:99px;background:#eef1f4;overflow:hidden}
 .stv-sbar-t span{display:block;height:100%}
-.stv-sbar-t .is-ok{background:#1a7a43}.stv-sbar-t .is-wait{background:#1f5fbf}.stv-sbar-t .is-errn{background:#d98a1a}.stv-sbar-t .is-bad{background:#f2aaa0}
+.stv-sbar-t .is-ok{background:#1a7a43}.stv-sbar-t .is-wait{background:#1f5fbf}.stv-sbar-t .is-errn{background:#d98a1a}.stv-sbar-t .is-ded{background:#b42318}.stv-sbar-t .is-bad{background:#f2aaa0}
 .stv-sbar b{flex-shrink:0;font-size:.72em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Selected contractor's summary: 6 equal KPI tiles (5 without Errors; 3 / 2 per row on smaller screens), bar, legend + 'Data as of'. */
 .st-view .tb-san-sum.stv-sum{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
@@ -514,12 +514,38 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view .stv-mk{font-weight:700;color:#1f4f99}
 .st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
 #stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Owner-only "Error detected" section (sanitization-view.js errDetTable): the items the last upload
+   found missing, listed as chips; one ticket at a time, so there is no checkbox column and no bulk bar. */
+.st-view table.stv-errdet ul.stv-items{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 6px}
+.st-view table.stv-errdet ul.stv-items li{padding:1px 8px;border-radius:99px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.82em;font-weight:700}
+.st-view table.stv-errdet td.stv-mc{white-space:normal}
+/* Per-ticket Approve pop-up (#stFldModal, body from sanitization-view.js apvFieldsHtml): one checkbox
+   per detected item, then the ten stored Sim Root Cause Details values. 60vw (96vw <= 720px), like #stRevDlg. */
+#stFldModal .tbl-card.st-fld{width:60vw!important;max-width:60vw!important}
+@media (max-width:720px){#stFldModal.tbl-bg{padding:2vw}#stFldModal .tbl-card.st-fld{width:96vw!important;max-width:96vw!important}}
+#stFldModal .tbl-actions.tbl-row{flex-wrap:wrap}
+#stFldModal .stv-apvf-m{margin:0 0 10px;font-size:.9em;font-weight:800;color:#2a3340;overflow-wrap:anywhere}
+#stFldModal fieldset.stv-apvf{margin:0 0 12px;padding:10px 12px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
+#stFldModal fieldset.stv-apvf>legend{padding:0 6px;font-size:.84em;font-weight:800;color:#8a3a00}
+#stFldModal ul.stv-apvf-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+#stFldModal ul.stv-apvf-l li{display:flex;align-items:flex-start;gap:9px}
+#stFldModal ul.stv-apvf-l input{width:18px;height:18px;margin:2px 0 0;flex-shrink:0;cursor:pointer;accent-color:#ec7211}
+#stFldModal ul.stv-apvf-l input:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+#stFldModal ul.stv-apvf-l label{min-width:0;font-size:.9em;line-height:1.45;color:#1b2026;cursor:pointer}
+#stFldModal .stv-apvf-msg{display:block;font-size:.92em;font-weight:600;color:#5c6773;overflow-wrap:anywhere}
+#stFldModal details.stv-apvf-rcd{margin:0 0 12px;padding:8px 12px;border:1px solid #e2e6ea;border-radius:10px;background:#fafbfc}
+#stFldModal details.stv-apvf-rcd>summary{cursor:pointer;font-size:.88em;font-weight:800;color:#2a3340}
+#stFldModal dl.stv-apvf-d{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 12px;margin:10px 0 0}
+#stFldModal dl.stv-apvf-d>div{min-width:0}
+#stFldModal dl.stv-apvf-d dt{font-size:.74em;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#5c6773}
+#stFldModal dl.stv-apvf-d dd{margin:0;font-size:.9em;font-weight:600;color:#1b2026;overflow-wrap:anywhere}
+#stFldModal .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* Contractors section (a top-level accordion card): KPIs, the cards, then the selected contractor's view. */
 .st-con-cards{margin-bottom:16px}
 .st-con .st-sec{margin-bottom:0}
 </style>
 <link rel="stylesheet" href="sanitization-tools.css?v=2">
-<link rel="stylesheet" href="sanitization-checklist.css?v=4">
+<link rel="stylesheet" href="sanitization-checklist.css?v=5">
 </head>
 <body data-nav-active="sanitization-tracker" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
@@ -530,11 +556,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <div id="stLive" class="st-sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
 <!-- 'How it works' tooltip for the Contractors header info button (#stInfoBtn); placed by stTip* below. -->
 <div id="stInfoTip" role="tooltip" hidden>
-  <p>Set each ticket&rsquo;s status after closing it in SIM; it is checked after the next data upload.</p>
+  <p>Set each ticket&rsquo;s status after closing it in SIM; it is checked on the next data upload.</p>
   <h3 class="st-info-h">How it works</h3>
   <p>After sanitizing a ticket, set its status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate) or Error (sent to the owner for review).</p>
-  <p>A marked ticket is temporarily cleared until the next data upload; only then is the SIM closure code checked: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type), Immediately Resolved or Automatically Closed (Out of Scope of PHD, or a pet type other than Attack w/pet with Sev 3&ndash;5 in the title) the 3 title checks, Duplicate none.</p>
-  <p>The score is out of 11 until then (the checks of SIM&rsquo;s closure code after it), lowest first by default (use the Score header to flip it), then oldest assigned.</p>
+  <p>A marked ticket is temporarily cleared until the next data upload. The closure code the upload carries picks the checks: <b>Immediately Resolved</b> &mdash; the 3 title checks (country code, issue type, severity) and nothing else; <b>Successful</b> &mdash; those 3 plus the ten Sim Root Cause Details fields, where Issue, Date and Res must have a value, Cnt must be a number or N/A, and the other seven may be a value or N/A; <b>Duplicate</b> &mdash; nothing is checked.</p>
+  <p>Nothing missing: the ticket is sanitized. Something missing: it lands in <b>Error detected</b> with the time of the upload that found it, where harisss approves single items (an approved item is never raised again) or sends the ticket back for rework. Until then it counts as neither sanitized nor to sanitize.</p>
+  <p>Tickets marked Error wait for harisss to approve them and are not checked. The score is the raw score out of 11, lowest first by default (use the Score header to flip it), then oldest assigned.</p>
   <p>One section is open at a time. Ticket links open in a new tab.</p>
 </div>
 
@@ -557,19 +584,44 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
     </div>
   </div>
 </div>
+<!-- Per-ticket Approve pop-up (owner only): the items the last upload found missing on ONE ticket, one
+     checkbox each; anything left unticked goes back to the contractor as rework. Body built by
+     sanitization-view.js apvFieldsHtml. No backdrop-click close: a stray click outside must not throw
+     away the ticks (Escape, Cancel and the close button do close it). -->
+<div class="tbl-bg" id="stFldModal" style="display:none">
+  <div class="tbl-card tbl-form st-fld" role="dialog" aria-modal="true" aria-labelledby="stFldT" aria-describedby="stFldD">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization Tracker &middot; Error detected</div><h2 class="tbl-title" id="stFldT">Approve detected errors</h2></div>
+      <button type="button" class="tbl-x" data-stfldx="1" aria-label="Close"></button>
+      <p class="tbl-sub" id="stFldD">Tick the items you approve for this ticket. An approved item is never raised again; anything left unticked goes back to the contractor as rework.</p>
+    </div>
+    <div class="tbl-body">
+      <div id="stFldBody"></div>
+      <label class="st-rev-l" for="stFldNote">Note (optional, kept on the approved items)</label>
+      <textarea id="stFldNote" class="st-rev-t" maxlength="500" rows="2" aria-describedby="stFldH stFldE"></textarea>
+      <span class="st-rev-h" id="stFldH">0 / 500</span>
+      <p class="st-rev-e" id="stFldE" role="alert"></p>
+      <div class="tbl-actions tbl-row">
+        <button type="button" class="tbl-submit" id="stFldGo">Approve selected</button>
+        <button type="button" class="tbl-cancel" data-stfldx="1">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
   <div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAddTitle" aria-describedby="tsAddDesc">
     <div class="tbl-head">
       <span class="tbl-head-ic" aria-hidden="true" data-ic="plus" data-sz="20"></span>
       <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization &middot; Checklist</div><h2 class="tbl-title" id="tsAddTitle">Add new check</h2></div>
       <button type="button" class="tbl-x" onclick="tsCloseAdd()" aria-label="Close" data-ic="close" data-sz="18"></button>
-      <p class="tbl-sub" id="tsAddDesc">Add a check to the SIM Title, Root Cause Details, Hashtags or ClosureCode section.</p>
+      <p class="tbl-sub" id="tsAddDesc">Add a check to the Hashtags section. The SIM Title, Root Cause Details and ClosureCode checks come from the code and cannot be edited here.</p>
     </div>
     <div class="tbl-body">
       <label class="tbl-label" for="tsAddSec">Section</label>
       <select id="tsAddSec"></select>
       <label class="tbl-label" for="tsAddText">Check</label>
-      <textarea id="tsAddText" maxlength="1000" rows="4" placeholder="e.g. Has a valid country code"
+      <textarea id="tsAddText" maxlength="1000" rows="4" placeholder="e.g. One #hashtag that fits the case"
         onkeydown="if(event.key==='Enter'&amp;&amp;(event.ctrlKey||event.metaKey)){event.preventDefault();tsAdd();}"></textarea>
       <div class="tbl-err" id="tsAddErr" role="alert"></div>
       <div class="tbl-actions tbl-row">
@@ -611,10 +663,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=240"></script>
-<script src="sanitization-view.js?v=18"></script>
+<script src="sanitization-view.js?v=19"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=6"></script>
+<script src="sanitization-checklist.js?v=7"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -650,7 +702,7 @@ function findC(login){ for(var i=0;i<ST.list.length;i++) if(ST.list[i].login===l
 // Most tickets to sanitize first, ties by login A-Z.
 function sortList(l){ return l.slice().sort(function(a,b){
   return (Number(b.needsCorrection)||0)-(Number(a.needsCorrection)||0) || String(a.login).localeCompare(String(b.login)); }); }
-function totals(){ var t={assigned:0,cleared:0,need:0,wait:0,err:0,ded:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.wait+=Number(c.awaiting)||0; t.err+=Number(c.errorTickets)||0; t.ded+=Number(c.errorDeducted)||0; }); return t; }
+function totals(){ var t={assigned:0,cleared:0,need:0,wait:0,err:0,ded:0}; ST.list.forEach(function(c){ t.assigned+=Number(c.assigned)||0; t.cleared+=Number(c.cleared)||0; t.need+=Number(c.needsCorrection)||0; t.wait+=Number(c.awaiting)||0; t.err+=Number(c.errorTickets)||0; t.ded+=Number(c.errorDetected)||0; }); return t; }
 
 // ---- Hero / login gate ----
 // CON = the Contractors section is on the page (owner + contractors; removed if the server says 403).
@@ -700,7 +752,7 @@ function kpisHtml(){
     k('is-ok','check-circle','Total tickets successfully santizied',done?num(t.cleared):'','')+
     k('is-bad','alert-triangle','Total tickets that needs to be santizied',done?num(t.need):'','')+
     k('is-base','clock','Total tickets Temporarily santizied',done?num(t.wait):'','')+
-    k('is-bad','alert-triangle','Total tickets in which error was deducted after upload',done?num(t.ded):'','')+
+    k('is-bad','alert-triangle','Total tickets with errors detected on the last upload',done?num(t.ded):'','')+
     (S.isOwner()?kBtn('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'','apvOpen'):k('is-acc','flag','Total Error tickets that needs approval',done?num(t.err):'',''))+
     '</ul>';
 }
@@ -842,10 +894,11 @@ function loadView(login,force,after){
       // Error tickets the server counted but did not send (contractors): kept in the local totals.
       d.errHidden=Math.max(0,((d.totals&&d.totals.errorTickets)||0)-V.sections(d).err.length);
       VIEWS[login]={data:d};
-      // The card's Error deducted tile = this view's Error Deducted section count (an older API's list lacks it).
-      var dc=findC(login), dn=V.sections(d).ded.length;
-      if(dc&&dc.errorDeducted!==dn){
-        dc.errorDeducted=dn;
+      // The card's Errors detected tile = this view's Error detected section count (the owner sees the
+      // rows; a contractor gets only the count, which the server's totals already carry).
+      var dc=findC(login), dn=S.isOwner()?V.sections(d).ded.length:((d.totals&&d.totals.errorDetected)||0);
+      if(dc&&dc.errorDetected!==dn){
+        dc.errorDetected=dn;
         var fc=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#stCardsBody [data-login]');
         renderCards(fc?fc.getAttribute('data-login'):null);
       }
@@ -903,9 +956,13 @@ function findT(sid){ var v=SEL&&VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return null;
 // Totals of the shown contractor changed: refresh its card / KPIs (owner) and the top-bar count pill.
 function syncTotals(){
   var v=VIEWS[SEL]&&VIEWS[SEL].data; if(!v) return;
+  // Error detected rows are owner-only, so a contractor's recomputed total would drop to 0: keep the
+  // count the server sent (the same trick as errHidden for the error tickets).
+  var det=(v.totals&&v.totals.errorDetected)||0;
   v.totals=V.totalsOf(v);
+  if(!S.isOwner()) v.totals.errorDetected=det;
   var c=findC(SEL);
-  if(c){ c.needsCorrection=v.totals.needsCorrection; c.awaiting=v.totals.awaiting; c.errorTickets=v.totals.errorTickets; c.errorDeducted=v.totals.errorDeducted; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
+  if(c){ c.needsCorrection=v.totals.needsCorrection; c.awaiting=v.totals.awaiting; c.errorTickets=v.totals.errorTickets; c.errorDetected=v.totals.errorDetected; c.cleared=v.totals.cleared; renderCards(); renderKpis(); }
   if(S.refresh) S.refresh();
 }
 var STATUS_WORD=(V&&V.STATUS_LABEL)||{};
@@ -1040,6 +1097,111 @@ function restoreApproved(sid){
   });
 }
 
+// ---- Error detected: Rework and per-item Approve (owner only; POST /api/sanitization-validation/review) ----
+// ONE ticket at a time (the endpoint rejects anything bulk-shaped): Rework posts an empty approveFields
+// list, Approve posts exactly the items the owner ticked in #stFldModal. The bulk apvHtml / apvOpen /
+// apvApprove pop-up below belongs to the separate Error tickets flow and is NOT reused here.
+var FLD=null;   // open per-item pop-up: {shortId, login, busy}
+function detRows(){ var v=curView(); return v?V.sections(v).ded:[]; }
+function detOf(sid){ var r=detRows(); for(var i=0;i<r.length;i++) if(r[i].shortId===sid) return r[i]; return null; }
+function detFails(t){ return (t&&t.validation&&t.validation.failures)||[]; }
+// The row as it will come back from the server: every item approved -> sanitized; anything left ->
+// back to the contractor's Tickets to sanitize with the owner's note (FEAT-002 evalTicket rules).
+function applyReview(t,d,note){
+  var keep=detFails(t).filter(function(f){ return (d.rework||[]).indexOf(f.key)>=0; });
+  if(!keep.length){
+    t.status='cleared'; t.clearedNow=true; t.validation=null; t.returned=null;
+    t.note='Every error detected on this ticket was approved by the owner';
+  }else{
+    t.status='needs-correction'; t.clearedNow=false; t.mark=null; t.verifiedMark=null;
+    t.returned={note:d.ownerNote||note||'',at:d.at||null,by:d.by||ME};
+    var val=t.validation||{};
+    t.validation={closureCode:val.closureCode,scope:val.scope,detectedAt:val.detectedAt,failures:keep,fields:val.fields};
+    t.missingNow=keep.map(function(f){ return f.label; });
+  }
+}
+function fldClose(force){
+  var bg=$('stFldModal'); if(!bg||bg.style.display==='none') return;
+  if(FLD&&FLD.busy&&!force) return;
+  var sid=FLD?FLD.shortId:'';
+  FLD=null; bg.style.display='none'; if(window.PHDLoginUI) window.PHDLoginUI.closed(bg);
+  var b=sid?document.querySelector('[data-stvapv="'+sid+'"]'):null; if(b) try{ b.focus(); }catch(e){}
+}
+function fldOpen(sid){
+  var t=detOf(sid); if(!t||!canReview(SEL)||REVBUSY||BUSY[sid]) return;
+  var bg=$('stFldModal'); if(!bg) return;
+  FLD={shortId:sid,login:SEL,busy:false};
+  // This page does not run the shared [data-ic] fill loop, so paint the dialog glyphs by hand.
+  var hi=bg.querySelector('.tbl-head-ic'); if(hi) hi.innerHTML=ic('shield',20);
+  var hx=bg.querySelector('.tbl-x'); if(hx) hx.innerHTML=ic('close',18);
+  $('stFldBody').innerHTML=V.apvFieldsHtml(t,{h:{ic:ic,when:S.when,url:S.url}});
+  var ta=$('stFldNote'); if(ta){ ta.value=''; ta.removeAttribute('aria-invalid'); }
+  $('stFldH').textContent='0 / 500'; $('stFldE').textContent='';
+  var go=$('stFldGo'); if(go){ go.disabled=false; go.removeAttribute('aria-busy'); go.textContent='Approve selected'; }
+  bg.style.display='flex';
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,fldClose,$('stFldBody').querySelector('input[type="checkbox"]')||ta);
+  else setTimeout(function(){ var f=$('stFldBody').querySelector('input[type="checkbox"]'); if(f) f.focus(); },40);
+  announce('Approve detected errors on '+sid+': tick the items you approve, then Approve selected.');
+}
+function fldSetBusy(on){
+  if(FLD) FLD.busy=on; REVBUSY=on;
+  ['stFldGo','stFldNote'].forEach(function(id){ var x=$(id); if(x) x.disabled=on; });
+  var g=$('stFldGo'); if(g){ if(on) g.setAttribute('aria-busy','true'); else g.removeAttribute('aria-busy'); }
+  var cs=document.querySelectorAll('#stFldModal [data-stfldx],#stFldModal input[type="checkbox"]');
+  for(var i=0;i<cs.length;i++) cs[i].disabled=on;
+}
+function fldPicked(){
+  var out=[], cs=document.querySelectorAll('#stFldBody [data-stvapvf]');
+  for(var i=0;i<cs.length;i++) if(cs[i].checked) out.push(cs[i].getAttribute('data-stvapvf'));
+  return out;
+}
+// Both actions share one request; keys = the approved items ([] = Rework, the whole ticket goes back).
+function postReview(sid,keys,note,ui){
+  var login=SEL, t=detOf(sid); if(!t) return;
+  A.api('POST','/api/sanitization-validation/review',{shortId:sid,approveFields:keys,note:note,login:login}).then(function(r){ return r; },function(){ return null; }).then(function(r){
+    if(!(r&&r.ok&&r.data&&r.data.ok)){ ui.fail((r&&r.data&&r.data.error)||'Could not save the review. Please try again.'); return; }
+    var d=r.data;
+    if(VIEWS[login]&&VIEWS[login].data) applyReview(t,d,note);
+    ui.done(d);
+    if(SEL!==login) return;
+    syncTotals(); renderView('#stViewH');
+    var n=(d.approved||[]).length, left=(d.rework||[]).length;
+    announce(left?(sid+': '+(n?V.plural(n,'item')+' approved, ':'')+V.plural(left,'item')+' sent back to the contractor as rework.')
+      :(sid+': every detected error approved \u2014 the ticket counts as sanitized.'));
+  });
+}
+function fldSubmit(){
+  if(!FLD||FLD.busy) return;
+  var sid=FLD.shortId, keys=fldPicked(), er=$('stFldE'), ta=$('stFldNote'), note=String(ta?ta.value:'').trim();
+  if(!keys.length){ if(er) er.textContent='Tick at least one item to approve, or close this and use Rework to send the whole ticket back.'; announce('Tick at least one item to approve.'); return; }
+  if(note.length>500){ if(er) er.textContent='The note can be at most 500 characters.'; if(ta){ ta.setAttribute('aria-invalid','true'); ta.focus(); } return; }
+  if(er) er.textContent='';
+  fldSetBusy(true); var g=$('stFldGo'); if(g) g.textContent='Approving\u2026';
+  postReview(sid,keys,note,{
+    fail:function(msg){ fldSetBusy(false); if(g) g.textContent='Approve selected'; if(er) er.textContent=msg; announce(msg); },
+    done:function(){ REVBUSY=false; fldClose(true); },
+  });
+}
+// Rework: no items approved, so the whole ticket goes back to the contractor with what is missing.
+function reworkTicket(sid){
+  var t=detOf(sid); if(!t||!canReview(SEL)||REVBUSY||BUSY[sid]) return;
+  BUSY[sid]=true; NOTE=''; renderView('[data-stvfix="'+sid+'"]');
+  postReview(sid,[],'',{
+    fail:function(msg){ delete BUSY[sid]; NOTE=msg; renderView('#stvNote'); announce(msg); },
+    done:function(){ delete BUSY[sid]; },
+  });
+}
+// The pop-up lives outside #wrap, so it carries its own handlers (bound once at start).
+function bindFld(){
+  var bg=$('stFldModal'); if(!bg) return;
+  bg.addEventListener('click',function(e){
+    if(e.target.closest('[data-stfldx]')){ fldClose(); return; }
+    if(e.target.closest('#stFldGo')) fldSubmit();
+  });
+  bg.addEventListener('input',function(e){ if(e.target&&e.target.id==='stFldNote'){ $('stFldH').textContent=e.target.value.length+' / 500'; e.target.removeAttribute('aria-invalid'); $('stFldE').textContent=''; } });
+  bg.addEventListener('keydown',function(e){ if(e.target&&e.target.id==='stFldNote'&&e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); fldSubmit(); } });
+}
+
 // ---- Events ----
 document.addEventListener('change',function(e){
   var t=e.target; if(!t||!t.closest||!t.closest('#stViewBody')) return;
@@ -1103,6 +1265,9 @@ document.addEventListener('click',function(e){
     if(onote){ onote.textContent=blocked?'Your browser blocked some tabs - allow pop-ups for this site and click Open all again.':''; onote.hidden=!blocked; }
     return;
   }
+  // Error detected (owner only): Rework sends the whole ticket back, Approve opens the per-item pop-up.
+  var fx=t.closest('[data-stvfix]'); if(fx&&!fx.disabled){ reworkTicket(fx.getAttribute('data-stvfix')); return; }
+  var fa=t.closest('[data-stvapv]'); if(fa&&!fa.disabled){ fldOpen(fa.getAttribute('data-stvapv')); return; }
   var rv=t.closest('[data-stvrev]');
   if(rv&&!rv.disabled){
     var rb=rv.getAttribute('data-stvrev').split(':'), act=rb[0]==='approve'?'approve':'return';
@@ -1111,7 +1276,7 @@ document.addEventListener('click',function(e){
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
   if(pg&&!pg.disabled){
-    // sec: 'ded' (Error deducted), 'need' (Tickets to sanitize) or 'ok' (Tickets sanitized successfully).
+    // sec: 'ded' (Error detected), 'need' (Tickets to sanitize) or 'ok' (Tickets sanitized successfully).
     var bits=pg.getAttribute('data-sanpage').split(':'), sec=(bits[0]==='need'||bits[0]==='ded')?bits[0]:'ok', dir=Number(bits[1])>(PG[sec]||0)?'next':'prev';
     PG[sec]=Math.max(0,Number(bits[1])||0);
     OPEN=sec;
@@ -1121,7 +1286,7 @@ document.addEventListener('click',function(e){
     if(f&&f.disabled) f=dir==='next'?bs[0]:bs[bs.length-1];
     if(f) try{ f.focus(); }catch(err){}
     var box=f&&f.closest('.tb-san-in'), sc=box&&box.querySelector('.tb-asg-scroll'); if(sc) sc.scrollTop=0;
-    announce((sec==='ok'?'Tickets sanitized successfully':'Tickets to sanitize')+': page '+(PG[sec]+1));
+    announce((sec==='ok'?'Tickets sanitized successfully':(sec==='ded'?'Error detected':'Tickets to sanitize'))+': page '+(PG[sec]+1));
   }
 });
 // One-open-at-a-time accordion: opening a section closes the others; OPEN survives re-renders
@@ -1182,7 +1347,7 @@ function bindInfo(){
   buildPage();
   CK.start();
   if(!CON) return;
-  bindInfo();
+  bindInfo(); bindFld();
   // Times in the account timezone (IST / MST), like the rest of the app.
   if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); } } }).catch(function(){});
   loadList(false);

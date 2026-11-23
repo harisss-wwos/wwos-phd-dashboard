@@ -1,15 +1,18 @@
 // Sanitization Tracker ticket view (sanitization-tracker.html): one contractor's tickets from
-// GET /api/my-sanitization, split into 0 Error Deducted tickets after verification/new Upload (marked,
-// then failed the check after a newer upload: verifiedFailed) / 1 Tickets to sanitize / 2 Temporarily
-// cleared / 3 Error tickets that need approval / 4 Tickets sanitized successfully. Sections 0 + 1 make
-// up the 'to sanitize' totals. Pure string builders (no DOM, no network), so
-// they also run under node for unit tests.
+// GET /api/my-sanitization, split into 0 Error detected (owner only: the items the last data upload
+// found missing, waiting for the owner) / 1 Tickets to sanitize / 2 Temporarily cleared / 3 Error
+// tickets that need approval / 4 Tickets sanitized successfully. Pure string builders (no DOM, no
+// network), so they also run under node for unit tests.
 // The server sets each ticket's status: 'needs-correction' (to sanitize) | 'awaiting' (temporarily
-// cleared) | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded' (sanitization-assign.js
-// evalTicket). A ticket is verified ONLY once the agent marks it (Successful / Immediately Resolved /
-// Duplicate) and a newer upload arrives; then the SIM closure code is checked (rule A): pass ->
-// sanitized, fail -> back to to-sanitize with the defect (the mark is consumed). Before that there is
-// no closure-code check: unmarked rows show the raw score out of 11 and the missing Title / RCD checks.
+// cleared) | 'error-detected' | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded'
+// (sanitization-assign.js evalTicket). After every data upload the server validates each ticket on its
+// UPLOADED closure code (server/sanitization-validate.js): Immediately Resolved -> the 3 title checks
+// (country code, issue type, severity) and nothing else; Successful -> those 3 plus the ten Sim Root
+// Cause Details fields (Issue, Date and Res need a value, Cnt a number or N/A, the other seven a value
+// or N/A); Duplicate -> nothing is checked. A ticket with anything missing becomes 'error-detected' and
+// carries row.validation = { closureCode, scope, detectedAt, failures, fields }: the owner approves
+// single items (errDetTable + apvFieldsHtml, one ticket at a time) or sends it back for rework. Those
+// tickets count in neither the sanitized nor the to-sanitize total until the owner acts.
 // Error tickets go to the owner for review (owner-only section; contractors get only the count) and
 // stay until approved or sent back (`returned` note on the to-sanitize row). The four sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
@@ -80,19 +83,21 @@
       wait: ['is-wait', 'Temporarily sanitized (waiting for new upload)', 'Temp. sanitized', 'Waiting for the next data upload', n(T.awaiting)],
       ok: ['is-ok', 'Tickets sanitized successfully', 'Successfully sanitized', '', n(T.cleared)],
       err: ['is-errn', 'Error tickets that need approval to be marked as sanitized', 'Errors needing approvals', 'Marked Error \u2014 waiting for owner approval', n(T.errorTickets)],
-      // Error Deducted tickets after verification/new Upload (sections().ded; part of To sanitize).
-      // null = not known yet (an older server without totals.errorDeducted): shown as a dash.
-      ded: ['is-ded', 'Error Deducted tickets after verification/new Upload', 'Error deducted', 'Marked, then failed the check after a newer data upload (still to sanitize)', T.errorDeducted == null ? null : n(T.errorDeducted)],
+      // Error detected (sections().ded): counted in neither To sanitize nor Sanitized.
+      // null = not known yet (an older server without totals.errorDetected): shown as a dash.
+      ded: ['is-ded', 'Tickets with errors detected on the last upload', 'Errors detected', 'Tickets with errors detected on the last upload, waiting for the owner', T.errorDetected == null ? null : n(T.errorDetected)],
     };
     if (!showErr) delete b.err;
     return b;
   }
   function pctOf(v, a) { return a ? Math.round((Number(v) || 0) / a * 100) : 0; }
   function numTxt(v) { return (Number(v) || 0).toLocaleString('en-US'); }
-  // Stacked bar (green sanitized, blue temp, amber errors, light red to sanitize) + '% sanitized'.
+  // Stacked bar (green sanitized, blue temp, amber error tickets, red errors detected, light red to
+  // sanitize) + '% sanitized'. Errors detected are their own segment: they are in neither To sanitize
+  // nor Sanitized, so the bar would not add up without them.
   function barHtml(B, a, cls) {
     var seg = function (k) { var r = B[k]; return r && r[4] ? '<span class="' + r[0] + '" style="width:' + (a ? Math.min(100, r[4] / a * 100).toFixed(2) : 0) + '%"></span>' : ''; };
-    return '<div class="stv-sbar' + (cls ? ' ' + cls : '') + '"><span class="stv-sbar-t" aria-hidden="true">' + seg('ok') + seg('wait') + seg('err') + seg('bad')
+    return '<div class="stv-sbar' + (cls ? ' ' + cls : '') + '"><span class="stv-sbar-t" aria-hidden="true">' + seg('ok') + seg('wait') + seg('err') + seg('ded') + seg('bad')
       + '</span><b>' + pctOf(B.ok[4], a) + '% sanitized</b></div>';
   }
   // Card stats: a <dl> laid out as a grid: total assigned (sr-only; the card header shows it), the hero
@@ -122,8 +127,8 @@
     var B = buckets(T, o.showErr), a = B.tot[4];
     var tiles = [[B.tot, 'Total assigned'], [B.bad, 'To sanitize'], [B.wait, 'Temporarily sanitized'], [B.ok, 'Sanitized successfully']];
     if (B.err) tiles.push([B.err, 'Errors awaiting approval']);
-    tiles.push([B.ded, 'Error deducted after verification']);
-    var leg = [[B.ok, 'Sanitized'], [B.wait, 'Temporarily sanitized'], [B.err, 'Errors awaiting approval'], [B.bad, 'To sanitize']].filter(function (l) { return l[0]; });
+    tiles.push([B.ded, 'Errors detected on the last upload']);
+    var leg = [[B.ok, 'Sanitized'], [B.wait, 'Temporarily sanitized'], [B.err, 'Errors awaiting approval'], [B.ded, 'Errors detected'], [B.bad, 'To sanitize']].filter(function (l) { return l[0]; });
     return '<dl class="stv-kpis' + (B.err ? '' : ' is-k5') + '">' + tiles.map(function (t) {
       var r = t[0], tot = r === B.tot;
       return '<div class="stv-kpi ' + r[0] + (r[4] || tot ? '' : ' is-zero') + '" title="' + esc(r[3] || r[1]) + '">'
@@ -147,12 +152,13 @@
       return ((ratioOf(a) - ratioOf(b)) * d) || ((pa - pb) * d) || String(a.assignedAt || '').localeCompare(String(b.assignedAt || '')) || String(a.shortId).localeCompare(String(b.shortId));
     });
   }
-  // Tickets per section (server order inside each). ded = to-sanitize tickets whose mark failed the
-  // check after a newer upload (server verifiedFailed); need = the other to-sanitize tickets.
+  // Tickets per section (server order inside each). ded = Error detected: the last upload found items
+  // missing and the owner has not approved them yet (server status 'error-detected', owner-only rows);
+  // need = the tickets to sanitize.
   function sections(v) {
     var out = { ded: [], need: [], wait: [], err: [], ok: [], nf: [], ex: [] };
-    var key = { 'needs-correction': 'need', awaiting: 'wait', 'error-ticket': 'err', cleared: 'ok', 'not-found': 'nf', excluded: 'ex' };
-    ((v && v.tickets) || []).forEach(function (t) { var k = key[t.status]; if (k === 'need' && t.verifiedFailed) k = 'ded'; if (k) out[k].push(t); });
+    var key = { 'needs-correction': 'need', awaiting: 'wait', 'error-detected': 'ded', 'error-ticket': 'err', cleared: 'ok', 'not-found': 'nf', excluded: 'ex' };
+    ((v && v.tickets) || []).forEach(function (t) { var k = key[t.status]; if (k) out[k].push(t); });
     return out;
   }
   // Needs-correction reasons (server: sanitization-assign.js NEED_REASONS).
@@ -162,10 +168,11 @@
   function totalsOf(v) {
     var s = sections(v), all = (v && v.tickets) || [], hid = Math.max(0, Number(v && v.errHidden) || 0);
     var needBy = {}; NEED_REASONS.forEach(function (k) { needBy[k] = 0; });
-    s.ded.concat(s.need).forEach(function (t) { if (needBy[t.reason] != null) needBy[t.reason]++; });
-    // To sanitize = both lists (error-deducted tickets still count as to sanitize).
-    return { assigned: all.length + hid, cleared: s.ok.length, needsCorrection: s.ded.length + s.need.length, needBy: needBy, awaiting: s.wait.length,
-      errorDeducted: s.ded.length,
+    s.need.forEach(function (t) { if (needBy[t.reason] != null) needBy[t.reason]++; });
+    // Error detected tickets are in NEITHER needsCorrection NOR cleared: they add nothing to the
+    // agent's sanitization total until the owner approves their items (same rule as the server).
+    return { assigned: all.length + hid, cleared: s.ok.length, needsCorrection: s.need.length, needBy: needBy, awaiting: s.wait.length,
+      errorDetected: s.ded.length,
       errorTickets: s.err.length + hid, notFound: s.nf.length, excluded: s.ex.length, pending: all.filter(function (t) { return !t.verified; }).length,
       legacyCompleted: all.filter(function (t) { return t.legacyCompleted; }).length };
   }
@@ -347,6 +354,60 @@
         : '<p class="tb-asg-empty">No approved errors for this contractor.</p>')
       + '</details>';
   }
+  // The ten Sim Root Cause Details fields, in rule order. KEEP IN SYNC with
+  // server/sanitization-validate.js RCD_FIELDS (the page cannot require the server module).
+  var RCD_KEYS = ['Issue', 'SID', 'TID', 'Driv', 'Date', 'Cnt', 'Zip', 'CID', 'UPID', 'Res'];
+  // The rules in one sentence, for the section help texts. KEEP IN SYNC with
+  // server/sanitization-validate.js RULES.
+  var RULES_TEXT = 'The uploaded closure code picks the checks: Immediately Resolved \u2014 the 3 title checks '
+    + '(country code, issue type, severity) and nothing else; Successful \u2014 those 3 plus the ten Sim Root Cause Details '
+    + 'fields, where Issue, Date and Res must have a value, Cnt must be a number or N/A, and the other seven may be a '
+    + 'value or N/A; Duplicate \u2014 nothing is checked.';
+  // The items the last upload found missing and the owner has not approved yet.
+  function failList(t) { return (t && t.validation && t.validation.failures) || []; }
+  // Owner-only Error detected: Ticket ID | Title | Closure code | Missing items | Detected at |
+  // Rework / Approve. No row checkbox, no select-all and no bulk toolbar on purpose (unlike
+  // errReviewHtml): a detected error is reviewed one ticket at a time, item by item.
+  function errDetTable(rows, o, h) {
+    o = o || {}; var busy = o.busy || {}, rb = !!o.revBusy;
+    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Tickets with errors detected" tabindex="0"><table class="stv-tbl is-flat is-line stv-errdet">'
+      + '<caption class="tb-asg-sr">Tickets whose items the last data upload found missing, waiting for your review</caption>'
+      + '<thead><tr><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-fit">Closure code</th>'
+      + '<th scope="col" class="stv-mc">Missing items</th><th scope="col" class="stv-fit">Detected at</th>'
+      + '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th></tr></thead><tbody>'
+      + rows.map(function (t) {
+        var sid = esc(t.shortId), val = t.validation || {}, fs = failList(t), b = !!busy[t.shortId] || rb;
+        return '<tr>' + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title')
+          + '<td class="stv-fit">' + codeTag(val.closureCode == null ? t.closureCode : val.closureCode) + '</td>'
+          + '<td class="stv-mc">' + (fs.length ? '<ul class="stv-items">' + fs.map(function (f) {
+            return '<li title="' + esc(f.message || '') + '"><b>' + esc(f.label) + '</b></li>';
+          }).join('') + '</ul>' : '\u2014') + '</td>'
+          + '<td class="tb-asg-nw stv-fit">' + esc(h.when(val.detectedAt)) + '</td>'
+          + '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to the contractor</span></button> '
+          + '<button type="button" class="tb-san-btn stv-save" data-stvapv="' + sid + '"' + (b ? ' disabled' : '') + '>Approve\u2026<span class="tb-asg-sr"> items of ' + sid + '</span></button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  // Body of the per-ticket Approve pop-up (sanitization-tracker.html #stFldModal): EVERY missing item
+  // with its own checkbox (ticked = approved for good, left for rework otherwise), then the ten stored
+  // Sim Root Cause Details values for reference. No select-all and no bulk approve: one ticket only.
+  function apvFieldsHtml(t, o) {
+    o = o || {}; var h = o.h || {}, val = (t && t.validation) || {}, fs = failList(t), sid = esc(t && t.shortId);
+    var when = h.when || function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
+    var f = val.fields || {};
+    return '<p class="stv-apvf-m">' + sid + ' \u00b7 ' + codeTag(val.closureCode == null ? (t && t.closureCode) : val.closureCode)
+      + (val.detectedAt ? ' \u00b7 <span class="stv-by">detected ' + esc(when(val.detectedAt)) + '</span>' : '') + '</p>'
+      + '<fieldset class="stv-apvf"><legend>Items to approve</legend>'
+      + (fs.length ? '<ul class="stv-apvf-l">' + fs.map(function (x) {
+        var id = 'stvApvF-' + String(x.key).replace(/[^A-Za-z0-9_-]/g, '');
+        return '<li><input type="checkbox" id="' + id + '" data-stvapvf="' + esc(x.key) + '">'
+          + '<label for="' + id + '"><b>' + esc(x.label) + '</b><span class="stv-apvf-msg">' + esc(x.message || '') + '</span></label></li>';
+      }).join('') + '</ul>' : '<p class="tb-asg-empty">Nothing is waiting for approval on this ticket.</p>')
+      + '</fieldset>'
+      + '<details class="stv-apvf-rcd"><summary>Sim Root Cause Details on the last upload</summary>'
+      + '<dl class="stv-apvf-d">' + RCD_KEYS.map(function (k) {
+        return '<div><dt>' + esc(k) + '</dt><dd>' + esc(f[k] == null ? 'N/A' : f[k]) + '</dd></div>';
+      }).join('') + '</dl></details>';
+  }
   // v = the contractor's view; o = { who, login, pageSize, page:{ded, need, ok}, open ('ded'|'need'|'wait'|'err'|'ok'|null,
   // default 'need'), sortDir, errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the
   // viewer may not mark this contractor's tickets), review (owner: Error tickets section + review
@@ -356,7 +417,9 @@
     if (v && v.maxScore != null) setMax(v.maxScore);
     if (!h.when) h.when = function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
     var T = v.totals || totalsOf(v), S = sections(v);
-    T.errorDeducted = S.ded.length;   // the Error Deducted section's count (also when the server's totals lack it)
+    // The Error detected count: from the rows for the owner (so a local review updates it at once),
+    // from the server's totals for everyone else - they are sent the count but none of the rows.
+    if (o.review || T.errorDetected == null) T.errorDetected = S.ded.length;
     if (!T.assigned) return '<p class="tb-asg-empty">' + (o.who ? ('No sanitization tickets assigned to ' + esc(o.who)) : 'No sanitization tickets assigned to you') + '</p>';
     var size = o.pageSize || 0, pg = o.page || {};
     var clampPg = function (p, n) { return size ? Math.max(0, Math.min(Number(p) || 0, Math.ceil(n / size) - 1)) : 0; };
@@ -375,21 +438,25 @@
     // (readOnly = someone else's tickets); Sanitized includes owner-approved errors.
     var html = '<div class="tb-san-sum stv-sum">' + sumStatsHtml(T, { showErr: rev || !o.readOnly, asOf: asOf })
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
-    // First: tickets marked Successful / Immediately Resolved / Duplicate that failed the check after a
-    // newer upload (still counted as to sanitize; listed here instead of Tickets to sanitize).
-    var dedLbl = 'Error Deducted tickets after verification/new Upload';
-    html += sec('ded', 'is-ded', dedLbl, ded.length)
-      + (ded.length ? '<p class="stv-help">You marked these tickets, but the SIM closure code check after a newer data upload failed (the defect is in red). Fix the ticket in SIM, then set its status again.</p>'
-        + needTable(dedRows, o, h, dedLbl) + pager('ded', dedPg, size, ded.length, dedLbl)
-        : '<p class="tb-asg-empty">No marked tickets failed the check after the last data upload.</p>')
-      + '</div></details>';
+    // First, for the owner only: the tickets whose items the last data upload found missing. The count
+    // is in the KPI strip for everyone; the rows and the two actions are the owner's.
+    var dedLbl = 'Error detected';
+    if (rev) {
+      html += sec('ded', 'is-ded', dedLbl, ded.length)
+        + (ded.length ? '<p class="stv-help">The last data upload found these items missing. ' + RULES_TEXT
+          + ' Approve lists the ticket\u2019s items one by one: an approved item is never raised again. Rework sends the ticket back to the contractor, naming the items still missing. Until you do one of the two, the ticket counts as neither sanitized nor to sanitize.</p>'
+          + errDetTable(dedRows, o, h) + pager('ded', dedPg, size, ded.length, dedLbl)
+          : '<p class="tb-asg-empty">No errors detected on the last data upload.</p>')
+        + '</div></details>';
+    }
     html += sec('need', 'is-bad', 'Tickets to sanitize', need.length)
-      + (need.length ? '<p class="stv-help">Fix the title and Root Cause Details, close the ticket in SIM, then set the status you closed it with. The closure code is checked only after the next data upload: Successful needs all 11 checks (a valid RCD Issue covers a missing title issue type), Immediately Resolved or Automatically Closed (an Out of Scope of PHD issue type, or a pet type other than Attack w/pet with Sev 3\u20135) the 3 title checks, Duplicate none. Defects from that check are in red.</p>'
+      + (need.length ? '<p class="stv-help">Fix the title and Sim Root Cause Details, close the ticket in SIM, then set the status you closed it with. The checks run on the next data upload, on the closure code the upload carries. ' + RULES_TEXT + '</p>'
         + needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets to sanitize')
-        : '<p class="tb-asg-empty">' + (ded.length ? 'No other tickets to sanitize. Fix the tickets in ' + dedLbl + '.' : (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89')) + '</p>')
+        : '<p class="tb-asg-empty">' + (ded.length ? 'No other tickets to sanitize. The tickets in ' + dedLbl + ' are waiting for the owner.' : (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89')) + '</p>')
       + '</div></details>';
     html += sec('wait', 'is-temp', 'Temporarily cleared', S.wait.length)
-      + '<p class="stv-help">Checked after the next data upload against the SIM closure code: if it passes, the ticket moves to Tickets sanitized successfully; otherwise it moves to Error Deducted tickets after verification/new Upload with the defect, and you mark it again after fixing.</p>'
+      + '<p class="stv-help">Checked on the next data upload, on the closure code the upload carries. ' + RULES_TEXT
+      + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: the owner sees it under ' + dedLbl + ' and either approves the items or sends the ticket back to you with what is missing.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
       html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)
@@ -436,7 +503,9 @@
   var api = { setMax: setMax, max: function () { return MAX; }, hue: hueOf, missText: missText, defectText: defectText, missDef: missDef, scoreHtml: scoreHtml, pager: pager,
     sortNeed: sortNeed, sections: sections, totalsOf: totalsOf, statusAfter: statusAfter, viewHtml: viewHtml, plural: plural,
     nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds,
-    hueRatio: hueRatio, ratioHtml: ratioHtml, cardStatsHtml: cardStatsHtml, sumStatsHtml: sumStatsHtml, pillHtml: pillHtml, codeTag: codeTag, STATUS_OPTS: STATUS_OPTS, STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
+    hueRatio: hueRatio, ratioHtml: ratioHtml, cardStatsHtml: cardStatsHtml, sumStatsHtml: sumStatsHtml, pillHtml: pillHtml, codeTag: codeTag,
+    errDetTable: errDetTable, apvFieldsHtml: apvFieldsHtml, RCD_KEYS: RCD_KEYS, RULES_TEXT: RULES_TEXT,
+    STATUS_OPTS: STATUS_OPTS, STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PHDSanView = api;
 })(typeof window !== 'undefined' ? window : this);

@@ -52,7 +52,36 @@ var TS_SECTIONS=[
   {key:'closure',label:'ClosureCode',icon:'check-circle'}
 ];
 var TS_OTHER={key:'other',label:'Other',icon:'info'};
-var TS_ADD_SEC='SIM Title';  // last section picked in the editor's add row (kept across re-renders)
+// The checks the SERVER applies to every ticket after each data upload, keyed on the closure code the
+// upload carries. Read-only in the card: they come from the code, not from the database.
+// KEEP IN SYNC with server/sanitization-validate.js RULES (a browser file cannot require it).
+var TS_RULES=[
+  {key:'r-immediate',label:'Closure code "Immediately Resolved"',icon:'check-circle',lines:[
+    'SIM Title: a known country code at the start.',
+    'SIM Title: a valid issue type.',
+    'SIM Title: a severity (Sev 1-5).',
+    'Sim Root Cause Details is not checked for this closure code.']},
+  {key:'r-successful',label:'Closure code "Successful"',icon:'clipboard',lines:[
+    'SIM Title: a known country code at the start.',
+    'SIM Title: a valid issue type.',
+    'SIM Title: a severity (Sev 1-5).',
+    'Sim Root Cause Details: Issue, Date and Res must have a value.',
+    'Sim Root Cause Details: SID, TID, Driv, Zip, CID and UPID may have a value or N/A.',
+    'Sim Root Cause Details: Cnt must be a number or N/A (N/A counts as 0).']},
+  {key:'r-duplicate',label:'Closure code "Duplicate"',icon:'ticket',lines:[
+    'Nothing is checked.']},
+  {key:'r-other',label:'Any other closure code',icon:'info',lines:[
+    'Nothing is checked: the rules cover only Immediately Resolved, Successful and Duplicate.']},
+  {key:'r-skipped',label:'Tickets left out of validation',icon:'flag',lines:[
+    'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
+    'A ticket approved as an error is never validated again.',
+    'An item harisss approves on a ticket is never raised again; the other items keep being checked on every upload.']}
+];
+// The sections still rendered from the sanitization_checklist collection (and editable). The rows that
+// described the old 11-point SIM Title / Root Cause Details / ClosureCode checks are no longer shown -
+// TS_RULES replaces them - but they are left in the collection untouched.
+var TS_DB_KEYS=['tags','other'];
+var TS_ADD_SEC='Hashtags';  // last section picked in the editor's add row (kept across re-renders)
 function tsSectionKey(text){
   var m=TS_PREFIX_RE.exec(String(text==null?'':text)); if(!m) return 'other';
   var p=m[1].toLowerCase().replace(/\s+/g,' ');
@@ -62,14 +91,21 @@ function tsSectionKey(text){
   return 'tags';
 }
 function tsStripPrefix(text){ return String(text==null?'':text).replace(TS_PREFIX_RE,'').trim(); }
-// items -> [{key,label,icon,lines:[{idx,text}]}]; fixed section order, DB order within a section, 'Other' only when non-empty.
+// items -> [{key,label,icon,lines:[{idx,text}]}] for the DB-driven sections only (TS_DB_KEYS: Hashtags,
+// then 'Other' when a row carries no known prefix); fixed section order, DB order within a section.
+// `idx` stays the row's index in TS_ITEMS, so tsEdit / tsDelete keep working on the dropped rows' siblings.
 function tsGroup(items){
   var by={title:[],rcd:[],tags:[],closure:[],other:[]};
   (items||[]).forEach(function(it,idx){ by[tsSectionKey(it.text)].push({idx:idx,text:tsStripPrefix(it.text)}); });
-  var out=TS_SECTIONS.map(function(s){ return {key:s.key,label:s.label,icon:s.icon,lines:by[s.key]}; });
+  var out=TS_SECTIONS.filter(function(s){ return TS_DB_KEYS.indexOf(s.key)>=0; })
+    .map(function(s){ return {key:s.key,label:s.label,icon:s.icon,lines:by[s.key]}; });
   if(by.other.length) out.push({key:TS_OTHER.key,label:TS_OTHER.label,icon:TS_OTHER.icon,lines:by.other});
   return out;
 }
+// Lines the card actually shows: the code-defined rules + the DB rows of the sections left.
+function tsRuleLines(){ var n=0; TS_RULES.forEach(function(r){ n+=r.lines.length; }); return n; }
+function tsDbLines(){ var n=0; tsGroup(TS_ITEMS).forEach(function(s){ n+=s.lines.length; }); return n; }
+function tsCount(){ return tsRuleLines()+tsDbLines(); }
 // ---- end section grouping helpers ----
 
 // Sub-section open state: in memory only, kept across re-renders. On every page load the checklist
@@ -289,7 +325,7 @@ window.tsCopyPrompt=tsCopyPrompt;
 // ---- Building blocks ----
 // Hero summary chips ('N steps', 'Editor access' / 'View only'); the page puts them in its hero (#tsHeroChips).
 function chipsHtml(editor){
-  var n=TS_ITEMS.length;
+  var n=tsCount();   // the lines the card shows: the code-defined rules + the DB sections left
   return LOADING
     ? '<li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:120px;height:10px"></span></li><li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:70px;height:10px"></span></li>'
     : (LOAD_ERR?'<li><span>Checklist unavailable</span></li>':'<li><span><b>'+n+'</b> '+(n===1?'step':'steps')+'</span></li>')+
@@ -319,21 +355,35 @@ function tsLineHtml(key,text){
   return esc(text);
 }
 
+// One collapsible sub-section shell (header toggle + body); inner = the section's markup.
+function tsSecShell(key,label,icon,n,inner){
+  var hid='tsSec-'+key, lid='tsSecList-'+key, open=!!TS_OPEN[key];
+  return '<section class="ts-sec'+(open?' is-open':'')+'" aria-labelledby="'+hid+'">'+
+    '<h3 class="ts-sec-h" id="'+hid+'"><button type="button" class="ts-sec-tog" id="tsSecBtn-'+key+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+lid+'" onclick="tsToggleSec(\''+key+'\')">'+
+      '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
+      '<span class="ts-sec-ic" aria-hidden="true">'+ic(icon,15)+'</span><span class="ts-sec-lbl">'+esc(label)+'</span>'+
+      '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'line':'lines')+')</span></span></button></h3>'+
+    '<div class="ts-sec-body" id="'+lid+'"'+(open?'':' hidden')+'>'+inner+'</div></section>';
+}
+// The validation rules, read-only (no add / edit / delete): one collapsed section per closure code.
+function rulesHtml(){
+  return '<p class="ts-rules-n">'+ICO_INFO+'<span>Every ticket is checked by the server after each data upload, on the closure code the upload carries. '+
+    'These rules come from the code, so they cannot be edited here. Anything missing goes to <b>Error detected</b> in the Sanitization Center, '+
+    'where harisss approves single items or sends the ticket back for rework.</span></p>'+
+    TS_RULES.map(function(r){
+      return tsSecShell(r.key,r.label,r.icon,r.lines.length,
+        '<ul class="ts-rules">'+r.lines.map(function(l){ return '<li>'+esc(l)+'</li>'; }).join('')+'</ul>');
+    }).join('');
+}
 function stepsHtml(editor,anim){
   if(LOADING) return skeletonSections();
   if(LOAD_ERR) return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
       '<p class="ts-state-t">Couldn\u2019t load the checklist</p><p class="ts-state-p">'+esc(LOAD_ERR)+'</p></div>'+
       '<button type="button" class="ts-btn" id="tsRetry" onclick="tsRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
-  if(!TS_ITEMS.length) return '<div class="ts-empty">'+ICO_INFO+'No checklist lines yet.</div>';
   var seq=0;
-  return '<div class="ts-secs">'+tsGroup(TS_ITEMS).map(function(sec){
-    var hid='tsSec-'+sec.key, lid='tsSecList-'+sec.key, n=sec.lines.length, lab=sec.label, open=!!TS_OPEN[sec.key];
-    return '<section class="ts-sec'+(open?' is-open':'')+'" aria-labelledby="'+hid+'">'+
-      '<h3 class="ts-sec-h" id="'+hid+'"><button type="button" class="ts-sec-tog" id="tsSecBtn-'+sec.key+'" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+lid+'" onclick="tsToggleSec(\''+sec.key+'\')">'+
-        '<span class="ts-sec-chev" aria-hidden="true">'+ICO_CHEV+'</span>'+
-        '<span class="ts-sec-ic" aria-hidden="true">'+ic(sec.icon,15)+'</span><span class="ts-sec-lbl">'+esc(lab)+'</span>'+
-        '<span class="ts-count"><span class="ts-sr">(</span>'+n+'<span class="ts-sr"> '+(n===1?'line':'lines')+')</span></span></button></h3>'+
-      '<div class="ts-sec-body" id="'+lid+'"'+(open?'':' hidden')+'>'+
+  return '<div class="ts-secs">'+rulesHtml()+tsGroup(TS_ITEMS).map(function(sec){
+    var n=sec.lines.length, lab=sec.label;
+    return tsSecShell(sec.key,lab,sec.icon,n,
       (n?'<ol class="ts-steps">'+sec.lines.map(function(l,j){
         var i=l.idx, k=j+1, d=seq++;
         return '<li class="ts-step" id="tsItem'+i+'" tabindex="-1"'+(anim?' style="--i:'+Math.min(d,14)+'"':'')+'>'+
@@ -345,20 +395,19 @@ function stepsHtml(editor,anim){
               '<button class="ts-ibtn del" type="button" title="Delete line" aria-label="Delete '+esc(lab)+' step '+k+'" onclick="tsDelete('+i+')">'+ICO_DEL+'</button>'+
             '</span>'):'')+
           '</div></li>';
-      }).join('')+'</ol>':'<div class="ts-empty">'+ICO_INFO+'No lines in this section yet.</div>')+
-    '</div></section>';
+      }).join('')+'</ol>':'<div class="ts-empty">'+ICO_INFO+'No lines in this section yet.</div>'));
   }).join('')+'</div>';
 }
 
 // The checklist card (top-level accordion section 'tsGuide'). anim = the one entrance animation of its steps.
 function guideHtml(anim){
-  var editor=tsCanEdit(), n=TS_ITEMS.length;
+  var editor=tsCanEdit(), n=tsCount();
   var ready=!LOADING&&!LOAD_ERR;
   return '<section class="'+tsTopCls('tsGuide')+(anim?' is-anim':'')+'" id="tsGuide" aria-labelledby="tsGuideHead" aria-busy="'+(LOADING?'true':'false')+'">'+
         tsTopHead('tsGuide',{icon:ICO_LIST,title:'Sanitization checklist',
           sum:ready?tsTopSum(n.toLocaleString()+' '+(n===1?'check':'checks')):'',
           tags:ready&&editor?'<span class="ts-mode">Editor</span>':'',
-          sub:'Work through each step in order for every assigned ticket.',
+          sub:'What the server checks on every ticket after a data upload, plus the Hashtags lines to work through.',
           acts:ready&&editor?'<button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()">'+ICO_PLUS+'<span>Add new check</span></button>':''})+
         tsTopBody('tsGuide')+
         stepsHtml(editor,anim)+
@@ -389,7 +438,7 @@ async function loadChecklist(fromRetry){
     announce('Couldn\u2019t load the checklist.');
     if(fromRetry){ var rb=document.getElementById('tsRetry'); if(rb) rb.focus(); }
   } else {
-    announce('Loaded '+TS_ITEMS.length+' checklist '+(TS_ITEMS.length===1?'step':'steps')+'.');
+    announce('Loaded '+tsCount()+' checklist '+(tsCount()===1?'step':'steps')+'.');
     if(fromRetry){ var h=document.getElementById('tsGuideBtn'); if(h) h.focus(); }
   }
 }
@@ -400,7 +449,10 @@ window.tsRetry=tsRetry;
 function tsOpenAdd(){
   if(!tsCanEdit()) return;
   var bg=document.getElementById('tsAddModal'), sel=document.getElementById('tsAddSec'), ta=document.getElementById('tsAddText');
-  sel.innerHTML=TS_SECTIONS.map(function(s){ return '<option value="'+esc(s.label)+'"'+(s.label===TS_ADD_SEC?' selected':'')+'>'+esc(s.label)+'</option>'; }).join('');
+  // Only the sections the card still renders from the database (TS_DB_KEYS): the SIM Title, Root Cause
+  // Details and ClosureCode checks are code-defined now (TS_RULES), so a new row there would never show.
+  sel.innerHTML=TS_SECTIONS.filter(function(s){ return TS_DB_KEYS.indexOf(s.key)>=0; })
+    .map(function(s){ return '<option value="'+esc(s.label)+'"'+(s.label===TS_ADD_SEC?' selected':'')+'>'+esc(s.label)+'</option>'; }).join('');
   tsModalErr('tsAddErr','');
   bg.style.display='flex';
   if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,tsCloseAdd,ta); else setTimeout(function(){ ta.focus(); },40);
