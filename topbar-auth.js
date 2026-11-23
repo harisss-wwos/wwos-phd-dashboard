@@ -1328,6 +1328,9 @@
       + '.tbl-bg .tbl-card.tb-asg-card{width:90vw!important;max-width:90vw!important;height:80vh!important;max-height:80vh!important;display:flex;flex-direction:column;overflow:hidden}'
       + '.tb-asg-card .tbl-head{flex:0 0 auto}'
       + '.tb-asg-card .tbl-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}'
+      // #tbMyAsgBody wraps the scroll region, so it has to pass the leftover height down:
+      // without this link in the flex chain the table grew to its full size and overflowed.
+      + '.tb-asg-card #tbMyAsgBody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}'
       + '.tb-asg-card .tbl-actions{flex:0 0 auto;margin-top:12px}'
       + '@media(max-width:719px){.tbl-bg .tbl-card.tb-asg-card{width:96vw!important;max-width:96vw!important;height:88vh!important;max-height:88vh!important}}'
       + '.tb-asg-card .tb-asg-scroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid #e2e6ea;border-radius:10px}'
