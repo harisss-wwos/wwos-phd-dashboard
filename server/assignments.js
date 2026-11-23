@@ -6,6 +6,10 @@
 //   kind:'active' one per ticket, _id 'active:<shortId>' { shortId, assignee, by, at, status:'pending'|'revoked', group, section, logId }
 // An active assignment is closed on READ (never written back): it stays pending only while the
 // ticket is still open AND its SIM assignee is not the assignee ('picked' / 'resolved' otherwise).
+// The top-bar bucket needs one step more than that (a still-open ticket somebody ELSE now holds is
+// not waiting for the assignee any more) and gets it from bucketList/ticketOutcome, NOT from
+// assignmentStatus: that predicate is shared with the revoke path, which must keep treating a
+// taken-by-someone-else assignment as revocable.
 // Kept in its own module so validation + the pending rule can be unit-tested without a DB.
 
 // Analyst groups by lower-case login.
@@ -31,6 +35,10 @@ function isAssignAdmin(user) {
 }
 // st = { assignees:[login...] } for a ticket that is still open, or null/undefined when it is not
 // open any more (resolved / closed / gone).
+// 'pending' here means "the active doc is still live", i.e. open and not picked up by the assignee.
+// It deliberately says 'pending' for a ticket somebody ELSE now holds, because handleRevoke uses this
+// to decide what it may release and such an assignment must stay revocable. The bucket's narrower
+// question ("is it still waiting for ME?") is bucketList's, not this one's.
 function assignmentStatus(a, st) {
   if (!st) return 'resolved';
   const who = String((a && a.assignee) || '').toLowerCase();
@@ -202,6 +210,29 @@ function ticketOutcome(assignee, t, registered) {
   const other = as.find(l => !registered || registered.has(l));
   return other ? { k: 'taken_by_other', by: other } : { k: 'waiting' };
 }
+
+// ---- Top-bar bucket ("Assigned to you") ----
+// The rows the bucket shows for one agent, classified with the SAME rule the Assignment Center page
+// uses (ticketOutcome), so the two views stop disagreeing about the same tickets.
+// activeDocs = that agent's kind:'active' docs; states = Map shortId -> st from acTicketStates
+// ({ assignees:[login...] } while the ticket is open, absent once it is not open any more);
+// registered = Set of registered user logins (a ticket on LM-CAP / AutoSIM / a blank identity is
+// still genuinely unassigned -> waiting, same rule as the unassigned list).
+// -> [{ shortId, assignee, by, at, takenBy }] in input order. takenBy is the login of the person who
+// holds the ticket in SIM now, or '' when it is still waiting; a taken row is listed (so the agent can
+// see it was taken, and by whom) but is NOT part of the waiting count. 'taken_by_assignee' (they picked
+// it up), 'resolved' and 'missing' rows are dropped, exactly as before.
+function bucketList(activeDocs, states, registered) {
+  const out = [];
+  (activeDocs || []).forEach(a => {
+    if (!a || !a.shortId || a.status !== 'pending') return;
+    const st = states && states.get(a.shortId);
+    const r = ticketOutcome(a.assignee, st ? { open: true, assignees: st.assignees || [] } : null, registered);
+    if (r.k === 'waiting') out.push({ shortId: a.shortId, assignee: a.assignee, by: a.by, at: a.at, takenBy: '' });
+    else if (r.k === 'taken_by_other') out.push({ shortId: a.shortId, assignee: a.assignee, by: a.by, at: a.at, takenBy: r.by });
+  });
+  return out;
+}
 // Outcome of every active (non-revoked) assign log entry + a summary per temp assignee.
 // logDocs: raw log docs (any order). info: Map shortId -> { open, assignees, title, createdAt, cur }
 // (cur = current SIM assignee display). A ticket temp-assigned again in a NEWER active entry is only
@@ -240,4 +271,4 @@ function logOutcomes(logDocs, info, registered) {
   return { outcomes, tempSummary };
 }
 
-module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, canRevoke, revokeDenied, mapLog, activeId, assigneeLogin, ticketOutcome, logOutcomes };
+module.exports = { ASSIGN_GROUPS, ASSIGN_SECTIONS, ASSIGN_MAX, ASSIGN_DUP_MS, groupByName, isAssignAdmin, assignmentStatus, pendingMap, validateAssign, handleAssign, handleRevoke, canRevoke, revokeDenied, mapLog, activeId, assigneeLogin, ticketOutcome, bucketList, logOutcomes };

@@ -1352,6 +1352,11 @@
       + '.tb-asg-card .tb-asg-by small{color:#5c6773;font-weight:600}'
       + '.tb-asg-card .tb-asg-nw{white-space:nowrap;font-variant-numeric:tabular-nums}'
       + '.tb-asg-card .tb-asg-empty{padding:18px;text-align:center;color:#5c6773;font-size:.9em}'
+      // "Taken by someone else" section: listed but left out of the bucket count, so it is set apart.
+      + '.tb-asg-card .tb-asg-h{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin:14px 0 2px;color:#5c6773;font-size:.78em;font-weight:800;letter-spacing:.6px;text-transform:uppercase}'
+      + '.tb-asg-card .tb-asg-h b{padding:1px 7px;border-radius:99px;background:#f1ecfe;border:1px solid #ddd2fb;color:#5b3fc4;font-size:1.05em}'
+      + '.tb-asg-card .tb-asg-hint{flex:0 0 auto;margin:0 0 8px;color:#5c6773;font-size:.8em;font-weight:600;line-height:1.45}'
+      + '.tb-asg-card .tb-asg-took{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:.92em;font-weight:800;white-space:nowrap;background:#fdf0e6;border:1px solid #f6d4b4;color:#8a3a00}'
       // "Open all": primary button; disabled (no spinner) when the list is empty. Blocked-tabs note left of the buttons.
       + '.tb-asg-card button.tbl-submit:disabled{cursor:not-allowed;opacity:.5}'
       + '.tb-asg-card button.tbl-submit:disabled::before{content:none}'
@@ -2897,12 +2902,20 @@
     }).catch(function () { return null; });
     return tbMyAsg.req;
   }
+  // The listed tickets split by whether they are still waiting for me: a ticket somebody else has
+  // taken in SIM stays listed (with their login) but is not mine to pick up any more, so it is left
+  // out of the count on the header button.
+  function tbMyAsgSplit() {
+    var all = (tbMyAsg.data && tbMyAsg.data.tickets) || [];
+    return { all: all, wait: all.filter(function (t) { return !t.takenBy; }), taken: all.filter(function (t) { return !!t.takenBy; }) };
+  }
   function tbMyAsgPaint() {
     var b = document.getElementById('tbhMyAsg'); if (!b) return;
     // Always shown once loaded: muted "0" when the bucket is empty, a blinking orange count when > 0.
     if (!tbMyAsg.data) { b.hidden = true; b.innerHTML = ''; return; }   // not loaded (or the request failed)
-    var n = tbMyAsg.data.tickets.length || 0;
-    var lbl = n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you to pick up') : 'No tickets assigned to you to pick up';
+    var sp = tbMyAsgSplit(), n = sp.wait.length;
+    var lbl = (n ? (n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you to pick up') : 'No tickets assigned to you to pick up')
+      + (sp.taken.length ? (' (' + sp.taken.length + ' taken by someone else)') : '');
     b.innerHTML = ic('ticket', 18) + '<span class="home-hdr-asg-n" aria-hidden="true">' + n + '</span>';
     b.classList.toggle('is-zero', !n);
     b.classList.toggle('is-blink', n > 0);
@@ -2938,11 +2951,11 @@
     while ((m = re.exec(title))) last = Number(m[1]);
     return last != null ? last : Number(t && t.severity);
   }
-  function tbMyAsgBody(tz) {
-    var list = (tbMyAsg.data && tbMyAsg.data.tickets) || [];
-    if (!list.length) return '<p class="tb-asg-empty">Nothing waiting in your bucket right now.</p>';
-    return '<div class="tb-asg-scroll" role="region" aria-label="Tickets assigned to you" tabindex="0"><table><caption class="tb-asg-sr">Tickets assigned to you from the Assignment Center, newest first</caption>'
-      + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Age</th><th scope="col">Assigned by</th></tr></thead><tbody>'
+  // One table. `taken` adds a "Taken by" column holding the login of the person who has the ticket now.
+  function tbMyAsgTable(list, tz, taken, lbl, cap) {
+    return '<div class="tb-asg-scroll" role="region" aria-label="' + tbEsc(lbl) + '" tabindex="0"><table><caption class="tb-asg-sr">' + tbEsc(cap) + '</caption>'
+      + '<thead><tr><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Age</th><th scope="col">Assigned by</th>'
+      + (taken ? '<th scope="col">Taken by</th>' : '') + '</tr></thead><tbody>'
       + list.map(function (t) {
         var sid = String(t.shortId || ''), url = tbMyAsgUrl(t);
         var s = tbMyAsgSev(t), sev = t.noEmt ? '<span class="tb-asg-sev is-noemt">No EMT</span>' : ((s >= 1 && s <= 5) ? '<span class="tb-asg-sev">Sev ' + s + '</span>' : '<span class="tb-asg-sev is-noemt">No severity</span>');
@@ -2950,8 +2963,22 @@
           + '<button type="button" class="tb-asg-cp" data-asgcopy="' + tbEsc(sid) + '" title="Copy ticket ID" aria-label="Copy ticket ID ' + tbEsc(sid) + '">' + ic('copy', 12) + '</button></span></td>'
           + '<td class="tb-asg-t">' + tbEsc(t.title || 'No title') + '</td><td>' + sev + '</td>'
           + '<td class="tb-asg-nw">' + tbEsc(tbMyAsgAge(t.createdAt)) + '</td>'
-          + '<td><span class="tb-asg-by"><b>' + tbEsc(t.by || '') + '</b><small>' + tbEsc(tbMyAsgWhen(t.at, tz)) + ' \u00b7 ' + tbEsc(tbMyAsgRel(t.at)) + '</small></span></td></tr>';
+          + '<td><span class="tb-asg-by"><b>' + tbEsc(t.by || '') + '</b><small>' + tbEsc(tbMyAsgWhen(t.at, tz)) + ' \u00b7 ' + tbEsc(tbMyAsgRel(t.at)) + '</small></span></td>'
+          + (taken ? ('<td><span class="tb-asg-took">' + tbEsc(t.takenBy || '') + '</span></td>') : '') + '</tr>';
       }).join('') + '</tbody></table></div>';
+  }
+  function tbMyAsgBody(tz) {
+    var sp = tbMyAsgSplit();
+    if (!sp.all.length) return '<p class="tb-asg-empty">Nothing waiting in your bucket right now.</p>';
+    var html = sp.wait.length
+      ? tbMyAsgTable(sp.wait, tz, false, 'Tickets assigned to you', 'Tickets assigned to you from the Assignment Center, newest first')
+      : '<p class="tb-asg-empty">Nothing waiting for you to pick up right now.</p>';
+    if (sp.taken.length) {
+      html += '<h3 class="tb-asg-h">Taken by someone else <b>' + sp.taken.length + '</b></h3>'
+        + '<p class="tb-asg-hint">Assigned to you, but somebody else is holding the ticket in SIM now. They are not counted in your bucket.</p>'
+        + tbMyAsgTable(sp.taken, tz, true, 'Tickets taken by someone else', 'Tickets assigned to you that somebody else has taken in SIM, newest first');
+    }
+    return html;
   }
   function tbMyAsgClose() {
     var ov = document.getElementById('tbMyAsgDlg');
@@ -2959,17 +2986,20 @@
   }
   window.PHDOpenMyAssigned = function () {
     tbMyAsgClose();
-    var n = (tbMyAsg.data && tbMyAsg.data.tickets.length) || 0;
+    // n = still waiting for me (the subtitle and the header count); "Open all" still opens every
+    // listed ticket, taken-by-someone-else ones included.
+    var sp = tbMyAsgSplit(), n = sp.wait.length;
     var ov = document.createElement('div');
     ov.id = 'tbMyAsgDlg'; ov.className = 'tbl-bg'; ov.style.cssText = 'display:flex;z-index:5000';
     ov.innerHTML = '<div class="tbl-card tb-asg-card" role="dialog" aria-modal="true" aria-labelledby="tbMyAsgT" aria-describedby="tbMyAsgS">'
       + '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">' + ic('ticket', 20) + '</span>'
       + '<div class="tbl-head-tx"><div class="tbl-eyebrow">Assignment Center \u00b7 Your bucket</div><h2 class="tbl-title" id="tbMyAsgT">Assigned to you</h2></div>'
-      + '<p class="tbl-sub" id="tbMyAsgS">' + n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you from the Assignment Center, waiting to be picked up in SIM.</p></div>'
+      + '<p class="tbl-sub" id="tbMyAsgS">' + n + ' ticket' + (n === 1 ? '' : 's') + ' assigned to you from the Assignment Center, waiting to be picked up in SIM.'
+      + (sp.taken.length ? (' ' + sp.taken.length + ' more ' + (sp.taken.length === 1 ? 'was' : 'were') + ' taken by somebody else.') : '') + '</p></div>'
       + '<div class="tbl-body"><div id="tbMyAsgBody">' + tbMyAsgBody('IST') + '</div>'
       + '<div class="tbl-actions tbl-row"><p class="tb-asg-note" id="tbMyAsgNote" role="status" hidden></p>'
       + '<button type="button" class="tbl-cancel" id="tbMyAsgX">Close</button>'
-      + '<button type="button" class="tbl-submit" id="tbMyAsgAll"' + (n ? '' : ' disabled') + '>' + ic('external-link', 15) + 'Open all</button></div></div></div>';
+      + '<button type="button" class="tbl-submit" id="tbMyAsgAll"' + (sp.all.length ? '' : ' disabled') + '>' + ic('external-link', 15) + 'Open all</button></div></div></div>';
     ov.onclick = function (e) {
       // Backdrop clicks are ignored on purpose: this list is easy to mis-click, so it closes only
         // via Close, the header X or Escape.

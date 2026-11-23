@@ -28,7 +28,7 @@ const { createSingleFlight } = require('./single-flight');
 const hiLinesErrors = require('./hi-lines-errors');
 const lmhub = require('./lmhub-filter');
 const uploadRevoke = require('./upload-revoke');
-const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog, logOutcomes: asgLogOutcomes } = require('./assignments');
+const { ASSIGN_GROUPS, isAssignAdmin, pendingMap: asgPendingMap, handleAssign: asgHandleAssign, handleRevoke: asgHandleRevoke, mapLog: asgMapLog, bucketList: asgBucketList, logOutcomes: asgLogOutcomes } = require('./assignments');
 
 // Only the 2026-Q2 quarter records the specific ShortIds added/updated in each merge (per request).
 const Q2_QUARTER = '2026-Q2';
@@ -4692,6 +4692,13 @@ async function acPending(filter) {
   const states = await acTicketStates(Array.from(new Set(docs.map(d => d.shortId).filter(Boolean))));
   return { docs, states, pending: asgPendingMap(docs, states) };
 }
+// Every registered user login (lower-case). The "has somebody else taken this ticket?" rule needs it:
+// an open ticket whose SIM assignee is not a registered user (blank, LM-CAP, AutoSIM, ...) is still in
+// the unassigned list, so it still counts as waiting. Same set acBase uses to drop rows from that list.
+async function acRegisteredLogins() {
+  const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1 } }).toArray();
+  return new Set(users.map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
+}
 // Latest data for temp-assigned tickets (read-only): Map shortId -> { open, assignees:[login of every
 // OPEN doc], title, createdAt, cur (SIM assignee display of the open doc) }. A ShortId with docs but none
 // open is resolved / closed (open:false); a ShortId with no doc at all is absent (missing from the data).
@@ -4728,8 +4735,7 @@ async function acAssignState(asOf) {
   // Outcome of the active (non-revoked) assign entries: who took the tickets since (see server/assignments.js).
   const activeSids = new Set();
   log.forEach(d => { if (d.action !== 'revoke' && !d.revokedAt && Array.isArray(d.tickets)) d.tickets.forEach(t => { const s = String((t && t.shortId) || '').trim(); if (s) activeSids.add(s); }); });
-  const users = await (await getCollection(COLLECTIONS.users)).find({}, { projection: { _id: 0, username: 1 } }).toArray();
-  const registered = new Set(users.map(u => String(u.username || '').trim().toLowerCase()).filter(Boolean));
+  const registered = await acRegisteredLogins();
   const { outcomes, tempSummary } = asgLogOutcomes(log, await acOutcomeInfo(Array.from(activeSids)), registered);
   const data = { assignments: pending, tempSummary, log: log.map(d => {
     const m = asgMapLog(d), o = outcomes.get(String(d._id));
@@ -4795,6 +4801,10 @@ app.post('/api/assignment-center/revoke', requireRole('user'), async (req, res) 
 });
 
 // GET /api/my-assigned-tickets: the caller's own pending dashboard assignments (top-bar bucket).
+// Each ticket carries takenBy: the login of the person holding it in SIM now ('' while it is still
+// waiting). A taken ticket stays in the list (the agent should see it was assigned to them and then
+// taken, and by whom) but is left out of `count`, which is the blinking top-bar pill and means
+// "still yours to pick up". See bucketList in server/assignments.js for the rule.
 // Cached 60 s per user; dropped on every assign and on any upload.
 app.get('/api/my-assigned-tickets', requireRole('user'), async (req, res) => {
   try {
@@ -4802,12 +4812,13 @@ app.get('/api/my-assigned-tickets', requireRole('user'), async (req, res) => {
     const key = 'my-assigned:' + me;
     const hit = getCachedReportTtl(key, AC_ASSIGN_TTL_MS);
     if (hit) return res.json(hit);
-    const { docs, states, pending } = await acPending({ assignee: me });
-    const tickets = docs.filter(d => pending[d.shortId]).map(d => {
-      const r = states.get(d.shortId).row;
-      return { ...r, by: d.by, at: d.at };
+    const { docs, states } = await acPending({ assignee: me });
+    const tickets = asgBucketList(docs, states, await acRegisteredLogins()).map(b => {
+      const r = states.get(b.shortId).row;
+      return { ...r, by: b.by, at: b.at, takenBy: b.takenBy };
     }).sort((a, b) => String(b.at).localeCompare(String(a.at)));
-    const data = { count: tickets.length, tickets };
+    const waiting = tickets.filter(t => !t.takenBy).length;
+    const data = { count: waiting, takenCount: tickets.length - waiting, tickets };
     setCachedReport(key, data);
     pruneCachedReports('my-assigned:', 50);
     res.json(data);
