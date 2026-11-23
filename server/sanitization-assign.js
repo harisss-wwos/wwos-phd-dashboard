@@ -15,6 +15,16 @@
 // the assignment does not verify unmarked tickets, and before verification the closure code is not
 // checked at all. Computed LIVE on every read; the owner's GET persists a snapshot of the verified
 // tickets only when they changed (the old one moves to history). Never deleted.
+// TRACKER OUTCOME (Sanitization Tracker, contractorView / rowOf / handleMine): the per-ticket outcome
+// there comes from the persisted validation record of the latest upload (COLLECTIONS.sanitizationValidations,
+// written by server/sanitization-validate-store.js), NOT from rule A on the SIM closure code. A record
+// with at least one failure the owner has not approved (COLLECTIONS.sanitizationFieldApprovals) puts the
+// ticket in 'error-detected': owner-only rows, counted in neither totals.cleared nor
+// totals.needsCorrection, so they add nothing to the agent's sanitized total until the owner reviews
+// them (handleValidationReview: Approve per item, or Rework). A record whose failures are all approved,
+// and a marked ticket the latest upload did not flag, count as sanitized. Rule A (verifyClaim) stays in
+// this module for the assignment page (liveVerification / sectionCounts), the scores page and
+// handleMark: evalTicket keeps its old behaviour when no validation context is passed to it.
 // A ticket is LOCKED (not available to assign) while it is in an active assignment and not verified
 // as passing; failed tickets stay with that contractor until the owner revokes.
 // Assignments made before the ClosureCode point keep their stored scoreAtAssign (out of 10 then);
@@ -394,21 +404,25 @@ async function handleGet(deps) {
 // One contractor's tickets across their ACTIVE assignments, scored live against the current report.
 // A ticket in several active assignments is listed once (its most recent assignment wins).
 // Ticket status = the tracker section:
-//   'needs-correction' -> 1 Tickets to sanitize (unmarked, or a claim that failed verification)
+//   'needs-correction' -> 1 Tickets to sanitize (unmarked, or sent back by the owner for Rework)
 //   'awaiting'         -> 2 Temporarily cleared (a claim waiting for a newer upload)
-//   'error-ticket'     -> 3 Error tickets that need approval (owner only)
-//   'cleared'          -> 4 Tickets sanitized successfully (a claim verified as passing)
+//   'error-detected'   -> 3 Errors the latest upload detected, awaiting the owner's review (owner only)
+//   'error-ticket'     -> 4 Error tickets that need approval (owner only)
+//   'cleared'          -> 5 Tickets sanitized successfully (validated with nothing left open)
 //   'not-found' | 'excluded' (listed under the sections).
-// BEFORE verification (unmarked / returned / legacy 'completed', and pending claims) the closure code
-// is NOT checked: passedNow = the raw score out of 11, missingNow = the failing Title / RCD checks
-// (informational), no defects (reason 'open'). AT verification (a claim with a newer upload, see the
-// header) rule A is applied to the SIM ClosureCode (verifyClaim): passedNow / requiredNow = the
-// required checks of SIM's code, missingNow = the failing ones, defects = what to fix (reason 'mark'
-// (claim differs from SIM) | 'closure' (code not allowed) | 'ir' (IR not eligible) | 'missing'),
-// verifiedFailed true; a pass carries `note` ('Marked <X>, SIM shows <Y>') when the claim differs.
-// A failed claim is consumed: the row has no `mark` (the agent marks it again after fixing), the
-// claim stays in `verifiedMark`. scoreNow stays the raw 0..11. `verified` = the ticket's claim has
-// been verified; totals.pending counts the tickets not verified yet.
+// BEFORE the upload that validates a ticket (unmarked / returned / legacy 'completed', and pending
+// claims) nothing of the uploaded data is checked: passedNow = the raw score out of 11, missingNow =
+// the failing Title / RCD checks (informational), no defects (reason 'open').
+// AFTER an upload the ticket's validation record decides (validationOf / valStatus, see the header):
+// un-approved failures left -> 'error-detected', with `validation` { closureCode, scope, detectedAt,
+// failures, fields } on the row, missingNow = the failing item labels and passedNow / requiredNow
+// null (the view's score pill falls back to the raw scoreNow); every item approved -> 'cleared'; no
+// record (the upload flagged nothing) with a verified claim -> 'cleared'. A ticket the owner sent
+// back for Rework (mark 'returned', newer than detectedAt) is in Tickets to sanitize with the
+// owner's note. Every row carries `validation` (null while the ticket has no record). scoreNow stays
+// the raw 0..11. `verified` = the ticket's claim has been verified; totals.pending counts the tickets
+// not verified yet. Rule A (verifyClaim, verifiedFailed, the 'mark' / 'closure' / 'ir' reasons) is
+// not applied here any more.
 // Marks (COLLECTIONS.sanitizationMarks, one doc per (login, shortId), never deleted; previous states
 // in `history`):
 //   'successful' | 'immediate' | 'duplicate' - the agent's CLAIM of how the ticket is now closed in SIM.
@@ -424,7 +438,7 @@ async function handleGet(deps) {
 // Order: needs-correction (failed verifications first, then passed / required ascending, then oldest
 // assigned first), awaiting / error-ticket (most recently marked first), cleared (most recently
 // assigned first), then excluded / not-found (most recently assigned first).
-const STATUS_RANK = { 'needs-correction': 0, awaiting: 1, 'error-ticket': 2, cleared: 3, excluded: 4, 'not-found': 5 };
+const STATUS_RANK = { 'needs-correction': 0, awaiting: 1, 'error-detected': 2, 'error-ticket': 3, cleared: 4, excluded: 5, 'not-found': 6 };
 // Claim marks -> the SIM ClosureCode they claim.
 const CLAIMS = Object.freeze({ successful: CODE_SUCCESSFUL, immediate: CODE_IR, duplicate: CODE_DUP });
 const MARK_STATUSES = Object.freeze({ successful: 'awaiting', immediate: 'awaiting', duplicate: 'awaiting', error: 'error-ticket' });
@@ -438,6 +452,21 @@ const claimPending = (m, stamp) => !stamp || m.dataStamp === stamp || !(timeOf(s
 const markValid = (m, stamp) => !!m && !!MARK_STATUSES[m.status] && (m.status === 'error' || claimPending(m, stamp));
 const markOut = m => ({ status: m.status, reason: m.reason || '', at: m.at || null, by: m.by || '' });
 const returnedOut = m => ((m && m.status === 'returned') ? { note: m.ownerNote || '', at: m.returnedAt || null, by: m.returnedBy || '' } : null);
+// Time of the last action on a mark: a 'returned' mark is stamped with returnedAt (the owner's Rework),
+// every other state with `at`.
+const markTime = m => (!m ? NaN : timeOf(m.status === 'returned' ? (m.returnedAt || m.at) : m.at));
+// True when the mark was acted on after the validation record was written (detectedAt), so the mark
+// decides the section again: Rework sends the ticket back, a new claim waits for the next upload.
+const markedAfter = (m, detectedAt) => { const t = markTime(m); return !!detectedAt && !isNaN(t) && t > timeOf(detectedAt); };
+// Tracker outcome from the validation record (val = the row's `validation`, its failures already
+// stripped of the owner's approved items): 'error-detected' while an item is still open and nobody has
+// acted since the detection, 'cleared' once every detected item is approved, null when the record
+// decides nothing (no record at all, or a newer mark) and the mark rules apply instead.
+function valStatus(val, m) {
+  if (!val) return null;
+  if (!val.failures.length) return 'cleared';
+  return markedAfter(m, val.detectedAt) ? null : 'error-detected';
+}
 // To-sanitize reason: 'open' (not verified yet) or, after a failed verification, 'mark' (the claim
 // differs from SIM) | 'closure' (SIM code not allowed) | 'ir' (Immediately Resolved not eligible) |
 // 'missing' (only missing checks).
@@ -486,18 +515,40 @@ function verifyClaim(cur, claim) {
   return { cleared: false, defects: [d], reason, note: null };
 }
 // Section of one assigned ticket: cur = report ticket, why = exclusion reason, m = its mark doc.
+// vx = the TRACKER's validation context { validation } (rowOf always passes it; the assignment page
+// (liveVerification / sectionCounts) and handleMark pass nothing and keep the rule A behaviour).
 // -> null (approved / other exclusion / not found: the caller decides) or
 //    { status, passed, required, defects, missing, closureCode, target, group, reason, mark, verifiedMark,
-//      verifiedFailed, note, legacyCompleted }.
-function evalTicket(cur, why, m, stamp) {
+//      verifiedFailed, note, legacyCompleted, validation }.
+function evalTicket(cur, why, m, stamp, vx) {
   if (!cur && why !== DUP_REASON) return null;
   const raw = cur && typeof cur.score === 'number' ? cur.score : null;
   // Before verification: the raw score out of 11 and the Title / RCD chips; no closure-code check.
   const out = { passed: raw, required: raw == null ? null : MAX_SCORE, defects: [], missing: infoChips(cur),
     closureCode: cur ? (cur.cc || '') : CODE_DUP, target: null, group: null, reason: null, mark: null, verifiedMark: null,
-    verifiedFailed: false, note: null, legacyCompleted: !!(m && m.status === 'completed') };
+    verifiedFailed: false, note: null, legacyCompleted: !!(m && m.status === 'completed'), validation: null };
   if (m && m.status === 'error') { out.status = 'error-ticket'; out.mark = markOut(m); return out; }
-  if (m && CLAIMS[m.status]) {
+  if (vx) {
+    // TRACKER: the validation record of the latest upload decides, not rule A.
+    out.validation = vx.validation || null;
+    const vs = valStatus(out.validation, m);
+    if (vs) {
+      out.passed = null; out.required = null; out.missing = vs === 'error-detected' ? out.validation.failures.map(f => f.label) : [];
+      out.status = vs;
+      if (m && CLAIMS[m.status]) out.verifiedMark = markOut(m);   // the claim the upload has already seen
+      if (vs === 'cleared') out.note = 'Every error detected on this ticket was approved by the owner';
+      return out;
+    }
+    if (m && CLAIMS[m.status]) {
+      if (claimPending(m, stamp)) { out.status = 'awaiting'; out.mark = markOut(m); return out; }
+      // A claim a newer upload has seen with nothing flagged for it: sanitized.
+      out.passed = null; out.required = null; out.missing = [];
+      out.status = 'cleared'; out.verifiedMark = markOut(m);
+      out.note = 'Marked ' + CLAIMS[m.status] + '; the latest upload detected no errors';
+      return out;
+    }
+    // Unmarked / returned / legacy 'completed' with no record: the informational tail below.
+  } else if (m && CLAIMS[m.status]) {
     if (claimPending(m, stamp)) { out.status = 'awaiting'; out.mark = markOut(m); return out; }
     // Verified: rule A on SIM's code (its required checks, missing chips and target).
     const vr = verifyClaim(cur, CLAIMS[m.status]);
@@ -537,11 +588,45 @@ function apprMap(x) {
   Array.from(x || []).forEach(d => { if (typeof d === 'string') m.set(d, null); else if (d && d.shortId) m.set(d.shortId, d); });
   return m;
 }
+// Validation records (COLLECTIONS.sanitizationValidations, one doc per flagged ticket) -> Map
+// shortId -> doc, from a Map or an array of docs.
+function valMap(validations) {
+  if (validations instanceof Map) return validations;
+  const m = new Map();
+  (validations || []).forEach(d => { const id = d && (d.shortId || d._id); if (id) m.set(String(id), d); });
+  return m;
+}
+// Owner-approved items (COLLECTIONS.sanitizationFieldApprovals, _id '<shortId>|<FIELD>') -> Map
+// shortId -> Set of approved item keys, from a Map or an array of docs.
+function fieldApprMap(approvedFields) {
+  if (approvedFields instanceof Map) return approvedFields;
+  const m = new Map();
+  (approvedFields || []).forEach(d => {
+    if (!d) return;
+    const parts = (d.shortId && d.field) ? [String(d.shortId), String(d.field)] : String(d._id || '').split('|');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return;
+    if (!m.has(parts[0])) m.set(parts[0], new Set());
+    m.get(parts[0]).add(parts[1]);
+  });
+  return m;
+}
+// The row's `validation` from the ticket's record: the failures the owner has NOT approved yet, plus
+// what the pop-up shows (the uploaded closure code, what was checked, when, and the ten stored fields).
+// null when the ticket has no record (it was never validated, or the upload flagged nothing).
+function validationOf(doc, approvedSet) {
+  if (!doc) return null;
+  const failures = (doc.failures || []).filter(f => f && f.key && !(approvedSet && approvedSet.has(f.key)));
+  return { closureCode: doc.closureCode || '', scope: doc.scope || '', detectedAt: doc.detectedAt || null,
+    failures, fields: doc.fields || null };
+}
 // approvedIds: see apprMap (the approval docs give the 'Approved error' row its by / at / reason).
-function contractorView(assignments, login, report, stamp, marks, approvedIds) {
+// validations / approvedFields: the validation records and the owner's approved items (see valMap /
+// fieldApprMap); without them every row's `validation` is null and the mark rules decide alone.
+function contractorView(assignments, login, report, stamp, marks, approvedIds, validations, approvedFields) {
   const me = normLogin(login);
   const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
   const appr = apprMap(approvedIds);
+  const vals = valMap(validations), apprF = fieldApprMap(approvedFields);
   const mk = new Map((marks || []).filter(m => m && normLogin(m.login) === me && m.shortId).map(m => [m.shortId, m]));
   const docs = (assignments || [])
     .filter(a => a && a.status === 'active' && normLogin(a.assignee) === me)
@@ -551,7 +636,7 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
     (a.tickets || []).forEach(t => {
       if (!t || !t.shortId || seen.has(t.shortId)) return;
       seen.add(t.shortId);
-      const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, appr);
+      const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, appr, validationOf(vals.get(t.shortId), apprF.get(t.shortId)));
       if (row) tickets.push(row);
     });
   });
@@ -571,15 +656,20 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds) {
     login: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, tickets,
     totals: { assigned: tickets.length, cleared: count('cleared'), needsCorrection: count('needs-correction'), needBy,
       awaiting: count('awaiting'), errorTickets: count('error-ticket'),
-      // Error Deducted after verification/new Upload (part of needsCorrection; client: sanitization-view.js sections().ded).
-      errorDeducted: tickets.filter(t => t.status === 'needs-correction' && t.verifiedFailed).length,
+      // Errors the latest upload detected, awaiting the owner's review: in NEITHER cleared nor
+      // needsCorrection, so they add nothing to the agent's sanitization total until the owner
+      // approves the items (handleValidationReview).
+      errorDetected: count('error-detected'),
+      // Same bucket under its old name, for a browser still running sanitization-view.js?v=18.
+      errorDeducted: count('error-detected'),
       notFound: count('not-found'), excluded: count('excluded'), pending: tickets.filter(t => !t.verified).length,
       legacyCompleted: tickets.filter(t => t.legacyCompleted).length },
   };
 }
 // One contractor-view row (assignment a, its ticket t, report index ix, mark doc m, approvals appr =
-// Map shortId -> approval doc). An owner-approved error is a 'cleared' row with approvedError.
-function rowOf(a, t, ix, m, stamp, appr) {
+// Map shortId -> approval doc, val = the ticket's `validation` from validationOf or null). An
+// owner-approved error is a 'cleared' row with approvedError.
+function rowOf(a, t, ix, m, stamp, appr, val) {
   const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
   if ((appr && appr.has(t.shortId)) || why === APPROVED_REASON) {
     const d = (appr && appr.get(t.shortId)) || {};
@@ -591,11 +681,11 @@ function rowOf(a, t, ix, m, stamp, appr) {
       group: null, target: null, reason: null, closureCode: null, status: 'cleared',
       excludedReason: null, verified: true, verifiedFailed: false, note: null,
       mark: null, verifiedMark: (m && m.status === 'error') ? markOut(m) : null,
-      legacyCompleted: false, returned: null,
+      legacyCompleted: false, returned: null, validation: val || null,
       approvedError: { by: d.approvedBy || '', at: d.approvedAt || null, reason: d.reason || (m && m.status === 'error' ? m.reason || '' : ''), note: d.note || '' },
     };
   }
-  const ev = evalTicket(cur, why, m, stamp);
+  const ev = evalTicket(cur, why, m, stamp, { validation: val || null });
   const status = ev ? ev.status : (why ? 'excluded' : 'not-found');
   return {
     shortId: t.shortId, url: t.url || (cur && cur.url) || '', title: (cur && cur.title) || t.title || '',
@@ -612,6 +702,8 @@ function rowOf(a, t, ix, m, stamp, appr) {
     mark: ev && ev.mark ? ev.mark : null, verifiedMark: ev ? ev.verifiedMark : null,
     legacyCompleted: !!(m && m.status === 'completed'),
     returned: status === 'needs-correction' ? returnedOut(m) : null,
+    // The latest upload's validation record (null = no record): what the owner reviews per item.
+    validation: (ev && ev.validation) || val || null,
   };
 }
 
@@ -620,7 +712,9 @@ function rowOf(a, t, ix, m, stamp, appr) {
 //   displayName, assigned, cleared, needsCorrection, pending, notFound, excluded, ...}] }; with
 //   ?login=<contractor> that contractor's view (+ canMark: owner, or the contractor's own view);
 //   anyone else -> 403. The (expensive) data is loaded only after the access check.
-// deps: { user, contractors, load: async () => ({ docs (active assignments), report, stamp, marks? }) }
+// deps: { user, contractors, load: async () => ({ docs (active assignments), report, stamp, marks?,
+//   approved?, validations? (COLLECTIONS.sanitizationValidations docs), approvedFields?
+//   (COLLECTIONS.sanitizationFieldApprovals docs) }) }
 async function handleMine(query, deps) {
   const me = normLogin(deps.user && deps.user.username);
   const list = deps.contractors || [];
@@ -632,14 +726,17 @@ async function handleMine(query, deps) {
   if (!me || (!canViewAll && !findC(me))) return { status: 403, body: { error: 'My sanitization is available only to the PHD teams.' } };
   const want = normLogin(query && query.login);
   if (want && !findC(want)) return { status: 404, body: { error: 'Unknown contractor.' } };
-  const { docs, report, stamp, marks, approved } = await deps.load();
+  const { docs, report, stamp, marks, approved, validations, approvedFields } = await deps.load();
   const apprIds = apprMap(approved);
+  const vals = valMap(validations), apprF = fieldApprMap(approvedFields);
   if (!want) {
-    return { status: 200, body: { owner, viewer: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, contractors: list.map(c => ({ login: c.login, displayName: c.displayName || '', ...contractorView(docs, c.login, report, stamp, marks, apprIds).totals })) } };
+    return { status: 200, body: { owner, viewer: me, dataAsOf: stamp || null, maxScore: MAX_SCORE, contractors: list.map(c => ({ login: c.login, displayName: c.displayName || '', ...contractorView(docs, c.login, report, stamp, marks, apprIds, vals, apprF).totals })) } };
   }
-  const v = contractorView(docs, want, report, stamp, marks, apprIds);
-  // Error tickets are owner-only: everyone else gets only their count (totals.errorTickets), no rows.
-  if (!owner) v.tickets = v.tickets.filter(t => t.status !== 'error-ticket');
+  const v = contractorView(docs, want, report, stamp, marks, apprIds, vals, apprF);
+  // Error tickets and the errors the latest upload detected are owner-only: everyone else gets only
+  // their counts (totals.errorTickets / totals.errorDetected), no rows. Contractors take no action
+  // in the detected-errors section: the owner approves the items or sends the ticket back.
+  if (!owner) v.tickets = v.tickets.filter(t => t.status !== 'error-ticket' && t.status !== 'error-detected');
   const body = { owner, viewer: me, canMark: owner || want === me, canReview: owner, displayName: (findC(want) || {}).displayName || '', ...v };
   if (owner) {
     // Approved errors reported by this contractor (the Restore safety net), most recent first.
@@ -773,9 +870,77 @@ async function handleRestore(body, deps) {
   return { status: 200, body: { ok: true, shortId } };
 }
 
+// ---- Detected-error review (owner only, ONE ticket at a time) ----
+const OWNER_VALIDATION = 'Only harisss can review detected errors.';
+// POST /api/sanitization-validation/review { shortId, approveFields:[item keys], note, login? }: the
+// owner's two actions on ONE 'error-detected' ticket. Deliberately NOT bulk (unlike handleErrorReview):
+// a review is per item of a single ticket, so a shortIds list or an array of ids is rejected.
+//   Approve: every item key in approveFields must be currently failing on that ticket's validation
+//     record; one doc per item is upserted into COLLECTIONS.sanitizationFieldApprovals
+//     { _id:'<shortId>|<item>', shortId, field, approvedBy, approvedAt, note }, so no later upload
+//     raises that item on that ticket again (sanitization-validate.js approvedFields).
+//   Approve everything that is failing -> the ticket is approved outright: nothing is left open, so the
+//     next read counts it as sanitized ('cleared') and it is no longer a detected error.
+//   Rework (any failing item left un-approved, including an empty approveFields) -> the approved items
+//     are still written, AND the contractor's mark becomes { status:'returned', ownerNote, returnedAt,
+//     returnedBy } (the shape handleErrorReview's 'return' branch writes), so the ticket is back in
+//     their Tickets to sanitize queue; ownerNote names exactly the items left open and what is missing
+//     from each, and nothing else (`note` is the owner's own remark, kept on the approval docs).
+// login = whose mark is sent back (the tracker view the owner is acting in); the ticket's newest mark
+// decides when it is left out.
+// deps: { user, validationColl, approvalColl, marksColl, now? }
+async function handleValidationReview(body, deps) {
+  const me = normLogin(deps.user && deps.user.username);
+  if (!me || !isOwner(me)) return { status: 403, body: { error: OWNER_VALIDATION } };
+  const b = body || {};
+  const bad = error => ({ status: 400, body: { error } });
+  if (b.shortIds != null || Array.isArray(b.shortId)) return bad('Review one ticket at a time: shortId must be a single ticket.');
+  const shortId = typeof b.shortId === 'string' ? b.shortId.trim() : '';
+  if (!SID_RE.test(shortId)) return bad('Invalid ticket.');
+  if (b.approveFields != null && !Array.isArray(b.approveFields)) return bad('approveFields must be a list of items.');
+  const want = Array.from(new Set((b.approveFields || []).map(f => (typeof f === 'string' ? f.trim() : ''))));
+  if (want.some(f => !f)) return bad('approveFields must be a list of items.');
+  if (b.note != null && typeof b.note !== 'string') return bad('note must be text.');
+  const note = typeof b.note === 'string' ? b.note.trim() : '';
+  if (note.length > REASON_MAX) return bad('The note can be at most ' + REASON_MAX + ' characters.');
+  const asked = typeof b.login === 'string' ? normLogin(b.login) : '';
+  const doc = await deps.validationColl.findOne({ _id: shortId });
+  if (!doc || !(doc.failures || []).length) return { status: 409, body: { error: 'This ticket has no detected errors.' } };
+  const done = new Set(((await deps.approvalColl.find({ shortId }).toArray()) || []).map(d => d && d.field).filter(Boolean));
+  const open = (doc.failures || []).filter(f => f && f.key && !done.has(f.key));
+  if (!open.length) return { status: 409, body: { error: 'Every error detected on this ticket is already approved.' } };
+  const unknown = want.filter(f => !open.some(o => o.key === f));
+  if (unknown.length) return bad('Not an open detected error of this ticket: ' + unknown.join(', ') + '.');
+  const left = open.filter(o => want.indexOf(o.key) < 0);
+  // The mark to send back is resolved BEFORE anything is written, so a Rework never approves items
+  // without also returning the ticket.
+  let login = '';
+  if (left.length) {
+    const marks = await deps.marksColl.find({ shortId }).toArray();
+    const when = m => { const t = markTime(m); return isNaN(t) ? -Infinity : t; };
+    const newest = (marks || []).filter(m => m && m.login).sort((x, y) => when(y) - when(x))[0];
+    login = asked || normLogin(newest && newest.login);
+    if (!login) return { status: 409, body: { error: 'This ticket has no contractor to send it back to.' } };
+  }
+  const at = (deps.now ? deps.now() : new Date()).toISOString();
+  if (want.length) {
+    await deps.approvalColl.bulkWrite(want.map(f => ({
+      updateOne: { filter: { _id: shortId + '|' + f }, update: { $set: { shortId, field: f, approvedBy: me, approvedAt: at, note } }, upsert: true },
+    })), { ordered: false });
+  }
+  let ownerNote = null;
+  if (left.length) {
+    ownerNote = left.map(f => f.label + ': ' + f.message).join(' ').slice(0, REASON_MAX);
+    await deps.marksColl.updateOne({ login, shortId },
+      { $set: { login, shortId, status: 'returned', ownerNote, returnedAt: at, returnedBy: me } }, { upsert: true });
+  }
+  return { status: 200, body: { ok: true, shortId, approved: want, rework: left.map(f => f.key),
+    ownerNote, login: login || null, at, by: me } };
+}
+
 module.exports = {
   COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts, markedTickets,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, sectionCounts, contractorView, handleMine, handleMark, markValid,
-  handleErrorReview, handleRestore, missingChips, passedResult, chipFor, missingRequired,
+  handleErrorReview, handleRestore, handleValidationReview, missingChips, passedResult, chipFor, missingRequired,
   CLAIMS, NEED_REASONS, claimPending, verifiedClaim, verifyClaim, evalTicket, rowOf, markMap,
 };

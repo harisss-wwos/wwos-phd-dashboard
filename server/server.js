@@ -3692,6 +3692,10 @@ const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
 const sanFieldApprovals = () => getCollection(COLLECTIONS.sanitizationFieldApprovals)
   .then(c => c.find({}, { projection: { shortId: 1, field: 1, approvedBy: 1, approvedAt: 1 } }).toArray());
 const sanFieldApprovalsShared = () => _sanReads.run('fieldApprovals', sanFieldApprovals);
+// Validation records of the latest upload (COLLECTIONS.sanitizationValidations, read-only here): the Sanitization Tracker's per-ticket outcome comes from them (sanitization-assign.js validationOf), projected to the fields a row and the owner's review pop-up show.
+const sanValidations = () => getCollection(COLLECTIONS.sanitizationValidations)
+  .then(c => c.find({}, { projection: { _id: 0, shortId: 1, closureCode: 1, scope: 1, detectedAt: 1, failures: 1, fields: 1 } }).toArray());
+const sanValidationsShared = () => _sanReads.run('validations', sanValidations);
 const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
 app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
   try {
@@ -3803,9 +3807,9 @@ app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
       user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
         const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
-        const [base, docs, marks, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
-          sanMarksShared(), sanApprovedShared()]);
-        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved };
+        const [base, docs, marks, approved, validations, approvedFields] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+          sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanFieldApprovalsShared()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, approvedFields };
       },
     });
     res.status(out.status).json(out.body);
@@ -3913,6 +3917,28 @@ app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
   } catch (e) {
     console.error('my-sanitization restore error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not restore the ticket.' });
+  }
+});
+// POST /api/sanitization-validation/review { shortId, approveFields:[item keys], note, login? } (owner
+// only; logic in sanAssign.handleValidationReview): the review of ONE ticket the last upload flagged
+// (status 'error-detected'), per item and never in bulk. Approve writes one doc per item to
+// COLLECTIONS.sanitizationFieldApprovals, so no later upload raises that item on that ticket again;
+// approving every open item makes the ticket count as sanitized. Any item left un-approved (Rework)
+// also sends the ticket back to the contractor (the mark becomes 'returned' with a note naming exactly
+// the items still missing something).
+app.post('/api/sanitization-validation/review', requireSanOwner, async (req, res) => {
+  try {
+    const out = await sanAssign.handleValidationReview(req.body, {
+      user: req.user,
+      validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
+      approvalColl: await getCollection(COLLECTIONS.sanitizationFieldApprovals),
+      marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
+    });
+    _sanReads.bump();
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sanitization-validation review error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not save the review.' });
   }
 });
 
