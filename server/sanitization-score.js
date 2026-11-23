@@ -464,7 +464,7 @@ function clearSplit(report) {
 module.exports = {
   OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES, clearSplit,
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
-  scoreTicket, buildScoreReport, prepList, pacificQuarter, APPROVED_REASON, applyApproved,
+  scoreTicket, buildScoreReport, prepList, findInText, pacificQuarter, APPROVED_REASON, applyApproved,
   CLOSURE_ALLOWED, closureCheck, closureExpected, closureKey, excludeReason,
   RULE_GROUPS, TITLE_KEYS, CODE_SUCCESSFUL, CODE_IR, CODE_DUP, CODE_AUTO, titleSevNumber, irEligibility, closureRule,
   requiredChecks, requiredResult, ticketCleared, prepCats,

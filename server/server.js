@@ -22,6 +22,8 @@ const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_
 const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved, clearSplit: sanClearSplit, ticketCleared: sanTicketCleared } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
+const sanValidate = require('./sanitization-validate');
+const sanValidateStore = require('./sanitization-validate-store');
 const resolvedErrors = require('./resolved-errors');
 const { createSingleFlight } = require('./single-flight');
 const hiLinesErrors = require('./hi-lines-errors');
@@ -1852,7 +1854,7 @@ app.post('/api/live-quarter', requireUploadTeam, async (req, res) => {
       recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after publish failed:', e && e.message)),
     ];
     // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
-    Promise.allSettled(jobs).then(() => sanWarm('publish'));
+    Promise.allSettled(jobs).then(() => sanWarm('publish')).then(() => sanValidateAfterUpload('publish'));
   } catch (e) {
     res.status(500).json({ error: 'Could not publish quarter data.' });
   }
@@ -2019,7 +2021,7 @@ app.post('/api/live-quarter/patch', requireUploadTeam, async (req, res) => {
       recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after patch failed:', e && e.message)),
     ];
     // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
-    Promise.allSettled(jobs).then(() => sanWarm('patch'));
+    Promise.allSettled(jobs).then(() => sanWarm('patch')).then(() => sanValidateAfterUpload('patch'));
   } catch (e) {
     // Log the real cause: this catch used to swallow it, so a failed upload left nothing in
     // the Render logs — "Could not apply the delta publish." was all anyone ever saw.
@@ -2217,7 +2219,7 @@ app.post('/api/data-log/:id/revoke', requireRole('user'), async (req, res) => {
         recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after revoke failed:', e && e.message)),
       ];
       // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
-      Promise.allSettled(jobs).then(() => sanWarm('revoke'));
+      Promise.allSettled(jobs).then(() => sanWarm('revoke')).then(() => sanValidateAfterUpload('revoke'));
     }
   } catch (e) {
     if (!res.headersSent) res.status(500).json({ error: 'Could not finish revoking the upload. Try again; it is safe to repeat.' });
@@ -3633,6 +3635,28 @@ async function sanWarm(why) {
     console.log('Sanitization report warmed (' + why + ') in ' + (Date.now() - t0) + ' ms');
   } catch (e) { console.error('Sanitization report warm (' + why + ') failed:', e && e.message); }
 }
+// Validation of the UPLOADED data (server/sanitization-validate.js + -store.js), run after every write
+// that moves the data stamp: the tickets of the active sanitization assignments are checked against the
+// rules of their uploaded ClosureCode (Immediately Resolved -> the 3 title checks, Successful -> the
+// title checks + the 10 Sim Root Cause Details fields, Duplicate / any other code -> nothing), and one
+// doc per flagged ticket is written to COLLECTIONS.sanitizationValidations, stamped with the upload
+// (detectedAt = eirDataStamp). Tickets marked Error in the app, tickets approved as errors and items
+// the owner approved (COLLECTIONS.sanitizationFieldApprovals) are left out. Never throws: a failure
+// leaves the previous validation docs in place and the next upload retries.
+async function sanValidateAfterUpload(why) {
+  const t0 = Date.now();
+  try {
+    const [data, rows, assignments, marks, approved, fieldApprovals] = await Promise.all([eirDataStamp(),
+      sanScopeRows(SAN_SINCE_ID), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanFieldApprovalsShared()]);
+    const out = await sanValidateStore.runValidation({
+      validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
+      ticketRows: rows, assignments, marks, approved,
+      approvedFields: sanValidateStore.fieldApprovalSet(fieldApprovals),
+      types: eirIssueTypes(), stamp: data.stamp,
+    });
+    console.log('Sanitization validation (' + why + '): ' + out.flagged + ' of ' + out.validated + ' tickets flagged in ' + (Date.now() - t0) + ' ms');
+  } catch (e) { console.error('Sanitization validation (' + why + ') failed:', e && e.message); }
+}
 // Owner-approved error tickets (COLLECTIONS.sanitizationExcluded): every sanitization feature reads
 // the score report through sanLiveReport, which takes them out (sanApplyApproved: excluded with
 // reason 'approved error'). Approvals change independently of the data stamp, so they are applied on
@@ -3664,6 +3688,10 @@ const sanActiveAsgShared = () => _sanReads.run('asg:active', async () => (await 
 const sanAsgMetaShared = () => _sanReads.run('asg:meta', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray());
 const sanMarksShared = () => _sanReads.run('marks', sanMarks);
 const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
+// Owner-approved single items of a flagged ticket (COLLECTIONS.sanitizationFieldApprovals, read-only here): the validation hook drops those checks (sanitization-validate.js approvedFields).
+const sanFieldApprovals = () => getCollection(COLLECTIONS.sanitizationFieldApprovals)
+  .then(c => c.find({}, { projection: { shortId: 1, field: 1, approvedBy: 1, approvedAt: 1 } }).toArray());
+const sanFieldApprovalsShared = () => _sanReads.run('fieldApprovals', sanFieldApprovals);
 const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
 app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
   try {
@@ -3920,7 +3948,7 @@ app.post('/api/sanitization-update', requireSanOwner, async (req, res) => {
         recomputeShiftRollup(liveQ).catch(e => console.error('shift rollup recompute after sanitization update failed:', e && e.message)),
       ];
       // Re-warm the shared sanitization report once the rollups are done (no stacked memory peaks).
-      Promise.allSettled(jobs).then(() => sanWarm('sanitization update'));
+      Promise.allSettled(jobs).then(() => sanWarm('sanitization update')).then(() => sanValidateAfterUpload('sanitization update'));
     }
   } catch (e) {
     console.error('sanitization-update error:', e && (e.stack || e.message));
