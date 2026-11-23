@@ -86,9 +86,9 @@
       wait: ['is-wait', 'Temporarily sanitized (waiting for new upload)', 'Temp. sanitized', 'Waiting for the next data upload', n(T.awaiting)],
       ok: ['is-ok', 'Tickets sanitized successfully', 'Successfully sanitized', '', n(T.cleared)],
       err: ['is-errn', 'Error tickets that need approval to be marked as sanitized', 'Errors needing approvals', 'Marked Error \u2014 waiting for owner approval', n(T.errorTickets)],
-      // Error detected (sections().ded): counted in neither To sanitize nor Sanitized.
-      // null = not known yet (an older server without totals.errorDetected): shown as a dash.
-      ded: ['is-ded', 'Tickets with errors detected on the last upload', 'Errors detected', 'Tickets with errors detected on the last upload, waiting for the owner', T.errorDetected == null ? null : n(T.errorDetected)],
+      // Error detected (sections().ded): counted in neither To sanitize nor Sanitized. A count the
+      // server did not send (an older server without totals.errorDetected) reads as 0, not a dash.
+      ded: ['is-ded', 'Tickets with errors detected on the last upload', 'Errors detected', 'Tickets with errors detected on the last upload, waiting for the owner', n(T.errorDetected)],
     };
     if (!showErr) delete b.err;
     return b;
@@ -99,30 +99,41 @@
   // sanitize) + '% sanitized'. Errors detected are their own segment: they are in neither To sanitize
   // nor Sanitized, so the bar would not add up without them.
   // Only the selected contractor's summary (sumStatsHtml, 'is-sum') draws it; the tracker's agent rows
-  // show the '% sanitized' text alone (the bar was not helping there).
+  // show counts only (neither the bar nor a percentage was helping there).
   function barHtml(B, a, cls) {
     var seg = function (k) { var r = B[k]; return r && r[4] ? '<span class="' + r[0] + '" style="width:' + (a ? Math.min(100, r[4] / a * 100).toFixed(2) : 0) + '%"></span>' : ''; };
     return '<div class="stv-sbar' + (cls ? ' ' + cls : '') + '"><span class="stv-sbar-t" aria-hidden="true">' + seg('ok') + seg('wait') + seg('err') + seg('ded') + seg('bad')
       + '</span><b>' + pctOf(B.ok[4], a) + '% sanitized</b></div>';
   }
-  // Card stats: a <dl> laid out as a grid: total assigned (sr-only; the card header shows it), the hero
-  // row ('To sanitize' number left, '% tickets to sanitize' right), then 2-3 equal stat chips (Sanitized | Temp sanitized | Errors), then the
-  // '% sanitized' label. Short labels on screen; the full labels are sr-only text and title tooltips.
-  // o.showErr: the error chip; o.id: dl id (the card button's aria-describedby).
+  // Agent row (the tracker's contractor list): three zones on one grid line, one <dl> of counts each.
+  //   left   o.lead (the select button: avatar + login), then Temp. sanitized, Successfully sanitized
+  //   centre Errors needing approvals, then Errors detected
+  //   right  'N needs work' flush right, then o.tail (the expand chevron)
+  // The row grid gives the two side zones equal weight (1fr auto 1fr), so the centre pair sits on the
+  // middle of the row itself and does not drift as the left-hand numbers get wider. Counts only, no
+  // percentages; a missing count reads as 0. Short labels on screen, the full label as sr-only text
+  // and the title tooltip. o.showErr: include the approvals badge; o.id: id stem for the three <dl>s
+  // (the card button's aria-describedby, one id per zone).
   function cardStatsHtml(T, o) {
     T = T || {}; o = o || {};
     var B = buckets(T, o.showErr), a = B.tot[4], bad = B.bad;
     var chip = function (r) {
-      return '<div class="stv-chip ' + r[0] + (r[4] ? '' : ' is-zero') + '" title="' + esc(r[3] || r[1]) + '">'
+      return '<div class="stv-chip ' + r[0] + '" title="' + esc(r[3] || r[1]) + '">'
         + '<dt><span aria-hidden="true">' + esc(r[2]) + '</span><span class="stv-sr">' + esc(r[1]) + '</span></dt>'
-        + '<dd>' + (r[4] == null ? '<b>\u2014</b>' : '<b>' + numTxt(r[4]) + '</b> <span class="stv-chip-p">' + pctOf(r[4], a) + '%</span>') + '</dd></div>';
+        + '<dd><b>' + numTxt(r[4]) + '</b></dd></div>';
     };
-    return '<dl class="stv-cst' + (o.showErr ? '' : ' is-k3') + '"' + (o.id ? ' id="' + esc(o.id) + '"' : '') + '>'
-      + '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>'
-      + '<div class="stv-hero' + (bad[4] ? '' : ' is-zero') + '" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
-      + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r"><span class="stv-hero-p">' + pctOf(bad[4], a) + '%</span> <span aria-hidden="true">needs work</span></span></dd></div>'
-      + chip(B.ok) + chip(B.wait) + (B.err ? chip(B.err) : '') + chip(B.ded) + '</dl>'
-      + '<div class="stv-cpct">' + pctOf(B.ok[4], a) + '% sanitized</div>';
+    // One zone: [before] <dl of counts> [after]. The button and the chevron stay outside the <dl>
+    // (a <dl> takes only dt / dd groups, and a <button> takes only phrasing content).
+    var zone = function (k, before, inner, after) {
+      return '<div class="stv-cz is-c' + k + '">' + before
+        + '<dl class="stv-cst"' + (o.id ? ' id="' + esc(o.id + '-' + k) + '"' : '') + '>' + inner + '</dl>' + after + '</div>';
+    };
+    return '<div class="stv-crow">'
+      + zone('l', o.lead || '', '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>' + chip(B.wait) + chip(B.ok), '')
+      + zone('c', '', (B.err ? chip(B.err) : '') + chip(B.ded), '')
+      + zone('r', '', '<div class="stv-hero" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
+        + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r" aria-hidden="true">needs work</span></dd></div>', o.tail || '')
+      + '</div>';
   }
   // Selected contractor's summary: one strip of KPI tiles (Total assigned | To sanitize | Temporarily
   // sanitized | Sanitized successfully | Errors awaiting approval), each label / big number / % of
