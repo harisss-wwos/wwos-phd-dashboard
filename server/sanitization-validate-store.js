@@ -4,18 +4,23 @@
 //     detectedAt, dataStamp }
 // stamped with the upload that revealed the errors (detectedAt = eirDataStamp's publishedAt), so
 // re-uploading the same ticket refreshes the timestamp the tracker shows. A ticket that comes back
-// clean has its doc deleted; a ticket the contractor marked Error, or one the owner approved as an
-// error, is left alone entirely (the engine returns no result for it, so neither an upsert nor a
-// delete is planned). Scope = the tickets of the ACTIVE sanitization assignments.
+// clean has its doc deleted; a ticket the contractor has not claimed yet (claimedIds), one they marked
+// Error, and one the owner approved as an error are left alone entirely (the engine returns no result
+// for them, so neither an upsert nor a delete is planned). Scope = the tickets of the ACTIVE
+// sanitization assignments whose claim this upload has already seen: validation follows the
+// contractor's cleanup, so an unmarked ticket is never flagged. A doc whose dataStamp is not the
+// current upload is therefore out of date, and the tracker ignores it (sanitization-assign.js
+// validationOf).
 // No reads of its own and no DB I/O in planUpsert: server.js passes the rows, the assignments, the
 // marks, the approvals and the field approvals it already loads (sanValidateAfterUpload), so this
 // module is unit-testable with a fake collection. COLLECTIONS.ticketDocs is never written.
 'use strict';
-const { validateRows, approvalKey } = require('./sanitization-validate');
+const { validateRows, approvalKey, CLAIM_STATUSES } = require('./sanitization-validate');
 
 const BATCH = 500;   // operations per bulkWrite, as in sanitization-update.js
 
 const str = v => (v == null ? '' : String(v));
+const timeOf = s => { const n = Date.parse(s); return isNaN(n) ? NaN : n; };
 
 // shortIds of every ticket in an ACTIVE assignment (the Sanitization Tracker's scope).
 function assignedIds(assignments) {
@@ -27,16 +32,34 @@ function assignedIds(assignments) {
   return out;
 }
 // COLLECTIONS.sanitizationMarks holds one doc per (login, shortId): the NEWEST mark per ticket decides
-// (an 'error' mark takes the ticket out of validation). -> Map shortId -> status (lower-case).
-function markStatusMap(marks) {
+// (an 'error' mark takes the ticket out of validation). -> Map shortId -> mark doc.
+function newestMarks(marks) {
   const newest = new Map();
   (marks || []).forEach(m => {
     if (!m || !m.shortId) return;
     const p = newest.get(m.shortId);
     if (!p || str(m.at) > str(p.at)) newest.set(m.shortId, m);
   });
+  return newest;
+}
+// -> Map shortId -> the newest mark's status (lower-case).
+function markStatusMap(marks) {
   const out = new Map();
-  newest.forEach((m, id) => out.set(id, str(m.status).trim().toLowerCase()));
+  newestMarks(marks).forEach((m, id) => out.set(id, str(m.status).trim().toLowerCase()));
+  return out;
+}
+// The tickets validation applies to: the contractor has marked them with a closure claim
+// (CLAIM_STATUSES) and THIS upload is newer than that mark, so the uploaded data is the result of
+// their cleanup. An unmarked ticket, a claim made after the upload, a 'returned' or an 'error' mark
+// are not claims this upload has seen. -> Set of shortIds.
+function claimedIds(marks, stamp) {
+  const at = timeOf(stamp), out = new Set();
+  if (isNaN(at)) return out;
+  newestMarks(marks).forEach((m, id) => {
+    if (CLAIM_STATUSES.indexOf(str(m.status).trim().toLowerCase()) < 0) return;
+    const mt = timeOf(m.at);
+    if (!isNaN(mt) && at > mt) out.add(str(id).trim());
+  });
   return out;
 }
 // COLLECTIONS.sanitizationFieldApprovals docs -> the Set of '<shortId>|<FIELD>' keys the engine reads
@@ -74,16 +97,17 @@ function planUpsert(results, detectedAt, dataStamp) {
 }
 
 // One validation run after an upload. Loads nothing: deps = { validationColl, ticketRows (the scope
-// rows), assignments (every assignment doc; only the active ones count), marks, approved (approved
-// error docs / ids), approvedFields (Set of '<shortId>|<FIELD>'), types (issue-type names), stamp (the
-// upload's publishedAt), now?() }.
+// rows), assignments (every assignment doc; only the active ones count), marks (the claims this upload
+// has seen pick the tickets, claimedIds), approved (approved error docs / ids), approvedFields (Set of
+// '<shortId>|<FIELD>'), types (issue-type names), stamp (the upload's publishedAt), now?() }.
 // -> { validated, flagged, clean, ops, detectedAt }.
 async function runValidation(deps) {
   const d = deps || {};
   const ids = assignedIds(d.assignments);
   const rows = (d.ticketRows || []).filter(r => r && ids.has(str(r.ShortId || r.IssueId).trim()));
   const results = validateRows(rows, { types: d.types }, {
-    markStatus: markStatusMap(d.marks), approvedError: d.approved, approvedFields: d.approvedFields,
+    claimed: claimedIds(d.marks, d.stamp), markStatus: markStatusMap(d.marks),
+    approvedError: d.approved, approvedFields: d.approvedFields,
   });
   const detectedAt = d.stamp || (d.now ? d.now() : new Date()).toISOString();
   const ops = planUpsert(results, detectedAt, d.stamp || null);
@@ -95,4 +119,4 @@ async function runValidation(deps) {
   return { validated: results.size, flagged, clean: results.size - flagged, ops: ops.length, detectedAt };
 }
 
-module.exports = { BATCH, assignedIds, markStatusMap, fieldApprovalSet, planUpsert, runValidation };
+module.exports = { BATCH, assignedIds, newestMarks, markStatusMap, claimedIds, fieldApprovalSet, planUpsert, runValidation };

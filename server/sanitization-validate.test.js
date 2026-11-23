@@ -58,6 +58,19 @@ test('Successful with an empty Issue and no Date / Res lines fails the three req
   assert.equal(r.fields.Issue, 'N/A');
 });
 
+test('a required field written as N/A fails: N/A is only for the optional fields', () => {
+  const line = { Issue: 'Issue: Verbal abuse', Date: 'Date: 2026-01-15', Res: 'Res: Coaching' };
+  eng.REQUIRED_FIELDS.forEach(k => {
+    ['N/A', 'n/a', ' N.A. '].forEach(spelling => {
+      const r = eng.validateTicket(ticket({ RootCauseDetails: FULL_RCD.replace(line[k], k + ': ' + spelling) }), CTX);
+      assert.deepEqual(keys(r), [k], k + ': ' + spelling);
+      assert.match(r.failures[0].message, /required/);
+    });
+  });
+  // The optional fields keep taking an N/A spelling.
+  assert.equal(eng.validateTicket(ticket({ RootCauseDetails: FULL_RCD.replace('SID: DAB5', 'SID: n/a') }), CTX).ok, true);
+});
+
 test('Cnt must be a number or an N/A spelling', () => {
   const of = (v) => eng.validateTicket(ticket({ RootCauseDetails: FULL_RCD.replace('Cnt: 2', 'Cnt: ' + v) }), CTX);
   assert.deepEqual(keys(of('abc')), ['Cnt']);
@@ -107,6 +120,18 @@ test('a ticket the contractor marked Error gets no result', () => {
   assert.equal(out.get('T2').ok, false);
 });
 
+test('only the tickets whose claim the upload has seen are validated', () => {
+  const rows = [ticket({ ShortId: 'MARKED', Title: 'bad title' }), ticket({ ShortId: 'UNMARKED', Title: 'bad title' })];
+  const out = eng.validateRows(rows, CTX, { claimed: ['MARKED'] });
+  assert.deepEqual(Array.from(out.keys()), ['MARKED']);
+  assert.equal(out.get('MARKED').ok, false);
+  assert.equal(eng.validateRows(rows, CTX, { claimed: [] }).size, 0);
+});
+
+test('the claim statuses are the ones the tracker uses', () => {
+  assert.deepEqual(eng.CLAIM_STATUSES.slice(), Object.keys(require('./sanitization-assign').CLAIMS));
+});
+
 test('a ticket the owner approved as an error gets no result', () => {
   const out = eng.validateRows([ticket({ Title: 'bad title' })], CTX, { approvedError: [{ shortId: 'T1' }] });
   assert.equal(out.size, 0);
@@ -136,6 +161,9 @@ function fakeColl(name) {
     async bulkWrite(ops, options) { this.calls.push({ ops, options }); return { ok: 1 }; } };
 }
 const asg = (tickets, status) => [{ status: status || 'active', assignee: 'urmahala', tickets: tickets.map(id => ({ shortId: id, title: 't ' + id })) }];
+// Claims the uploads below (stamped 2026-03-01 / 2026-03-05) have already seen: only claimed tickets
+// are validated, so every store fixture marks its tickets the way a contractor would.
+const claims = (ids, at) => ids.map(id => ({ login: 'urmahala', shortId: id, status: 'successful', at: at || '2026-02-10T00:00:00.000Z' }));
 const allOps = (coll) => coll.calls.reduce((a, c) => a.concat(c.ops), []);
 const upserts = (coll) => allOps(coll).filter(o => o.updateOne);
 const deletes = (coll) => allOps(coll).filter(o => o.deleteMany);
@@ -161,7 +189,7 @@ test('runValidation writes only the assigned tickets, flagged as upserts and cle
   const coll = fakeColl();
   const rows = [ticket({ ShortId: 'BAD', Title: 'nothing valid' }), ticket({ ShortId: 'OK' }), ticket({ ShortId: 'NOT-ASSIGNED', Title: 'nothing valid' })];
   const out = await store.runValidation({ validationColl: coll, ticketRows: rows, assignments: asg(['BAD', 'OK']),
-    marks: [], approved: [], approvedFields: new Set(), types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
+    marks: claims(['BAD', 'OK', 'NOT-ASSIGNED']), approved: [], approvedFields: new Set(), types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
   assert.deepEqual({ validated: out.validated, flagged: out.flagged, clean: out.clean }, { validated: 2, flagged: 1, clean: 1 });
   assert.equal(coll.calls.length, 1);
   assert.deepEqual(upserts(coll).map(o => o.updateOne.filter._id), ['BAD']);
@@ -173,16 +201,41 @@ test('runValidation leaves an Error-marked and an approved-error ticket alone', 
   const coll = fakeColl();
   const rows = [ticket({ ShortId: 'ERR', Title: 'nothing valid' }), ticket({ ShortId: 'APV', Title: 'nothing valid' })];
   const out = await store.runValidation({ validationColl: coll, ticketRows: rows, assignments: asg(['ERR', 'APV']),
-    marks: [{ shortId: 'ERR', login: 'urmahala', status: 'error', at: '2026-02-01T00:00:00.000Z' }],
+    marks: [{ shortId: 'ERR', login: 'urmahala', status: 'error', at: '2026-02-01T00:00:00.000Z' }].concat(claims(['APV'])),
     approved: [{ shortId: 'APV' }], types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
   assert.equal(out.validated, 0);
   assert.equal(out.ops, 0);
   assert.equal(coll.calls.length, 0);
 });
 
+test('runValidation writes nothing for an assigned ticket the contractor has not marked yet', async () => {
+  const rows = [ticket({ ShortId: 'OPEN', Title: 'nothing valid' }), ticket({ ShortId: 'PENDING', Title: 'nothing valid' }),
+    ticket({ ShortId: 'BACK', Title: 'nothing valid' })];
+  const coll = fakeColl();
+  const out = await store.runValidation({ validationColl: coll, ticketRows: rows, assignments: asg(['OPEN', 'PENDING', 'BACK']),
+    // OPEN: never marked. PENDING: claimed AFTER this upload. BACK: sent back for rework, no claim.
+    marks: claims(['PENDING'], '2026-03-02T00:00:00.000Z').concat([{ login: 'urmahala', shortId: 'BACK', status: 'returned',
+      at: '2026-02-05T00:00:00.000Z', returnedAt: '2026-02-20T00:00:00.000Z' }]),
+    approved: [], types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
+  assert.deepEqual({ validated: out.validated, flagged: out.flagged, ops: out.ops }, { validated: 0, flagged: 0, ops: 0 });
+  assert.equal(coll.calls.length, 0);
+});
+
+test('claimedIds takes only the claims the upload has already seen', () => {
+  const marks = claims(['SEEN']).concat(claims(['LATER'], '2026-03-02T00:00:00.000Z'),
+    [{ login: 'urmahala', shortId: 'ERR', status: 'error', at: '2026-02-10T00:00:00.000Z' },
+      { login: 'urmahala', shortId: 'BACK', status: 'returned', at: '2026-02-10T00:00:00.000Z' },
+      { login: 'urmahala', shortId: 'OLD', status: 'completed', at: '2026-02-10T00:00:00.000Z' }]);
+  assert.deepEqual(Array.from(store.claimedIds(marks, '2026-03-01T10:00:00.000Z')), ['SEEN']);
+  assert.equal(store.claimedIds(marks, null).size, 0);
+  // A newer claim replaces an older one: the newest mark decides.
+  const re = claims(['SEEN']).concat([{ login: 'urmahala', shortId: 'SEEN', status: 'error', at: '2026-02-20T00:00:00.000Z' }]);
+  assert.equal(store.claimedIds(re, '2026-03-01T10:00:00.000Z').size, 0);
+});
+
 test('a newer upload refreshes detectedAt on a ticket that is still flagged', async () => {
   const rows = [ticket({ ShortId: 'BAD', Title: 'nothing valid' })];
-  const deps = { ticketRows: rows, assignments: asg(['BAD']), marks: [], approved: [], types: TYPES };
+  const deps = { ticketRows: rows, assignments: asg(['BAD']), marks: claims(['BAD']), approved: [], types: TYPES };
   const first = fakeColl(), second = fakeColl();
   await store.runValidation({ ...deps, validationColl: first, stamp: '2026-03-01T10:00:00.000Z' });
   await store.runValidation({ ...deps, validationColl: second, stamp: '2026-03-05T08:30:00.000Z' });
@@ -196,7 +249,7 @@ test('field approvals come from the approval docs _id and suppress that item onl
   const approvedFields = store.fieldApprovalSet([{ _id: 'BAD|Cnt' }, { shortId: 'BAD', field: 'Zip' }]);
   assert.deepEqual(Array.from(approvedFields).sort(), ['BAD|Cnt', 'BAD|Zip']);
   const out = await store.runValidation({ validationColl: coll, ticketRows: [ticket({ ShortId: 'BAD', RootCauseDetails: rcd })],
-    assignments: asg(['BAD']), marks: [], approved: [], approvedFields, types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
+    assignments: asg(['BAD']), marks: claims(['BAD']), approved: [], approvedFields, types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
   assert.deepEqual({ validated: out.validated, flagged: out.flagged }, { validated: 1, flagged: 0 });
   assert.deepEqual(deletes(coll).map(o => o.deleteMany.filter._id.$in), [['BAD']]);
 });

@@ -559,9 +559,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <p>Set each ticket&rsquo;s status after closing it in SIM; it is checked on the next data upload.</p>
   <h3 class="st-info-h">How it works</h3>
   <p>After sanitizing a ticket, set its status to how it is now closed in SIM (Successful, Immediately Resolved or Duplicate) or Error (sent to the owner for review).</p>
-  <p>A marked ticket is temporarily cleared until the next data upload. The closure code the upload carries picks the checks: <b>Immediately Resolved</b> &mdash; the 3 title checks (country code, issue type, severity) and nothing else; <b>Successful</b> &mdash; those 3 plus the ten Sim Root Cause Details fields, where Issue, Date and Res must have a value, Cnt must be a number or N/A, and the other seven may be a value or N/A; <b>Duplicate</b> &mdash; nothing is checked.</p>
-  <p>Nothing missing: the ticket is sanitized. Something missing: it lands in <b>Error detected</b> with the time of the upload that found it, where harisss approves single items (an approved item is never raised again) or sends the ticket back for rework. Until then it counts as neither sanitized nor to sanitize.</p>
-  <p>Tickets marked Error wait for harisss to approve them and are not checked. The score is the raw score out of 11, lowest first by default (use the Score header to flip it), then oldest assigned.</p>
+  <p>A marked ticket is temporarily cleared until the next data upload. The closure code the upload carries picks the checks: <b>Immediately Resolved</b> &mdash; the 3 title checks (country code, issue type, severity) and nothing else; <b>Successful</b> &mdash; those 3 plus the ten Sim Root Cause Details fields, where Issue, Date and Res must have a real value (N/A does not count), Cnt must be a number or N/A, and the other six may be a value or N/A; <b>Duplicate</b> &mdash; nothing is checked.</p>
+  <p>Nothing missing: the ticket is sanitized. Something missing: it lands in <b>Error detected</b> with the time of the upload that found it, where harisss approves single items (an approved item is never raised again) or sends the ticket back for rework. Until then it counts as neither sanitized nor to sanitize, and the contractor sees only the count &mdash; the items reach them with the rework note.</p>
+  <p>An unmarked ticket is not checked at all: it stays in <b>Tickets to sanitize</b> until its status is set. Tickets marked Error wait for harisss to approve them and are not checked. The score is the raw score out of 11, lowest first by default (use the Score header to flip it), then oldest assigned.</p>
   <p>One section is open at a time. Ticket links open in a new tab.</p>
 </div>
 
@@ -663,10 +663,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=240"></script>
-<script src="sanitization-view.js?v=20"></script>
+<script src="sanitization-view.js?v=21"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=8"></script>
+<script src="sanitization-checklist.js?v=9"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}

@@ -8,11 +8,14 @@
 // (sanitization-assign.js evalTicket). After every data upload the server validates each ticket on its
 // UPLOADED closure code (server/sanitization-validate.js): Immediately Resolved -> the 3 title checks
 // (country code, issue type, severity) and nothing else; Successful -> those 3 plus the ten Sim Root
-// Cause Details fields (Issue, Date and Res need a value, Cnt a number or N/A, the other seven a value
-// or N/A); Duplicate -> nothing is checked. A ticket with anything missing becomes 'error-detected' and
+// Cause Details fields (Issue, Date and Res need a real value - N/A does not count -, Cnt a number or
+// N/A, the other six a value or N/A); Duplicate -> nothing is checked. Only a ticket the contractor
+// has already marked is validated. A ticket with anything missing becomes 'error-detected' and
 // carries row.validation = { closureCode, scope, detectedAt, failures, fields }: the owner approves
 // single items (errDetTable + apvFieldsHtml, one ticket at a time) or sends it back for rework. Those
-// tickets count in neither the sanitized nor the to-sanitize total until the owner acts.
+// tickets count in neither the sanitized nor the to-sanitize total until the owner acts, and the items
+// themselves are owner-only - the contractor sees the count until a Rework brings the ticket back with
+// the owner's note.
 // Error tickets go to the owner for review (owner-only section; contractors get only the count) and
 // stay until approved or sent back (`returned` note on the to-sanitize row). The five sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
@@ -361,8 +364,8 @@
   // server/sanitization-validate.js RULES.
   var RULES_TEXT = 'The uploaded closure code picks the checks: Immediately Resolved \u2014 the 3 title checks '
     + '(country code, issue type, severity) and nothing else; Successful \u2014 those 3 plus the ten Sim Root Cause Details '
-    + 'fields, where Issue, Date and Res must have a value, Cnt must be a number or N/A, and the other seven may be a '
-    + 'value or N/A; Duplicate \u2014 nothing is checked.';
+    + 'fields, where Issue, Date and Res must have a real value (N/A does not count), Cnt must be a number or N/A, '
+    + 'and the other six may be a value or N/A; Duplicate \u2014 nothing is checked.';
   // The items the last upload found missing and the owner has not approved yet.
   function failList(t) { return (t && t.validation && t.validation.failures) || []; }
   // Owner-only Error detected: Ticket ID | Title | Closure code | Missing items | Detected at |
@@ -443,8 +446,8 @@
     var dedLbl = 'Error detected';
     if (rev) {
       html += sec('ded', 'is-ded', dedLbl, ded.length)
-        + (ded.length ? '<p class="stv-help">The last data upload found these items missing. ' + RULES_TEXT
-          + ' Approve lists the ticket\u2019s items one by one: an approved item is never raised again. Rework sends the ticket back to the contractor, naming the items still missing. Until you do one of the two, the ticket counts as neither sanitized nor to sanitize.</p>'
+        + (ded.length ? '<p class="stv-help">The last data upload found these items missing on tickets the contractor had marked. ' + RULES_TEXT
+          + ' Approve lists the ticket\u2019s items one by one: an approved item is never raised again. Rework sends the ticket back to the contractor, naming the items still missing. Until you do one of the two, the ticket counts as neither sanitized nor to sanitize. The items are yours only: the contractor sees the count and gets the list when you send the ticket back.</p>'
           + errDetTable(dedRows, o, h) + pager('ded', dedPg, size, ded.length, dedLbl)
           : '<p class="tb-asg-empty">No errors detected on the last data upload.</p>')
         + '</div></details>';
@@ -456,7 +459,7 @@
       + '</div></details>';
     html += sec('wait', 'is-temp', 'Temporarily cleared', S.wait.length)
       + '<p class="stv-help">Checked on the next data upload, on the closure code the upload carries. ' + RULES_TEXT
-      + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: the owner sees it under ' + dedLbl + ' and either approves the items or sends the ticket back to you with what is missing.</p>'
+      + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: the owner sees it under ' + dedLbl + ' and either approves the items or sends the ticket back to you with what is missing \u2014 until then you see only the count, not the items.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
       html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)

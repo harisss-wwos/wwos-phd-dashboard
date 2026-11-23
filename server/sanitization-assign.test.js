@@ -102,6 +102,35 @@ test('an Error mark keeps the ticket with the owner, whatever the record says', 
   assert.equal(v.totals.errorTickets, 1);
 });
 
+test('a flagged ticket the contractor has not marked stays in Tickets to sanitize', () => {
+  // Nothing is written for an unclaimed ticket any more (sanitization-validate-store.js claimedIds);
+  // a record left over from an earlier claim must not take the ticket to the owner either.
+  const v = view({ marks: [claim('OK2')] });
+  const t = row(v, 'BAD');
+  assert.equal(t.status, 'needs-correction');
+  assert.equal(t.reason, 'open');
+  assert.equal(t.passedNow, 9);                                    // the informational raw score, as before
+  assert.equal(v.totals.errorDetected, 0);
+  assert.equal(v.totals.needsCorrection, 1);
+  assert.equal(v.totals.needBy.open, 1);
+});
+
+test('a claim the upload has not seen yet keeps the ticket temporarily cleared', () => {
+  const v = view({ marks: [claim('BAD', '2026-03-02T00:00:00.000Z'), claim('OK2')] });
+  assert.equal(row(v, 'BAD').status, 'awaiting');
+  assert.equal(v.totals.errorDetected, 0);
+  assert.equal(v.totals.awaiting, 1);
+});
+
+test('a record from an earlier upload is out of date and decides nothing', () => {
+  const old = { ...valDoc('BAD', [FAIL_RES, FAIL_CC]), detectedAt: '2026-02-05T10:00:00.000Z', dataStamp: '2026-02-05T10:00:00.000Z' };
+  const v = view({ validations: [old] });
+  const t = row(v, 'BAD');
+  assert.equal(t.status, 'cleared');                               // the claim the latest upload saw, nothing flagged
+  assert.equal(t.validation, null);                                // and no stale detectedAt on the row
+  assert.equal(v.totals.errorDetected, 0);
+});
+
 test('without any validation record every row carries validation null', () => {
   const v = view({ validations: [] });
   assert.equal(v.tickets.length, 2);

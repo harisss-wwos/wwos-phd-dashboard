@@ -65,7 +65,7 @@ var TS_RULES=[
     'SIM Title: a known country code at the start.',
     'SIM Title: a valid issue type.',
     'SIM Title: a severity (Sev 1-5).',
-    'Sim Root Cause Details: Issue, Date and Res must have a value.',
+    'Sim Root Cause Details: Issue, Date and Res must have a real value (N/A does not count).',
     'Sim Root Cause Details: SID, TID, Driv, Zip, CID and UPID may have a value or N/A.',
     'Sim Root Cause Details: Cnt must be a number or N/A (N/A counts as 0).']},
   {key:'r-duplicate',label:'Closure code "Duplicate"',icon:'ticket',lines:[
@@ -73,6 +73,7 @@ var TS_RULES=[
   {key:'r-other',label:'Any other closure code',icon:'info',lines:[
     'Nothing is checked: the rules cover only Immediately Resolved, Successful and Duplicate.']},
   {key:'r-skipped',label:'Tickets left out of validation',icon:'flag',lines:[
+    'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
     'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
     'A ticket approved as an error is never validated again.',
     'An item harisss approves on a ticket is never raised again; the other items keep being checked on every upload.']}

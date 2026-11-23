@@ -17,8 +17,11 @@
 // tickets only when they changed (the old one moves to history). Never deleted.
 // TRACKER OUTCOME (Sanitization Tracker, contractorView / rowOf / handleMine): the per-ticket outcome
 // there comes from the persisted validation record of the latest upload (COLLECTIONS.sanitizationValidations,
-// written by server/sanitization-validate-store.js), NOT from rule A on the SIM closure code. A record
-// with at least one failure the owner has not approved (COLLECTIONS.sanitizationFieldApprovals) puts the
+// written by server/sanitization-validate-store.js), NOT from rule A on the SIM closure code. Only a
+// ticket whose closure claim the latest upload has already seen is validated, and only a record of that
+// upload counts (dataStamp = the current stamp): a ticket the contractor has not marked yet is never
+// flagged, it simply stays in their Tickets to sanitize queue. A current record with at least one failure
+// the owner has not approved (COLLECTIONS.sanitizationFieldApprovals) puts the
 // ticket in 'error-detected': owner-only rows, counted in neither totals.cleared nor
 // totals.needsCorrection, so they add nothing to the agent's sanitized total until the owner reviews
 // them (handleValidationReview: Approve per item, or Rework). A record whose failures are all approved,
@@ -413,7 +416,8 @@ async function handleGet(deps) {
 // BEFORE the upload that validates a ticket (unmarked / returned / legacy 'completed', and pending
 // claims) nothing of the uploaded data is checked: passedNow = the raw score out of 11, missingNow =
 // the failing Title / RCD checks (informational), no defects (reason 'open').
-// AFTER an upload the ticket's validation record decides (validationOf / valStatus, see the header):
+// AFTER an upload that has seen the ticket's claim, its validation record decides (validationOf /
+// valStatus, see the header; an unmarked ticket and a record from an earlier upload decide nothing):
 // un-approved failures left -> 'error-detected', with `validation` { closureCode, scope, detectedAt,
 // failures, fields } on the row, missingNow = the failing item labels and passedNow / requiredNow
 // null (the view's score pill falls back to the raw scoreNow); every item approved -> 'cleared'; no
@@ -461,9 +465,13 @@ const markedAfter = (m, detectedAt) => { const t = markTime(m); return !!detecte
 // Tracker outcome from the validation record (val = the row's `validation`, its failures already
 // stripped of the owner's approved items): 'error-detected' while an item is still open and nobody has
 // acted since the detection, 'cleared' once every detected item is approved, null when the record
-// decides nothing (no record at all, or a newer mark) and the mark rules apply instead.
-function valStatus(val, m) {
-  if (!val) return null;
+// decides nothing and the mark rules apply instead. The record decides only for a ticket whose closure
+// claim the latest upload has already seen (verifiedClaim, the same gate the validation hook applies
+// when it writes: sanitization-validate-store.js claimedIds), so an assigned ticket the contractor has
+// not sanitized yet stays in their Tickets to sanitize queue, and a Rework (a 'returned' mark) or a new
+// claim hands the ticket back to the mark rules.
+function valStatus(val, m, stamp) {
+  if (!val || !verifiedClaim(m, stamp)) return null;
   if (!val.failures.length) return 'cleared';
   return markedAfter(m, val.detectedAt) ? null : 'error-detected';
 }
@@ -531,7 +539,7 @@ function evalTicket(cur, why, m, stamp, vx) {
   if (vx) {
     // TRACKER: the validation record of the latest upload decides, not rule A.
     out.validation = vx.validation || null;
-    const vs = valStatus(out.validation, m);
+    const vs = valStatus(out.validation, m, stamp);
     if (vs) {
       out.passed = null; out.required = null; out.missing = vs === 'error-detected' ? out.validation.failures.map(f => f.label) : [];
       out.status = vs;
@@ -588,6 +596,8 @@ function apprMap(x) {
   Array.from(x || []).forEach(d => { if (typeof d === 'string') m.set(d, null); else if (d && d.shortId) m.set(d.shortId, d); });
   return m;
 }
+// Two data stamps are the same upload (ISO strings; a non-date value is compared as text).
+const sameStamp = (a, b) => { const x = timeOf(a), y = timeOf(b); return (!isNaN(x) && !isNaN(y)) ? x === y : String(a) === String(b); };
 // Validation records (COLLECTIONS.sanitizationValidations, one doc per flagged ticket) -> Map
 // shortId -> doc, from a Map or an array of docs.
 function valMap(validations) {
@@ -612,9 +622,13 @@ function fieldApprMap(approvedFields) {
 }
 // The row's `validation` from the ticket's record: the failures the owner has NOT approved yet, plus
 // what the pop-up shows (the uploaded closure code, what was checked, when, and the ten stored fields).
-// null when the ticket has no record (it was never validated, or the upload flagged nothing).
-function validationOf(doc, approvedSet) {
+// null when the ticket has no record (it was never validated, or the upload flagged nothing), and null
+// for a record of an EARLIER upload (dataStamp !== the current data stamp): the latest upload produced
+// no result for that ticket - its assignment was revoked, it left the Resolved / Closed scope, or it
+// was skipped - so the record (and its detectedAt) is out of date and decides nothing.
+function validationOf(doc, approvedSet, stamp) {
   if (!doc) return null;
+  if (stamp && doc.dataStamp && !sameStamp(doc.dataStamp, stamp)) return null;
   const failures = (doc.failures || []).filter(f => f && f.key && !(approvedSet && approvedSet.has(f.key)));
   return { closureCode: doc.closureCode || '', scope: doc.scope || '', detectedAt: doc.detectedAt || null,
     failures, fields: doc.fields || null };
@@ -636,7 +650,7 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds, v
     (a.tickets || []).forEach(t => {
       if (!t || !t.shortId || seen.has(t.shortId)) return;
       seen.add(t.shortId);
-      const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, appr, validationOf(vals.get(t.shortId), apprF.get(t.shortId)));
+      const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, appr, validationOf(vals.get(t.shortId), apprF.get(t.shortId), stamp));
       if (row) tickets.push(row);
     });
   });

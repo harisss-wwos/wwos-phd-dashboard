@@ -3639,7 +3639,9 @@ async function sanWarm(why) {
 // rules of their uploaded ClosureCode (Immediately Resolved -> the 3 title checks, Successful -> the
 // title checks + the 10 Sim Root Cause Details fields, Duplicate / any other code -> nothing), and one
 // doc per flagged ticket is written to COLLECTIONS.sanitizationValidations, stamped with the upload
-// (detectedAt = eirDataStamp). Tickets marked Error in the app, tickets approved as errors and items
+// (detectedAt = eirDataStamp). Only a ticket whose closure claim the upload has already seen is
+// checked, so validation follows the contractor's cleanup and an unmarked ticket is never flagged
+// (sanitization-validate-store.js claimedIds). Tickets marked Error in the app, tickets approved as errors and items
 // the owner approved (COLLECTIONS.sanitizationFieldApprovals) are left out. Never throws: a failure
 // leaves the previous validation docs in place and the next upload retries.
 async function sanValidateAfterUpload(why) {
@@ -3691,9 +3693,9 @@ const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
 const sanFieldApprovals = () => getCollection(COLLECTIONS.sanitizationFieldApprovals)
   .then(c => c.find({}, { projection: { shortId: 1, field: 1, approvedBy: 1, approvedAt: 1 } }).toArray());
 const sanFieldApprovalsShared = () => _sanReads.run('fieldApprovals', sanFieldApprovals);
-// Validation records of the latest upload (COLLECTIONS.sanitizationValidations, read-only here): the Sanitization Tracker's per-ticket outcome comes from them (sanitization-assign.js validationOf), projected to the fields a row and the owner's review pop-up show.
+// Validation records of the latest upload (COLLECTIONS.sanitizationValidations, read-only here): the Sanitization Tracker's per-ticket outcome comes from them (sanitization-assign.js validationOf), projected to the fields a row and the owner's review pop-up show plus dataStamp (a record of an earlier upload is out of date and decides nothing).
 const sanValidations = () => getCollection(COLLECTIONS.sanitizationValidations)
-  .then(c => c.find({}, { projection: { _id: 0, shortId: 1, closureCode: 1, scope: 1, detectedAt: 1, failures: 1, fields: 1 } }).toArray());
+  .then(c => c.find({}, { projection: { _id: 0, shortId: 1, closureCode: 1, scope: 1, detectedAt: 1, dataStamp: 1, failures: 1, fields: 1 } }).toArray());
 const sanValidationsShared = () => _sanReads.run('validations', sanValidations);
 const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
 app.get('/api/sanitization-score', requireSanScores, async (req, res) => {

@@ -22,7 +22,8 @@
 // Sim Root Cause Details (RCD_FIELDS, 10 fields; any line order, labels case-insensitive, the long
 // label forms of the real data accepted through the same alias sets and the same RCD_NEXT_KEYS
 // terminator as the score parser):
-//   required (REQUIRED_FIELDS) Issue, Date, Res          absent, or present with an empty value, fails.
+//   required (REQUIRED_FIELDS) Issue, Date, Res          absent, present with an empty value, or written
+//                              as an N/A spelling fails: N/A is reserved for the optional fields.
 //   optional                   SID, TID, Driv, Zip, CID, UPID   a value or 'N/A' both pass; absent or
 //                              empty is read as 'N/A' and never fails (TID is an ordinary optional
 //                              field, not a mandated constant).
@@ -30,8 +31,12 @@
 //                              N/A spelling (N/A counts as 0); letters or symbols fail.
 // Every field is stored with the literal 'N/A' when its line is absent or empty, so a persisted record
 // always carries all ten.
-// Skips (validateRows): a ticket the contractor marked 'error' in the app and a ticket the owner
-// approved as an error (COLLECTIONS.sanitizationExcluded) get no result at all — no checks, no flags.
+// Skips (validateRows): validation follows the contractor's cleanup, so only a ticket they have
+// already marked with a closure claim the upload has seen (opts.claimed, built by
+// sanitization-validate-store.js claimedIds from COLLECTIONS.sanitizationMarks and the upload stamp)
+// is checked — an assigned ticket nobody has marked yet stays in their "Tickets to sanitize" queue and
+// gets no result at all. A ticket the contractor marked 'error' in the app and a ticket the owner
+// approved as an error (COLLECTIONS.sanitizationExcluded) get no result either — no checks, no flags.
 // opts.approvedFields (a Set of approvalKey(shortId, key) strings) suppresses those single checks
 // permanently, while every un-approved check keeps being validated on each upload.
 'use strict';
@@ -46,6 +51,9 @@ const NA = 'N/A';
 const NA_RE = /^\s*n\.?\s*\/?\s*a\.?\s*$/i;
 const NUM_RE = /^\d+(?:\.\d+)?$/;
 const SCOPE_TITLE = 'title', SCOPE_RCD = 'title+rcd', SCOPE_NONE = 'none';
+// The contractor's closure-claim mark statuses (the keys of sanitization-assign.js CLAIMS): a ticket is
+// validated only once the contractor has claimed it and an upload has seen that claim.
+const CLAIM_STATUSES = Object.freeze(['successful', 'immediate', 'duplicate']);
 // ClosureCode (closureKey) -> what is checked.
 const SCOPE_BY_CODE = Object.freeze({ 'immediately resolved': SCOPE_TITLE, successful: SCOPE_RCD, duplicate: SCOPE_NONE });
 
@@ -127,7 +135,8 @@ function validateTicket(ticket, ctx, opts) {
     RCD_FIELDS.forEach(k => {
       const v = raw[k];
       if (REQUIRED_FIELDS.indexOf(k) >= 0) {
-        if (!v) failures.push(fail(k, 'rcd', rcdLabel(k), k + ': has no value (it is required).'));
+        // Required: absent, empty, or an N/A spelling (N/A is only for the optional fields).
+        if (!v || NA_RE.test(v)) failures.push(fail(k, 'rcd', rcdLabel(k), k + ': has no value (it is required, and N/A does not count).'));
         return;
       }
       // Cnt is the one optional field with a content rule; the other six take a value or N/A.
@@ -152,18 +161,22 @@ function idSet(x) {
 function markMap(x) { return x instanceof Map ? x : new Map(Object.entries(x || {})); }
 
 // ---- Many tickets ----
-// rows: ticket docs. opts: { markStatus (Map / object shortId -> mark status), approvedError (Set /
-// array of owner-approved error shortIds), approvedFields (Set of approvalKey) }.
-// -> Map shortId -> validateTicket result. A ticket the contractor marked 'error', or one the owner
-// approved as an error, is skipped entirely: it gets no entry at all.
+// rows: ticket docs. opts: { claimed (Set / array of the shortIds whose claim the upload has already
+// seen — the only tickets validated; omit it to validate every row), markStatus (Map / object shortId
+// -> mark status), approvedError (Set / array of owner-approved error shortIds), approvedFields (Set
+// of approvalKey) }.
+// -> Map shortId -> validateTicket result. A ticket the contractor has not claimed yet, one they marked
+// 'error', and one the owner approved as an error are skipped entirely: they get no entry at all.
 function validateRows(rows, ctx, opts) {
   const o = opts || {};
   const marks = markMap(o.markStatus), approved = idSet(o.approvedError);
+  const claimed = o.claimed == null ? null : idSet(o.claimed);
   const ctx2 = { types: typeList(ctx) };
   const out = new Map();
   (Array.isArray(rows) ? rows : []).forEach(r => {
     const shortId = str(r && (r.ShortId || r.IssueId)).trim();
     if (!shortId || out.has(shortId)) return;
+    if (claimed && !claimed.has(shortId)) return;   // not sanitized yet: nothing to validate
     if (str(marks.get(shortId)).trim().toLowerCase() === 'error') return;
     if (approved.has(shortId)) return;
     out.set(shortId, validateTicket(r, ctx2, { approvedFields: o.approvedFields }));
@@ -184,7 +197,7 @@ const RULES = Object.freeze([
     'SIM Title: a known country code at the start.',
     'SIM Title: a valid issue type.',
     'SIM Title: a severity (Sev 1-5).',
-    'Sim Root Cause Details: Issue, Date and Res must have a value.',
+    'Sim Root Cause Details: Issue, Date and Res must have a real value (N/A does not count).',
     'Sim Root Cause Details: SID, TID, Driv, Zip, CID and UPID may have a value or N/A.',
     'Sim Root Cause Details: Cnt must be a number or N/A (N/A counts as 0).',
   ]) }),
@@ -195,6 +208,7 @@ const RULES = Object.freeze([
     'Nothing is checked: the rules cover only Immediately Resolved, Successful and Duplicate.',
   ]) }),
   Object.freeze({ key: 'skipped', code: '', title: 'Tickets left out of validation', lines: Object.freeze([
+    'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
     'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
     'A ticket approved as an error is never validated again.',
     'An item harisss approves on a ticket is never raised again; the other items keep being checked on every upload.',
@@ -202,6 +216,6 @@ const RULES = Object.freeze([
 ]);
 
 module.exports = {
-  RCD_FIELDS, REQUIRED_FIELDS, NA, TITLE_CHECKS, SCOPE_BY_CODE, RCD_RE, RULES,
+  RCD_FIELDS, REQUIRED_FIELDS, NA, TITLE_CHECKS, SCOPE_BY_CODE, CLAIM_STATUSES, RCD_RE, RULES,
   parseRcdFields, validateTicket, validateRows, approvalKey,
 };

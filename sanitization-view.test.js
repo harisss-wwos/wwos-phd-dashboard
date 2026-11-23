@@ -5,7 +5,11 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const V = require('./sanitization-view.js');
+const eng = require('./server/sanitization-validate.js');
 
 const DETECTED = '2026-02-11T07:30:00.000Z';
 const FAILURES = [
@@ -69,6 +73,32 @@ test('viewHtml with review:false shows the count but no error-detected row', () 
   assert.equal(html.includes('stv-errdet'), false);
   assert.equal(html.includes('data-stvapv'), false);
   assert.equal(html.includes('data-stvfix'), false);
+  // ...and the help text says so, instead of leaving the missing count unexplained.
+  assert.match(html, /you see only the count, not the items/);
+});
+
+test('the browser copies of the rules still match the engine', () => {
+  // The rule text lives in three hand-kept places: the engine (server/sanitization-validate.js RULES),
+  // the checklist card (sanitization-checklist.js TS_RULES) and the section help texts here
+  // (RULES_TEXT). The literal is read out of the browser file, so a rule change that is not mirrored
+  // leaves the card or the help describing the old behaviour and fails here.
+  const src = fs.readFileSync(path.join(__dirname, 'sanitization-checklist.js'), 'utf8');
+  const m = src.match(/var TS_RULES\s*=\s*(\[[\s\S]*?\n\]);/);
+  assert.ok(m, 'TS_RULES literal found in sanitization-checklist.js');
+  // Back through JSON: the vm realm has its own Array / Object, which deepEqual refuses to match.
+  const TS_RULES = JSON.parse(JSON.stringify(vm.runInNewContext(m[1])));
+  assert.deepEqual(TS_RULES.map(r => r.key), eng.RULES.map(r => 'r-' + r.key));
+  assert.deepEqual(TS_RULES.map(r => r.label), eng.RULES.map(r => r.title));
+  assert.deepEqual(TS_RULES.map(r => r.lines), eng.RULES.map(r => r.lines.slice()));
+  // RULES_TEXT says the same in one sentence: every closure code the rules name, the required fields,
+  // the Cnt rule and the number of plain optional fields left.
+  eng.RULES.filter(r => r.code).forEach(r => assert.ok(V.RULES_TEXT.includes(r.code), 'RULES_TEXT names ' + r.code));
+  const req = eng.REQUIRED_FIELDS;
+  assert.ok(V.RULES_TEXT.includes(req.slice(0, -1).join(', ') + ' and ' + req[req.length - 1]), 'RULES_TEXT names the required fields');
+  assert.ok(V.RULES_TEXT.includes('N/A does not count'), 'RULES_TEXT says N/A does not count for them');
+  assert.equal(eng.RCD_FIELDS.length - req.length - 1, 6);   // the optional fields without the Cnt rule
+  assert.ok(V.RULES_TEXT.includes('the other six'), 'RULES_TEXT counts the plain optional fields');
+  assert.deepEqual(V.RCD_KEYS, eng.RCD_FIELDS.slice());
 });
 
 test('apvFieldsHtml emits one checkbox per failing item and no select-all', () => {
