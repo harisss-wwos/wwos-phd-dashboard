@@ -286,6 +286,39 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-reg-p{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
 .iex-reg .iex-kpi-bar{align-self:stretch;margin-top:6px}
 
+/* ---- World map (world-map.svg, one <path> per country; click -> Section A at that country) ----
+   The svg scales with the card (viewBox only, no pixel size here). Fill steps reuse the page accent:
+   muted = no successfully resolved tickets, q1..q4 = share of the busiest country, is-on = the country
+   currently selected in Section A. The hover highlight is pure CSS :hover, so a multi-part country
+   (one path with several subpaths, e.g. United States with Alaska) lights up in full. */
+#iexMap{margin-top:16px}
+#iexMap[hidden]{display:none}
+.iex-map-box{position:relative;margin-top:12px}
+.iex-map-in{border:1px solid var(--line);border-radius:10px;background:#fbfcfd;padding:6px}
+.iex-map-in svg{display:block;width:100%;height:auto}
+.iex-map-in path{fill:#e4e7ea;stroke:#fff;stroke-width:.4;vector-effect:non-scaling-stroke;transition:fill .12s}
+.iex-map-in path.q1{fill:#fde3c8}
+.iex-map-in path.q2{fill:#f8c089}
+.iex-map-in path.q3{fill:#f0943f}
+.iex-map-in path.q4{fill:#c84f0c}
+.iex-map-in path.is-on{fill:var(--acc);stroke:#7a3205;stroke-width:1}
+.iex-map-in path.has{cursor:pointer}
+.iex-map-in path:hover{fill:#161d2d;stroke:#161d2d}
+.iex-map-in path.has:hover{fill:var(--acc);stroke:#7a3205;stroke-width:1}
+.iex-map-tip{position:absolute;z-index:3;left:0;top:0;min-width:min(150px,100%);max-width:min(260px,100%);padding:9px 11px;border-radius:9px;
+  background:#161d2d;color:#fff;font-size:.8em;line-height:1.45;font-variant-numeric:tabular-nums;pointer-events:none;
+  box-shadow:0 16px 32px -16px rgba(20,30,50,.7)}
+.iex-map-tip[hidden]{display:none}
+.iex-map-tip b{display:block;font-size:1.12em;font-weight:800;letter-spacing:-.2px}
+.iex-map-tip .iex-map-cc{font-size:.84em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#ffb26b}
+.iex-map-tip dl{display:grid;grid-template-columns:auto auto;gap:1px 10px;margin-top:6px}
+.iex-map-tip dt{color:rgba(233,237,243,.72);font-weight:600}
+.iex-map-tip dd{font-weight:800;text-align:right}
+.iex-map-tip .iex-map-hint{margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,.18);font-size:.9em;font-weight:600;color:rgba(233,237,243,.72)}
+.iex-map-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;list-style:none;font-size:.74em;font-weight:700;color:var(--mut)}
+.iex-map-key li{display:inline-flex;align-items:center;gap:6px}
+.iex-map-key i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(20,30,50,.12)}
+
 /* ---- Collapsible drill-down sections A / B (chevron header, as on errors-in-resolved.html) ---- */
 .iex-xsecs{display:flex;flex-direction:column;gap:16px;margin-top:16px}
 .iex-xsec{overflow:hidden}
@@ -886,7 +919,7 @@ EX.geo=makeExplorer(HIER.geo);
 EX.driver=makeExplorer(HIER.driver);
 // Page parts that read an instance's data: the fixed 'All regions' card + hero (geo tree payload) and the
 // other section's collapsed summary (shows the shared root total before its own tree loads).
-function onChange(){ renderFixed(); setHero(); renderAttr(); HKEYS.forEach(function(k){ EX[k].renderSum(); }); }
+function onChange(){ renderFixed(); renderMap(); setHero(); renderAttr(); HKEYS.forEach(function(k){ EX[k].renderSum(); }); }
 
 // ---- Hero ----
 function heroHtml(){
@@ -971,10 +1004,144 @@ function renderAttr(){
     (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown.';
 }
 
+// ---- WORLD MAP (world-map.svg) ----------------------------------------------------------------------
+// A second, visual way into the SAME geo tree the drill-down uses: every country node under the tree root
+// (root > Region > Country) is matched to the svg path whose id is its ISO alpha-2 code, so the hover
+// numbers are literally the node the Countries chip and the ticket list read (node.n = successfully
+// resolved, node.t / node.a = created / resolved context). Hover highlights (CSS :hover) and shows the
+// summary; a click on a country that has tickets opens Section A at [region, country] through the same
+// openAt() the region cards use. Countries with no tickets stay visible but muted and are not clickable
+// (the filter would be empty); hovering one still names it and says so.
+// The ticket data carries UK / UAE where ISO (and the svg) use GB / AE — the only two codes in the data
+// that are not the svg id. Everything else in the data (US CA IN AU DE JP MX IT FR EG BR ES SA BE NL AT
+// IE NO PT TR SG) is an svg id as-is; 'Unknown' is not a country and has no shape.
+var MAP_SRC='world-map.svg?v=1';
+var MAP_ALIAS={UK:'GB',UAE:'AE'};        // data country code -> svg path id
+var MAP_UNALIAS={GB:'UK',AE:'UAE'};      // svg path id -> data country code
+var MAP={ loaded:false, loading:false, err:'', by:{}, max:0, names:{} };
+function mapId(code){ var c=String(code||'').toUpperCase(); return MAP_ALIAS[c]||c; }
+// Every country node of the geo tree, keyed by svg path id: { code, region, path, n, t, a }.
+function mapCountries(){
+  var X=EX.geo.X, out={}, max=0;
+  if(!X.D||!X.NODES.length) return { by:out, max:0 };
+  (X.NODES[0].node.c||[]).forEach(function(reg){
+    (reg.c||[]).forEach(function(c){
+      var id=mapId(c.k);
+      if(id==='UNKNOWN') return;         // 'Unknown' country: no shape on the map
+      out[id]={ code:c.k, region:reg.k, path:[reg.k,c.k], n:c.n||0, t:c.t||0, a:c.a||0 };
+      if(c.n>max) max=c.n;
+    });
+  });
+  return { by:out, max:max };
+}
+// Fill step of a country: share of the busiest country's successful resolves.
+function mapStep(n,max){ if(!n||!max) return ''; var s=n/max; return s>=.25?'q4':s>=.05?'q3':s>=.01?'q2':'q1'; }
+function mapTipHtml(id){
+  var d=MAP.by[id], name=MAP.names[id]||id, root=EX.geo.X.NODES.length?EX.geo.X.NODES[0].node:null;
+  var head='<b>'+esc(name)+'</b><span class="iex-map-cc">'+esc(d?d.code:id)+(d?' \u00b7 '+esc(d.region):'')+'</span>';
+  if(!d) return head+'<p class="iex-map-hint">No successfully resolved tickets in '+G.year+'.</p>';
+  return head+'<dl><dt>Successfully Resolved</dt><dd>'+num(d.n)+'</dd>'+
+    '<dt>Of all regions</dt><dd>'+(root?pct(d.n,root.n):'\u2014')+'</dd>'+
+    '<dt>Created in '+G.year+'</dt><dd>'+num(d.t)+'</dd>'+
+    '<dt>Resolved (any way)</dt><dd>'+num(d.a)+'</dd></dl>'+
+    '<p class="iex-map-hint">Click to list these tickets in section A.</p>';
+}
+function mapHideTip(){ var t=$('iexMapTip'); if(t){ t.hidden=true; t.removeAttribute('data-id'); } }
+// Anchor the tooltip to the cursor inside the map box, clamped to the box on all four sides so it is
+// never clipped (the box is the positioning context; the page never scrolls sideways for it).
+function mapMoveTip(ev){
+  var t=$('iexMapTip'), box=$('iexMapBox'); if(!t||!box||t.hidden) return;
+  // Measure at left:0 first: an absolutely positioned box shrink-wraps against the space left of the
+  // container edge, so measuring at the previous offset would feed the old position back into the new one.
+  t.style.left='0px';
+  var r=box.getBoundingClientRect(), tr=t.getBoundingClientRect(), tw=tr.width, th=tr.height, pad=8;
+  var x=ev.clientX-r.left+14, y=ev.clientY-r.top-th-14;
+  if(x+tw+pad>r.width) x=ev.clientX-r.left-tw-14;       // past the right edge: flip to the left of the cursor
+  x=Math.max(pad,Math.min(x,Math.max(pad,r.width-tw-pad)));
+  if(y<pad) y=ev.clientY-r.top+18;                      // no room above: drop below the cursor
+  y=Math.max(pad,Math.min(y,Math.max(pad,r.height-th-pad)));
+  t.style.left=Math.round(x)+'px'; t.style.top=Math.round(y)+'px';
+}
+function mapShowTip(ev,p){
+  var t=$('iexMapTip'); if(!t) return;
+  var id=p.getAttribute('id')||'';
+  if(t.getAttribute('data-id')!==id){ t.setAttribute('data-id',id); t.innerHTML=mapTipHtml(id); }
+  t.hidden=false; mapMoveTip(ev);
+}
+// Repaint the shapes from the current tree + selection (never re-injects the svg).
+function paintMap(){
+  var box=$('iexMapIn'); if(!box||!MAP.loaded) return;
+  var m=mapCountries(); MAP.by=m.by; MAP.max=m.max;
+  var sel=EX.geo.isOpen()&&EX.geo.X.sel.length>1?mapId(EX.geo.X.sel[1]):'';
+  Array.prototype.forEach.call(box.querySelectorAll('path'),function(p){
+    var id=p.getAttribute('id'), d=m.by[id], cls=d?('has '+mapStep(d.n,m.max)):'';
+    if(d&&id===sel) cls+=' is-on';
+    if(p.getAttribute('class')!==cls) p.setAttribute('class',cls);
+  });
+  var t=$('iexMapTip');
+  if(t&&!t.hidden&&t.getAttribute('data-id')) t.innerHTML=mapTipHtml(t.getAttribute('data-id'));
+  var n=Object.keys(m.by).length, tot=box.querySelectorAll('path').length;
+  box.setAttribute('aria-label','World map: '+n+' of '+tot+' countries have successfully resolved tickets in '+G.year+
+    '. The Countries list in section A below carries the same countries and counts.');
+  var k=$('iexMapKick'); if(k) k.textContent='World map \u00b7 '+G.year;
+  var s=$('iexMapSub');
+  if(s) s.textContent=n+' countr'+(n===1?'y':'ies')+' with tickets \u00b7 the rest stay muted \u00b7 hover for the numbers, click to open section A there \u00b7 the same counts as the Countries list in section A';
+}
+function mapHtml(){
+  return '<div class="iex-sec-head"><div class="iex-sec-tl"><p class="iex-kick" id="iexMapKick">World map \u00b7 '+G.year+'</p>'+
+      '<h2 class="iex-sec-h" id="iexMapH">Successfully resolved by country</h2>'+
+      '<p class="iex-head-sub" id="iexMapSub">Loading the map\u2026</p></div></div>'+
+    '<div class="iex-map-box" id="iexMapBox">'+
+      '<div class="iex-map-in" id="iexMapIn" role="img" aria-label="World map of successfully resolved tickets by country."></div>'+
+      '<div class="iex-map-tip" id="iexMapTip" aria-hidden="true" hidden></div></div>'+
+    '<ul class="iex-map-key" aria-hidden="true"><li><i style="background:#e4e7ea"></i>No tickets</li>'+
+      '<li><i style="background:#fde3c8"></i>Few</li><li><i style="background:#f8c089"></i></li>'+
+      '<li><i style="background:#f0943f"></i></li><li><i style="background:#c84f0c"></i>Most</li>'+
+      '<li><i style="background:#ec7211"></i>Selected in section A</li></ul>';
+}
+// Fetch the shapes once (own cacheable file, not inlined) and paint them.
+async function loadMap(){
+  if(MAP.loaded||MAP.loading) return;
+  MAP.loading=true;
+  var box=$('iexMapIn');
+  try{
+    var r=await fetch(MAP_SRC,{cache:'force-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var svg=await r.text();
+    box=$('iexMapIn'); if(!box) return;
+    // Shapes only: the file is a vendored asset with 256 <path> elements, no script and no event handlers.
+    box.innerHTML=svg.replace(/^[\s\S]*?(?=<svg)/,'');
+    MAP.loaded=true; MAP.names={};
+    Array.prototype.forEach.call(box.querySelectorAll('path'),function(p){ MAP.names[p.getAttribute('id')]=p.getAttribute('title')||p.getAttribute('id'); });
+    paintMap();
+  }catch(e){
+    MAP.err=(e&&e.message)||'network error';
+    var s=$('iexMapSub'); if(s) s.textContent='The map could not be loaded ('+MAP.err+'). The Countries list in section A below has the same countries and counts.';
+  }
+  finally{ MAP.loading=false; }
+}
+function renderMap(){
+  var c=$('iexMap'); if(!c) return;
+  var X=EX.geo.X;
+  c.hidden=!X.D||!X.NODES.length||!X.NODES[0].node.n;
+  if(c.hidden){ mapHideTip(); return; }
+  if(MAP.loaded) paintMap(); else loadMap();
+}
+// Click a country: open Section A at [region, country] — the same openAt() path as the region cards.
+function mapClick(p){
+  var id=p.getAttribute('id'), d=MAP.by[id];
+  if(!d||!d.n) return;                    // muted country: the filter would be empty
+  EX.geo.openAt(d.path);
+  var bx=EX.geo.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
+  var chip=bx&&bx.querySelector('.iex-it[aria-pressed="true"]'); if(chip) chip.focus({preventScroll:true});
+  announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets in section A.');
+}
+
 function shell(){
   wrap.innerHTML='<div class="iex'+(G.first?' is-anim':'')+'"><div id="iexLive" class="iex-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
     heroHtml()+
     '<div class="iex-fixed" id="iexFixed"></div>'+
+    '<section class="iex-card iex-sec" id="iexMap" aria-labelledby="iexMapH" hidden>'+mapHtml()+'</section>'+
     '<div class="iex-xsecs">'+EX.geo.shellHtml()+EX.driver.shellHtml()+'</div>'+
     '<p class="iex-attr" id="iexAttr"></p><div id="iexToast" class="iex-toast" hidden></div></div>';
 }
@@ -1030,6 +1197,15 @@ function bind(){
     if(t.closest('[data-gretry]')){ EX.geo.load(); return; }
     var sec=t.closest('[data-ex]'); if(sec&&EX[sec.getAttribute('data-ex')]) EX[sec.getAttribute('data-ex')].click(t);
   });
+  // World map: four delegated listeners on the map box cover all 256 country shapes.
+  var mp=$('iexMapIn');
+  if(mp){
+    mp.addEventListener('mouseover',function(ev){ var p=ev.target; if(p&&p.tagName==='path') mapShowTip(ev,p); });
+    mp.addEventListener('mousemove',function(ev){ var p=ev.target; if(p&&p.tagName==='path') mapShowTip(ev,p); else mapHideTip(); });
+    mp.addEventListener('mouseleave',mapHideTip);
+    mp.addEventListener('click',function(ev){ var p=ev.target; if(p&&p.tagName==='path') mapClick(p); });
+    window.addEventListener('scroll',mapHideTip,{passive:true});
+  }
   wrap.addEventListener('change',function(ev){
     var el=ev.target; if(!el||el.id!=='iexYear') return;
     G.year=Number(el.value)||2026;
