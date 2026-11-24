@@ -2058,6 +2058,8 @@ function kpiHtml(){
 function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed||FILTER.country!=='all'); }
 // Quick-filter buttons (one active at a time; 'Hide viewed' is a separate on/off toggle).
 //   overdue = past the 240h deadline · red = due within 72h (about to cross the SLA)
+//   A resolved-and-reopened ticket (server colour 'purple') belongs to P only: it is excluded from
+//   overdue even when its 240h deadline has passed, so it is never counted/listed under both.
 //   purple / yellow / green = the age colour from the server (t.color, same as the dashboard BY AGE tiles)
 //   noemt / sr = the same markers shown on each ticket (No EMT, Station Request / Address Exclusion)
 // Entry: [key, visible label, dot colour, full description]. Colour chips use short letters
@@ -2088,7 +2090,7 @@ function colorOf(t){
 }
 function ticketMatches(t,f){
   if(f==='all') return true;
-  if(f==='overdue') return dueOf(t)==='over';
+  if(f==='overdue') return dueOf(t)==='over' && colorOf(t)!=='purple';
   if(f==='red') return dueOf(t)==='warn';
   if(f==='noemt') return !!ticketIsNoEmt(t);
   if(f==='sr') return !!t.priority;
