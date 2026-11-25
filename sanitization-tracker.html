@@ -347,7 +347,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    FIELDS (Reason) share the rest, single line with ellipsis (full text in the title tooltip). MISSING
    FIELDS may wrap below 900px. Tickets to sanitize has no Score or Title column and no sort control. */
 .st-view .tb-san-sec.is-temp>summary b{background:#e9f0fb;color:#1f4f99}
-.st-view .tb-san-sec.is-err>summary b{background:#fff3e8;color:#8a3a00}
 /* Error detected: the tickets the last upload flagged, waiting for the owner (first section): light red. */
 .st-view .tb-san-sec.is-ded{background:#fdf0f0;border-color:#f2c4c4}
 .st-view .tb-san-sec.is-ded>summary{color:#7a1616}
@@ -393,18 +392,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Owner's send-back note on a Needs correction row (amber), the contractor's "sent for error review" line. */
 .st-view .stv-ret{margin:0 0 4px;padding:6px 10px;border-radius:8px;background:#fff6e0;border:1px solid #f3d38a;color:#7a4b00;font-size:.86em;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
 .st-view .stv-sent{margin:8px 0 0;font-size:.82em;color:#5c6773}
-/* Owner's Error tickets review: checkbox column, selected rows, bulk toolbar, Approved errors list. */
-.st-view .stv-ck{text-align:center}
-.st-view .stv-ck input{width:18px;height:18px;margin:0;cursor:pointer;accent-color:#ec7211}
-.st-view .stv-ck input:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
-.st-view table.stv-rev tr.is-sel td{background:#fff8f1}
-.st-view .stv-act .tb-san-btn+.tb-san-btn{margin-left:4px}
-.st-view .stv-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
-.st-view .stv-errtop{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 8px}
-.st-view .stv-errtop .tb-san-btn{display:inline-flex;align-items:center;gap:5px}
-.st-view .stv-open-note{flex:1 1 220px;margin:0;font-size:.84em;font-weight:700;color:#8a3a00}
-.st-view .stv-bulk-n{font-size:.86em;font-weight:800;color:#2a3340;margin-right:4px}
-.st-view .tb-san-btn.stv-link{border-color:transparent;background:transparent;text-decoration:underline}
+/* Owner's Approved errors list (the Restore safety net; the error tickets waiting for approval are
+   reviewed in the top-level #stApv section, whose rules live with it below). */
 .st-view details.stv-appr{margin-top:12px;border:1px solid #e2e6ea;border-radius:10px;padding:8px 12px;background:#fafbfc}
 .st-view details.stv-appr>summary{cursor:pointer;font-size:.9em;font-weight:800;color:#2a3340}
 .st-view details.stv-appr>summary b{margin-left:4px;padding:1px 8px;border-radius:99px;background:#eef1f4;color:#2a3340}
@@ -472,6 +461,54 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #stErr .st-err-note{margin:0 0 10px;color:#5c6773;font-size:.84em;line-height:1.5}
 #stErr .st-err-msg{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.86em;font-weight:700}
 #stErr .st-err-msg:empty{display:none}
+/* ---- Error tickets that need approval (#stApv, the top-level card directly below #stErr) ----
+   Markup from sanitization-view.js approvalSectionHtml: one <details data-stvagent> per agent with a
+   ticket waiting (the first open, one open at a time), and a table of
+   Ticket ID | Title | Reason | Marked at with the owner's [Approve] / [Send back], the row
+   checkboxes and the bulk Approve bar. Amber, the colour the approvals already use elsewhere (the
+   KPI tile, the pop-up), so it does not read as a second copy of the red Error detected card. */
+#stApv details.st-apv-d{border:1px solid #f6d7b6;border-radius:10px;background:#fff8f1;margin-bottom:10px}
+#stApv details.st-apv-d:last-child{margin-bottom:0}
+#stApv details.st-apv-d>summary{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
+  list-style:none;font-size:.95em;font-weight:800;color:#8a3a00}
+#stApv details.st-apv-d>summary::-webkit-details-marker{display:none}
+#stApv details.st-apv-d>summary::before{content:'\25b8';flex-shrink:0;color:#b5530a;transition:transform .15s}
+#stApv details.st-apv-d[open]>summary::before{transform:rotate(90deg)}
+#stApv details.st-apv-d>summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+#stApv details.st-apv-d>summary b{padding:1px 9px;border-radius:99px;background:#fff;border:1px solid #f6d7b6;color:#8a3a00;font-size:.84em;font-weight:800}
+#stApv .st-apv-agh{text-transform:none}
+#stApv .st-apv-agn{font-size:.9em;font-weight:600;color:#5c6773}
+#stApv .st-apv-p{margin-left:auto;padding:1px 9px;border-radius:99px;background:#b42318;color:#fff;font-size:.8em;font-weight:800}
+#stApv .st-apv-in{padding:0 12px 12px}
+#stApv table.st-apv-t{width:100%;border-collapse:collapse;background:#fff;font-size:.86em}
+#stApv table.st-apv-t thead th{padding:7px 10px;text-align:left;background:#f5f6f8;border-bottom:1px solid #e2e6ea;
+  font-size:.86em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773}
+#stApv table.st-apv-t td{padding:8px 10px;border-bottom:1px solid #eef1f4;vertical-align:middle;color:#1b2026}
+#stApv table.st-apv-t tbody tr:last-child td{border-bottom:0}
+#stApv table.st-apv-t tbody tr:hover td{background:#fafbfc}
+#stApv table.st-apv-t tbody tr.is-sel td{background:#fff3e8}
+#stApv table.st-apv-t .stv-fit{width:1%;white-space:nowrap}
+#stApv table.st-apv-t .stv-ttl,#stApv table.st-apv-t .stv-mc{width:49%}
+#stApv table.st-apv-t td.stv-clip{max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+#stApv table.st-apv-t td.stv-mc{color:#8a3a00;font-weight:600}
+#stApv table.st-apv-t td.stv-act{text-align:right;white-space:nowrap}
+#stApv table.st-apv-t td.stv-act .tb-san-btn+.tb-san-btn{margin-left:4px}
+#stApv .stv-ck{text-align:center}
+#stApv .stv-ck input{width:18px;height:18px;margin:0;cursor:pointer;accent-color:#ec7211}
+#stApv .stv-ck input:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
+#stApv .stv-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
+#stApv .stv-bulk-n{font-size:.86em;font-weight:800;color:#2a3340;margin-right:4px}
+#stApv .stv-errtop{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 8px}
+#stApv .stv-errtop .tb-san-btn{display:inline-flex;align-items:center;gap:5px}
+#stApv .stv-open-note{flex:1 1 220px;margin:0;font-size:.84em;font-weight:700;color:#8a3a00}
+#stApv .tb-san-btn.stv-save{background:#161d2d;border-color:#161d2d;color:#fff}
+#stApv .tb-san-btn.stv-save:hover{background:#0f1420;color:#fff}
+#stApv .tb-san-btn.stv-link{border-color:transparent;background:transparent;text-decoration:underline}
+#stApv .tb-san-btn:disabled{opacity:.6;cursor:default}
+#stApv .stv-help{margin:0 0 8px;color:#5c6773;font-size:.82em;line-height:1.5}
+#stApv .st-apv-note{margin:0 0 10px;color:#5c6773;font-size:.84em;line-height:1.5}
+#stApv .st-apv-msg{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.86em;font-weight:700}
+#stApv .st-apv-msg:empty{display:none}
 /* Contractors section (a top-level accordion card): KPIs, the cards, then the selected contractor's view. */
 .st-con-cards{margin-bottom:16px}
 .st-con .st-sec{margin-bottom:0}
@@ -493,8 +530,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <p>Every ticket in <b>Tickets to sanitize</b> carries three buttons. <b>Mark error</b> asks why and sends the ticket to harisss for approval. <b>Sanitized</b> and <b>Duplicate</b> say how you closed it in SIM; either way the ticket goes to <b>Temporarily sanitized</b> and waits for the next upload.</p>
   <p>The closure code the <em>upload</em> carries &mdash; not the button you pressed &mdash; picks the checks: <b>Immediately Resolved</b> &mdash; the 3 title checks (country code, issue type, severity) and nothing else; <b>Successful</b> &mdash; those 3 plus the ten Sim Root Cause Details fields, where Issue, Date and Res must have a real value (N/A does not count), Cnt must be a number or N/A, and the other six may be a value or N/A; <b>Duplicate</b> &mdash; nothing is checked. So a ticket you marked Duplicate that uploads as Successful is still checked against the Successful rules, and passes quietly when the work is there.</p>
   <p>Nothing missing: the ticket is sanitized. Something missing: it is listed in <b>Error detected</b>, the section above the Sanitization Center, under the date of the upload that found it and the agent it belongs to, with every missing field named. Everyone sees that section &mdash; contractors their own tickets &mdash; but only harisss gets the two buttons on each row: <b>Accept Sanitized error</b> counts the whole ticket as sanitized and never validates it again, and <b>Rework</b> sends it back to <b>Tickets to sanitize</b> with a note naming what is missing. Until one of the two, the ticket counts as neither sanitized nor to sanitize.</p>
-  <p>An unmarked ticket is not checked at all: it stays in <b>Tickets to sanitize</b> until it is marked. Tickets marked Error wait for harisss to approve them and are not checked. The score is the raw score out of 11, lowest first, then oldest assigned.</p>
-  <p>One date is open at a time in Error detected, and one section at a time in a contractor&rsquo;s tickets. Ticket links open in a new tab.</p>
+  <p>A ticket you marked <b>Error</b> is not checked at all: it waits in <b>Error tickets that need approval</b>, the section directly below Error detected, grouped by agent and showing your reason and the date you marked it. Everyone sees that section too, and only harisss gets the buttons: <b>Approve</b> counts the ticket as sanitized (tagged Approved error) and leaves it out of the scores, <b>Send back</b> returns it to <b>Tickets to sanitize</b> with a message. harisss can tick several rows and approve them together.</p>
+  <p>An unmarked ticket is not checked at all: it stays in <b>Tickets to sanitize</b> until it is marked. The score is the raw score out of 11, lowest first, then oldest assigned.</p>
+  <p>One date is open at a time in Error detected, one agent at a time in Error tickets that need approval, and one section at a time in a contractor&rsquo;s tickets. Ticket links open in a new tab.</p>
 </div>
 
 <!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
@@ -570,7 +608,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=242"></script>
-<script src="sanitization-view.js?v=26"></script>
+<script src="sanitization-view.js?v=27"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=12"></script>
@@ -599,7 +637,11 @@ var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|
 // GET /api/sanitization-errors: the owner and the view-all logins get every agent, a contractor only
 // their own rows. {loading, data, error, busy:{shortId:true}, msg} - one variable, like VIEWS[login].
 var ERRSEC={loading:true, data:null, error:'', busy:{}, msg:''};
-var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
+// The top-level "Error tickets that need approval" section (#stApv), loaded once per page load from
+// GET /api/my-sanitization/approvals: the owner and the view-all logins get every agent, a contractor
+// only their own rows. sel = the owner's selection (shortId -> true) for the bulk Approve, last =
+// {login, i} the last row clicked (Shift+click selects a range inside that agent).
+var APVSEC={loading:true, data:null, error:'', msg:'', sel:{}, last:null};
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
 var ERRF=null;             // open "Why is this an error ticket?" form: {shortId, text, err, busy}
@@ -725,9 +767,9 @@ function viewBody(){
   return '<p class="stv-note" id="stvNote" role="alert">'+esc(NOTE)+'</p>'+
     (ro?'<p class="stv-help">You are viewing '+esc(who)+'\u2019s tickets. Only '+esc(who)+' and the owner can change their status.</p>':'')+
     V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
-      review:canReview(SEL),sel:SELR,revBusy:REVBUSY,apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
+      review:canReview(SEL),apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
 }
-// Error tickets are owner-only (the server sends contractors no error rows and enforces the review too).
+// Approved errors (Restore) are owner-only, and so is the review in the #stApv section below.
 function canReview(login){ var d=VIEWS[login]&&VIEWS[login].data; return !!(S.isOwner()&&(!d||d.canReview!==false)); }
 function renderView(focusSel){
   var h=$('stViewH'), b=$('stViewBody'); if(!b) return;
@@ -839,6 +881,69 @@ function errReview(sid,action){
   });
 }
 
+// ---- Error tickets that need approval (#stApv): a top-level card between #stErr and the Center ----
+// Fed by GET /api/my-sanitization/approvals (one call per page load): agent -> the tickets that agent
+// marked Error with a reason, which exist only for the owner to approve. Everyone sees it (a
+// contractor only their own rows); the row actions and the bulk Approve are the owner's. Grouped by
+// AGENT, not by upload date: a contractor marks a ticket whenever they hit one, so a date would say
+// nothing here. The agents are their own one-open-at-a-time accordion, the first one open.
+// Marked dates are shown with S.when, the account timezone, like every other date on the page.
+function apvCanReview(){ var d=APVSEC.data; return !!(S.isOwner()&&(!d||d.canReview!==false)); }
+function apvSecAgents(){ var d=APVSEC.data; return (d&&d.agents)||[]; }
+function apvSecRows(){ var out=[]; apvSecAgents().forEach(function(a){ (a.tickets||[]).forEach(function(t){ out.push(t); }); }); return out; }
+function apvSecCount(){ return apvSecRows().length; }
+function apvAgentOf(sid){ var ags=apvSecAgents(); for(var i=0;i<ags.length;i++){ var ts=ags[i].tickets||[]; for(var j=0;j<ts.length;j++) if(ts[j].shortId===sid) return ags[i]; } return null; }
+function apvSelIds(){ return apvSecRows().filter(function(t){ return APVSEC.sel[t.shortId]; }).map(function(t){ return t.shortId; }); }
+function apvSelLogins(){
+  var out=[], seen={};
+  apvSecAgents().forEach(function(a){ (a.tickets||[]).forEach(function(t){ if(APVSEC.sel[t.shortId]&&!seen[a.login]){ seen[a.login]=1; out.push(a.login); } }); });
+  return out;
+}
+function apvSecSum(){ return (APVSEC.loading||APVSEC.error)?'':CK.topSum(V.plural(apvSecCount(),'ticket'),apvSecCount()?'is-bad':''); }
+function apvSecBody(){
+  if(APVSEC.loading&&!APVSEC.data) return '<p class="tb-asg-empty">Loading the tickets waiting for error approval\u2026</p>';
+  if(APVSEC.error) return '<div class="st-err" role="alert">'+esc(APVSEC.error)+'<button type="button" class="st-btn is-ghost" id="stApvRetry">Try again</button></div>';
+  return '<p class="st-apv-msg" role="alert">'+esc(APVSEC.msg)+'</p>'+
+    '<p class="st-apv-note">'+(apvCanReview()
+      ? 'Tickets an agent marked as an error with a reason, by agent. <b>Approve</b> counts a ticket as sanitized (tagged Approved error) and leaves it out of the sanitization scores and assignment picking; <b>Send back</b> returns it to that agent\u2019s Tickets to sanitize with your message. Tick several rows to approve them in one go.'
+      : 'Tickets you marked as an error with a reason. They wait here until harisss approves one \u2014 it then counts as sanitized \u2014 or sends it back to your Tickets to sanitize with a message.')+'</p>'+
+    V.approvalSectionHtml(APVSEC.data,{review:apvCanReview(),sel:APVSEC.sel,revBusy:REVBUSY,h:{ic:ic,when:S.when,url:S.url}});
+}
+function apvSecHtml(){
+  return '<section class="'+CK.topCls('stApv')+'" id="stApv" aria-labelledby="stApvHead">'+
+    // 'user-shield' (approval by the owner), not 'flag': icons.js has no flag, so the header tile
+    // would paint as an empty square, the way the approvals KPI tile does.
+    CK.topHead('stApv',{icon:ic('user-shield',17),title:'Error tickets that need approval',sum:'<span id="stApvSum">'+apvSecSum()+'</span>',
+      sub:'Tickets an agent marked as an error, waiting for the owner\u2019s approval, by agent.'})+
+    CK.topBody('stApv')+'<div class="tb-asg-card tb-san-card" id="stApvIn">'+apvSecBody()+'</div></div></section>';
+}
+function renderApvSec(focusSel){
+  var b=$('stApvIn'); if(!b) return;
+  b.innerHTML=apvSecBody();
+  var s=$('stApvSum'); if(s) s.innerHTML=apvSecSum();
+  var all=b.querySelectorAll('[data-stvall]');
+  for(var i=0;i<all.length;i++) all[i].indeterminate=all[i].hasAttribute('data-stvmixed');
+  if(focusSel){ var f=b.querySelector(focusSel)||document.querySelector(focusSel); if(f) try{ f.focus(); }catch(e){} }
+}
+function loadApvSec(force){
+  if(!CON||!$('stApv')) return;
+  if(APVSEC.data&&!force){ renderApvSec(); return; }
+  APVSEC.loading=true; APVSEC.error=''; renderApvSec();
+  A.api('GET','/api/my-sanitization/approvals').then(function(r){ return r; },function(){ return null; }).then(function(r){
+    APVSEC.loading=false;
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.agents)){
+      APVSEC.data=r.data; APVSEC.error='';
+      // Drop selections for tickets that are no longer waiting (approved, sent back or re-marked).
+      var live={}; apvSecRows().forEach(function(t){ live[t.shortId]=1; });
+      Object.keys(APVSEC.sel).forEach(function(k){ if(!live[k]) delete APVSEC.sel[k]; });
+      APVSEC.last=null;
+    }
+    else APVSEC.error=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets waiting for error approval.');
+    renderApvSec();
+    announce(APVSEC.error||('Error tickets that need approval: '+V.plural(apvSecCount(),'ticket')+'.'));
+  });
+}
+
 // The Contractors section: a top-level accordion card (sanitization-checklist.js helpers) holding the
 // KPIs, the contractor cards and the selected contractor's view.
 function conSum(){ return ST.state==='done'?CK.topSum(num(ST.list.length)+' contractor'+(ST.list.length===1?'':'s')):''; }
@@ -850,11 +955,12 @@ function conHtml(){
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
 // The page shell (built once): hero, then Checklist / Assignment log / Scores (closure-code groups) /
-// Error detected (#stErr) / Sanitization Center (#stCon) / Sanitized tickets (#tsSanitized) /
+// Error detected (#stErr) / Error tickets that need approval (#stApv, the other error section, right
+// under it) / Sanitization Center (#stCon) / Sanitized tickets (#tsSanitized) /
 // Approved errors & agent-marked duplicates (#tsMarked, last). DOM order = visual order.
 function buildPage(){
   $('wrap').innerHTML='<div class="st ts">'+heroHtml(false)+'<div class="ts-main">'+
-    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?errSecHtml():'')+(CON?conHtml():'')+CK.sanitizedHtml()+CK.markedHtml()+'</div></div>';
+    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?errSecHtml():'')+(CON?apvSecHtml():'')+(CON?conHtml():'')+CK.sanitizedHtml()+CK.markedHtml()+'</div></div>';
 }
 // Re-render the Contractors section's contents in place (the other sections keep their state).
 function render(){
@@ -863,11 +969,12 @@ function render(){
   var s=$('stConSum'); if(s) s.innerHTML=conSum();
   renderCards(); renderView();
 }
-// Not a contractor after all (403): drop both sections and the "Data as of" pill.
+// Not a contractor after all (403): drop the three sections and the "Data as of" pill.
 function dropCon(){
   CON=false; var c=$('stCon'); if(c) c.remove();
-  var e=$('stErr'); if(e) e.remove(); renderAsOf();
-  if(CK.open()==='stCon'||CK.open()==='stErr') CK.open(null);
+  var e=$('stErr'); if(e) e.remove();
+  var p=$('stApv'); if(p) p.remove(); renderAsOf();
+  if(CK.open()==='stCon'||CK.open()==='stErr'||CK.open()==='stApv') CK.open(null);
 }
 
 // ---- Data ----
@@ -907,7 +1014,7 @@ function loadView(login,force,after){
   });
 }
 // Switching contractor resets paging / forms / selection; the open section (OPEN) is kept.
-function resetViewState(){ PG={need:0,ok:0}; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+function resetViewState(){ PG={need:0,ok:0}; ERRF=null; BUSY={}; NOTE=''; APPR_OPEN=false; }
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
@@ -974,7 +1081,9 @@ function saveMark(sid,status,reason){
       if(row&&row.shortId===sid){ for(var k in row) if(Object.prototype.hasOwnProperty.call(row,k)) t[k]=row[k]; }
       else { t.mark=mark; t.status=V.statusAfter(t,mark); t.returned=null; t.legacyCompleted=false; }   // a new mark replaces the owner's send-back note
       if(ERRF&&ERRF.shortId===sid) ERRF=null;
-      syncTotals(); renderView('#stViewH'); loadErrSec(true);
+      // Both top-level error sections can change with one mark: Mark error adds a row to the
+      // approvals section, Undo takes it out, and a new mark clears the ticket's detected error.
+      syncTotals(); renderView('#stViewH'); loadErrSec(true); loadApvSec(true);
       announce(sid+(status==='error'?(canReview(login)?' marked Error.':' sent to the owner for error review.')
         :(status?(' marked '+(STATUS_WORD[status]||status)+'. Temporarily cleared until the next data upload.'):(' mark removed: '+(t.status==='cleared'?'sanitized.':'back to Tickets to sanitize.')))));
     } else {
@@ -996,15 +1105,19 @@ function saveWhy(sid){
 }
 
 // ---- Error review (owner only; POST /api/my-sanitization/error-review and /restore) ----
+// The review pop-up is opened from the #stApv section: one row's [Approve] / [Send back], or the bulk
+// Approve over the selection, which may span agents. `logins` = every agent whose tickets are in the
+// job, so their cached views are refetched afterwards; `login` (one agent) names the person a
+// Send back goes to.
 function curView(){ return SEL&&VIEWS[SEL]&&VIEWS[SEL].data||null; }
-function errRows(){ var v=curView(); return v?V.sections(v).err:[]; }
-function selIds(){ return errRows().filter(function(t){ return SELR[t.shortId]; }).map(function(t){ return t.shortId; }); }
-var RV=null;   // open review pop-up: {action, ids, login, busy}
-function revOpen(action,ids){
-  if(!canReview(SEL)||!ids.length||REVBUSY) return;
+var RV=null;   // open review pop-up: {action, ids, login, logins, busy}
+function revOpen(action,ids,logins){
+  if(!apvCanReview()||!ids.length||REVBUSY) return;
   revClose(true);
-  var n=ids.length, ap=action==='approve', who=nameOf(findC(SEL));
-  RV={action:action,ids:ids.slice(),login:SEL,busy:false};
+  logins=(logins||[]).filter(Boolean);
+  var n=ids.length, ap=action==='approve', one=logins.length===1?logins[0]:'';
+  var who=one?(nameOf(findC(one))||one):'the agent';
+  RV={action:action,ids:ids.slice(),login:one,logins:logins.slice(),busy:false};
   var title=ap?('Approve '+V.plural(n,'error ticket')):('Send back '+V.plural(n,'ticket'));
   var ov=document.createElement('div'); ov.id='stRevDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
   ov.innerHTML='<div class="tbl-card st-rev" role="dialog" aria-modal="true" aria-labelledby="stRevT" aria-describedby="stRevD">'+
@@ -1051,7 +1164,7 @@ function revSubmit(){
   var bad=function(m){ if(er) er.textContent=m; if(ta){ ta.setAttribute('aria-invalid','true'); ta.focus(); } };
   if(RV.action==='return'&&!note){ bad('Please write a message for the contractor.'); return; }
   if(note.length>500){ bad('The message can be at most 500 characters.'); return; }
-  var job=RV, login=job.login;
+  var job=RV;
   revSetBusy(true); var g=$('stRevGo'); if(g) g.textContent=job.action==='approve'?'Approving\u2026':'Sending back\u2026';
   A.api('POST','/api/my-sanitization/error-review',{shortIds:job.ids,action:job.action,note:note}).then(function(r){ return r; },function(){ return null; }).then(function(r){
     REVBUSY=false;
@@ -1060,21 +1173,43 @@ function revSubmit(){
       var msg=(r&&r.data&&r.data.error)||'Could not save the review. Please try again.';
       if(er) er.textContent=msg; announce(msg); return;
     }
-    var d=r.data, done={}; (d.done||[]).forEach(function(s){ done[s]=true; delete SELR[s]; });
-    var v=VIEWS[login]&&VIEWS[login].data;
-    if(v){
-      if(job.action==='approve'){
-        var gone=v.tickets.filter(function(t){ return done[t.shortId]; });
-        v.tickets=v.tickets.filter(function(t){ return !done[t.shortId]; });
-        v.approved=gone.map(function(t){ var m=t.mark||{}; return {shortId:t.shortId,url:t.url,title:t.title,approvedBy:d.by||ME,approvedAt:d.at||null,reason:m.reason||'',note:note}; }).concat(v.approved||[]);
-      }else v.tickets.forEach(function(t){ if(done[t.shortId]){ t.mark=null; t.status=V.statusAfter(t,null); t.returned={note:note,at:d.at||null,by:d.by||ME}; } });
-    }
+    var d=r.data, done={}, byLogin={};
+    (d.done||[]).forEach(function(s){
+      done[s]=true; delete APVSEC.sel[s];
+      var ag=apvAgentOf(s); if(ag) byLogin[ag.login]=(byLogin[ag.login]||0)+1;
+    });
+    // The rows leave the section at once, then it refetches; the agent rows are patched for the
+    // tickets that just left "waiting for approval" and every touched agent's view is dropped.
+    apvDropRows(done);
     revClose(true);
-    if(SEL===login){ syncTotals(); LASTI=-1; renderView(errRows().length?'[data-stvall]':'#stViewH'); }
+    renderApvSec(); loadApvSec(true);
+    apvPatchCards(byLogin,job.action);
+    job.logins.forEach(function(l){ if(l!==SEL) delete VIEWS[l]; });
+    if(job.logins.indexOf(SEL)>=0) loadView(SEL,true,function(ok){ if(ok) syncTotals(); renderView(); });
     var n=(d.done||[]).length, sk=(d.skipped||[]).length;
     announce((job.action==='approve'?('Approved '+V.plural(n,'ticket')+'; excluded from sanitization tracking.'):('Sent '+V.plural(n,'ticket')+' back to Tickets to sanitize.'))
       +(sk?(' '+V.plural(sk,'ticket')+' skipped (no longer marked as error).'):''));
   });
+}
+// Reviewed tickets leave the #stApv section at once (an agent with none left leaves with them).
+function apvDropRows(done){
+  var d=APVSEC.data; if(!d||!Array.isArray(d.agents)) return;
+  d.agents=d.agents.map(function(a){
+    return {login:a.login,displayName:a.displayName,tickets:(a.tickets||[]).filter(function(t){ return !done[t.shortId]; })};
+  }).filter(function(a){ return a.tickets.length; });
+  d.total=apvSecCount(); APVSEC.last=null;
+}
+// Agent rows + KPI tiles after a review: an approved ticket counts as sanitized, a sent-back one goes
+// back to Tickets to sanitize. byLogin = {login: how many of its tickets were reviewed}.
+function apvPatchCards(byLogin,action){
+  var any=false;
+  Object.keys(byLogin).forEach(function(l){
+    var c=findC(l), n=byLogin[l]; if(!c||!n) return;
+    c.errorTickets=Math.max(0,(Number(c.errorTickets)||0)-n);
+    if(action==='approve') c.cleared=(Number(c.cleared)||0)+n; else c.needsCorrection=(Number(c.needsCorrection)||0)+n;
+    any=true;
+  });
+  if(any){ renderCards(); renderKpis(); if(S.refresh) S.refresh(); }
 }
 function restoreApproved(sid){
   var v=curView(); if(!v||!canReview(SEL)||BUSY['r:'+sid]) return;
@@ -1086,7 +1221,9 @@ function restoreApproved(sid){
       NOTE=(r&&r.data&&r.data.error)||'Could not restore the ticket. Please try again.';
       renderView('#stvNote'); announce(NOTE); return;
     }
-    // The ticket is tracked again: reload this contractor's view for its current status.
+    // The ticket is tracked again: reload this contractor's view for its current status, and the
+    // approvals section, which gets the ticket back if its error mark is still there.
+    loadApvSec(true);
     loadView(login,true,function(ok){ if(ok) syncTotals(); renderView('#stViewH'); announce(ok?(sid+' restored: it is tracked again.'):('Restored '+sid+', but the tickets could not be reloaded.')); });
   });
 }
@@ -1096,6 +1233,7 @@ document.addEventListener('phd-san-restored',function(ev){
   try{
     var login=String((ev&&ev.detail&&ev.detail.login)||'').trim().toLowerCase(); if(!login) return;
     delete VIEWS[login];
+    loadApvSec(true);
     if(SEL===login) loadView(login,true,function(ok){ if(ok) syncTotals(); renderView(); });
   }catch(e){}
 });
@@ -1122,6 +1260,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#stRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
   if(t.closest('#stErrRetry')){ loadErrSec(true); return; }
+  if(t.closest('#stApvRetry')){ loadApvSec(true); return; }
   // The contractor's three marking buttons (sanitization-view.js markBtns), in place of the old
   // status dropdown: Mark error opens the reason box, Sanitized and Duplicate save straight away.
   var mk=t.closest('[data-stvmark]');
@@ -1134,29 +1273,35 @@ document.addEventListener('click',function(e){
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
   var cn=t.closest('[data-stvcancel]'); if(cn&&!cn.disabled){ var sid=cn.getAttribute('data-stvcancel'); ERRF=null; renderView('[data-stvmark="error:'+sid+'"]'); return; }
   var un=t.closest('[data-stvundo]'); if(un&&!un.disabled){ saveMark(un.getAttribute('data-stvundo'),'',''); return; }
-  // Owner's Error tickets: row checkboxes (Shift+click = range), select-all, bulk / row actions, Restore.
+  // Error tickets that need approval (#stApv, owner only): row checkboxes (Shift+click = a range
+  // inside the same agent), the per-agent select-all, the bulk Approve bar and the row actions.
   var pk=t.closest('[data-stvpick]');
   if(pk&&!pk.disabled){
-    var rows=errRows(), psid=pk.getAttribute('data-stvpick'), pi=-1, on=pk.checked;
+    var psid=pk.getAttribute('data-stvpick'), pag=apvAgentOf(psid), on=pk.checked;
+    var rows=(pag&&pag.tickets)||[], pi=-1;
     for(var i=0;i<rows.length;i++) if(rows[i].shortId===psid){ pi=i; break; }
-    var ids=(e.shiftKey&&LASTI>=0&&pi>=0)?V.rangeIds(rows,LASTI,pi):[psid];
-    ids.forEach(function(s){ if(on) SELR[s]=true; else delete SELR[s]; });
-    LASTI=pi; renderView('[data-stvpick="'+psid+'"]');
-    announce(V.plural(selIds().length,'ticket')+' selected.'); return;
+    var lst=APVSEC.last, back=(lst&&pag&&lst.login===pag.login)?lst.i:-1;
+    var ids=(e.shiftKey&&back>=0&&pi>=0)?V.rangeIds(rows,back,pi):[psid];
+    ids.forEach(function(s){ if(on) APVSEC.sel[s]=true; else delete APVSEC.sel[s]; });
+    APVSEC.last=(pag&&pi>=0)?{login:pag.login,i:pi}:null;
+    renderApvSec('[data-stvpick="'+psid+'"]');
+    announce(V.plural(apvSelIds().length,'ticket')+' selected.'); return;
   }
   var pa=t.closest('[data-stvall]');
   if(pa&&!pa.disabled){
-    var er=errRows(), all=V.selState(er,SELR).state==='all';
-    SELR={}; if(!all) er.forEach(function(x){ SELR[x.shortId]=true; });
-    LASTI=-1; renderView('[data-stvall]');
-    announce(all?'Selection cleared.':('All '+V.plural(er.length,'error ticket')+' selected.')); return;
+    var alg=pa.getAttribute('data-stvall'), aag=null;
+    apvSecAgents().forEach(function(x){ if(x.login===alg) aag=x; });
+    var ar=(aag&&aag.tickets)||[], all=V.selState(ar,APVSEC.sel).state==='all';
+    ar.forEach(function(x){ if(all) delete APVSEC.sel[x.shortId]; else APVSEC.sel[x.shortId]=true; });
+    APVSEC.last=null; renderApvSec('[data-stvall="'+alg+'"]');
+    announce(all?('Selection cleared for '+alg+'.'):('All '+V.plural(ar.length,'error ticket')+' of '+alg+' selected.')); return;
   }
-  if(t.closest('[data-stvclear]')){ SELR={}; LASTI=-1; renderView('[data-stvall]'); announce('Selection cleared.'); return; }
+  if(t.closest('[data-stvclear]')){ APVSEC.sel={}; APVSEC.last=null; renderApvSec(); announce('Selection cleared.'); return; }
   // Open all / Open selected error tickets in new tabs (same approach as the top bar's Open all:
   // window.open returns null for a blocked pop-up -> note; the opener link is cut by hand).
   var op=t.closest('[data-stvopen]');
   if(op&&!op.disabled){
-    var orows=errRows(); if(op.getAttribute('data-stvopen')==='sel') orows=orows.filter(function(x){ return SELR[x.shortId]; });
+    var orows=apvSecRows(); if(op.getAttribute('data-stvopen')==='sel') orows=orows.filter(function(x){ return APVSEC.sel[x.shortId]; });
     var blocked=0;
     orows.forEach(function(x){ var w=window.open(S.url?S.url(x):(x.url||''),'_blank'); if(w){ try{ w.opener=null; }catch(err){} } else blocked++; });
     var onote=$('stvOpenNote');
@@ -1169,7 +1314,9 @@ document.addEventListener('click',function(e){
   var rv=t.closest('[data-stvrev]');
   if(rv&&!rv.disabled){
     var rb=rv.getAttribute('data-stvrev').split(':'), act=rb[0]==='approve'?'approve':'return';
-    revOpen(act,rb[1]==='*'?selIds():[rb.slice(1).join(':')]); return;
+    if(rb[1]==='*'){ revOpen(act,apvSelIds(),apvSelLogins()); return; }
+    var rsid=rb.slice(1).join(':'), rag=apvAgentOf(rsid);
+    revOpen(act,[rsid],rag?[rag.login]:[]); return;
   }
   var rs=t.closest('[data-stvrestore]'); if(rs&&!rs.disabled){ restoreApproved(rs.getAttribute('data-stvrestore')); return; }
   var pg=t.closest('[data-sanpage]');
@@ -1194,6 +1341,11 @@ document.addEventListener('toggle',function(e){
   // Error detected: the same rule over the upload dates (the newest opens on the first paint).
   if(d.hasAttribute('data-stvdate')){
     if(d.open){ var es=document.querySelectorAll('#stErrIn details[data-stvdate]'); for(var j=0;j<es.length;j++) if(es[j]!==d&&es[j].open) es[j].open=false; }
+    return;
+  }
+  // Error tickets that need approval: the same rule over the agents (the first opens on the first paint).
+  if(d.hasAttribute('data-stvagent')){
+    if(d.open){ var as=document.querySelectorAll('#stApvIn details[data-stvagent]'); for(var k=0;k<as.length;k++) if(as[k]!==d&&as[k].open) as[k].open=false; }
     return;
   }
   if(!d.closest('#stViewBody')) return;
@@ -1253,9 +1405,10 @@ function bindInfo(){
   if(!CON) return;
   bindInfo();
   // Times in the account timezone (IST / MST), like the rest of the app.
-  if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); renderErrSec(); } } }).catch(function(){});
+  if(A.myTimezone) A.myTimezone().then(function(tz){ if(tz==='MST'){ S.setTz('MST'); if(ST.state==='done'){ renderAsOf(); renderView(); renderErrSec(); renderApvSec(); } } }).catch(function(){});
   loadList(false);
   loadErrSec(false);
+  loadApvSec(false);
 // ---- Error-approval pop-up (owner only) -------------------------------------------------
 // One agent section at a time; checkboxes + select-all per section; Approve posts every picked
 // ticket in a single call to the existing owner-only error-review endpoint.
@@ -1319,6 +1472,7 @@ function apvApprove(){
       announce('Approved '+ids.length+' ticket'+(ids.length===1?'':'s')+'.');
       apvClose();
       loadList(true);            // tiles + rows + the open agent view all refresh from the server
+      loadApvSec(true);          // ...and the top-level approvals section, fed by the same endpoint
     }else{ APV.err=(r&&r.data&&r.data.error)||'Could not approve those tickets.'; apvRender(); }
   }).catch(function(){ APV.busy=false; APV.err='Could not approve those tickets.'; apvRender(); });
 }

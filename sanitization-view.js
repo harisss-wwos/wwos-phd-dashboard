@@ -1,8 +1,9 @@
 // Sanitization Tracker ticket view (sanitization-tracker.html): one contractor's tickets from
-// GET /api/my-sanitization, split into 1 Tickets to sanitize / 2 Temporarily cleared / 3 Error
-// tickets that need approval / 4 Tickets sanitized successfully, plus errorSectionHtml - the page's
-// own top-level "Error detected" section, fed by GET /api/sanitization-errors and grouped by upload
-// date then agent. Pure string builders (no DOM, no network), so they also run under node for unit
+// GET /api/my-sanitization, split into 1 Tickets to sanitize / 2 Temporarily cleared / 3 Tickets
+// sanitized successfully, plus the page's two top-level error sections - errorSectionHtml
+// ("Error detected", GET /api/sanitization-errors, grouped by upload date then agent) and
+// approvalSectionHtml ("Error tickets that need approval", GET /api/my-sanitization/approvals,
+// grouped by agent). Pure string builders (no DOM, no network), so they also run under node for unit
 // tests.
 // The server sets each ticket's status: 'needs-correction' (to sanitize) | 'awaiting' (temporarily
 // cleared) | 'error-detected' | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded'
@@ -20,8 +21,13 @@
 // the WHOLE ticket in one click (it is never validated again) and [Rework] sends it back naming
 // everything still missing. Those tickets count in neither the sanitized nor the to-sanitize total
 // until the owner acts.
-// Error tickets go to the owner for review (owner-only section; contractors get only the count) and
-// stay until approved or sent back (`returned` note on the to-sanitize row). The four sections are a one-open-at-a-time accordion
+// A ticket the contractor marked Error with a typed reason waits for the owner's approval in the
+// page's OTHER top-level section (approvalSectionHtml, "Error tickets that need approval", directly
+// below Error detected): every viewer sees it - the contractor their own rows, the owner and the
+// view-all logins every agent - and only the owner gets [Approve] / [Send back] and the bulk
+// Approve. The agent's own card keeps only the count (the Errors awaiting approval tile); its rows
+// are not a section here. A ticket stays there until approved or sent back (`returned` note on the
+// to-sanitize row). The three sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
 // defect / pill / pager / codeTag).
 // Markup reuses the .tb-asg-card / .tb-san-card base styles from topbar-auth.js; .stv-* rules live in
@@ -199,16 +205,17 @@
       errorTickets: s.err.length + hid, notFound: s.nf.length, excluded: s.ex.length, pending: all.filter(function (t) { return !t.verified; }).length,
       legacyCompleted: all.filter(function (t) { return t.legacyCompleted; }).length };
   }
-  // One-open-at-a-time accordion over the sections ('need' | 'wait' | 'err' | 'ok'; null = all
-  // closed). Opening a section makes it the open one; closing the open one leaves none open; closing
-  // any other changes nothing. 'ded' is not here any more: the tickets the upload flagged are a
-  // top-level section of the page (errorSectionHtml), not one of this view's sections.
-  var SECTIONS = ['need', 'wait', 'err', 'ok'], DEFAULT_OPEN = 'need';
+  // One-open-at-a-time accordion over the sections ('need' | 'wait' | 'ok'; null = all closed).
+  // Opening a section makes it the open one; closing the open one leaves none open; closing any other
+  // changes nothing. Neither 'ded' nor 'err' is here any more: the tickets the upload flagged
+  // (errorSectionHtml) and the tickets the contractor marked Error (approvalSectionHtml) are both
+  // top-level sections of the page, not sections of this view.
+  var SECTIONS = ['need', 'wait', 'ok'], DEFAULT_OPEN = 'need';
   function nextOpen(cur, sec, open) {
     if (SECTIONS.indexOf(sec) < 0) return cur;
     return open ? sec : (cur === sec ? null : cur);
   }
-  // Header select-all state for the owner's Error tickets: 'none' | 'some' | 'all' (sel = {shortId:true}).
+  // Select-all state for the owner's Error tickets: 'none' | 'some' | 'all' (sel = {shortId:true}).
   function selState(rows, sel) {
     var n = 0; (rows || []).forEach(function (t) { if (sel && sel[t.shortId]) n++; });
     return { n: n, state: !n ? 'none' : (n === (rows || []).length ? 'all' : 'some') };
@@ -328,34 +335,6 @@
           + (busy[t.shortId] ? 'Undoing\u2026' : 'Undo') + '<span class="tb-asg-sr"> ' + esc(lab) + ' for ' + sid + '</span></button></td>') + '</tr>';
       }).join('') + '</tbody></table></div>';
   }
-  // Owner-only Error tickets review: checkbox per row (+ tri-state select-all; the tracker sets
-  // `indeterminate` from data-stvmixed), Ticket ID | Title | Score | Marked by | Reason | Marked at,
-  // Approve / Send back per row, and a bulk toolbar for the selected rows.
-  function errReviewHtml(rows, o, h) {
-    var sel = o.sel || {}, rb = !!o.revBusy, ss = selState(rows, sel);
-    var bar = ss.n
-      ? '<div class="stv-bulk" role="group" aria-label="Actions for the selected error tickets"><span class="stv-bulk-n">' + plural(ss.n, 'ticket') + ' selected</span>'
-        + '<button type="button" class="tb-san-btn stv-save" data-stvrev="approve:*"' + (rb ? ' disabled' : '') + '>Approve ' + ss.n + '</button>'
-        + '<button type="button" class="tb-san-btn" data-stvrev="return:*"' + (rb ? ' disabled' : '') + '>Send back ' + ss.n + '</button>'
-        + '<button type="button" class="tb-san-btn stv-link" data-stvclear="1"' + (rb ? ' disabled' : '') + '>Clear selection</button></div>'
-      : '<p class="stv-help">Select tickets to approve or send back several at once (Shift+click selects a range).</p>';
-    return bar + '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Error tickets for review" tabindex="0"><table class="stv-tbl is-flat is-line stv-rev">'
-      + '<caption class="tb-asg-sr">Tickets marked as error tickets, waiting for your review, most recently marked first</caption>'
-      + '<thead><tr><th scope="col" class="stv-fit stv-ck"><input type="checkbox" data-stvall="1"' + (ss.state === 'all' ? ' checked' : '') + (ss.state === 'some' ? ' data-stvmixed="1" aria-checked="mixed"' : '')
-      + (rb ? ' disabled' : '') + ' aria-label="Select all ' + rows.length + ' error tickets"></th>'
-      + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-fit">Score</th>'
-      + '<th scope="col" class="stv-fit">Marked by</th><th scope="col" class="stv-mc">Reason</th><th scope="col" class="stv-fit">Marked at</th>'
-      + '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th></tr></thead><tbody>'
-      + rows.map(function (t) {
-        var m = t.mark || {}, sid = esc(t.shortId), on = !!sel[t.shortId];
-        return '<tr' + (on ? ' class="is-sel"' : '') + '><td class="stv-fit stv-ck"><input type="checkbox" data-stvpick="' + sid + '"' + (on ? ' checked' : '') + (rb ? ' disabled' : '') + ' aria-label="Select ' + sid + '"></td>'
-          + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title') + '<td class="stv-sc stv-fit">' + pillHtml(t) + '</td>'
-          + '<td class="stv-fit">' + esc(m.by || '\u2014') + '</td>' + clipCell('stv-mc', m.reason || '')
-          + '<td class="tb-asg-nw stv-fit">' + esc(h.when(m.at)) + '</td>'
-          + '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn stv-save" data-stvrev="approve:' + sid + '"' + (rb ? ' disabled' : '') + '>Approve<span class="tb-asg-sr"> ' + sid + '</span></button> '
-          + '<button type="button" class="tb-san-btn" data-stvrev="return:' + sid + '"' + (rb ? ' disabled' : '') + '>Send back<span class="tb-asg-sr"> ' + sid + '</span></button></td></tr>';
-      }).join('') + '</tbody></table></div>';
-  }
   // Owner's Error tickets toolbar (top right): Open all (every listed error ticket) / Open selected,
   // each in a new tab (the tracker's click handler opens them; data-stvopen = 'all' | 'sel').
   function errOpenHtml(rows, o) {
@@ -458,12 +437,71 @@
         }).join('') + '</div></details>';
     }).join('');
   }
-  // v = the contractor's view; o = { who, login, pageSize, page:{need, ok}, open ('need'|'wait'|'err'|'ok'|null,
+  // ---- The page's top-level "Error tickets that need approval" section ----
+  // Directly below Error detected, so the two error sections sit together. payload =
+  // GET /api/my-sanitization/approvals: { owner, viewer, canReview, dataAsOf, total, agents:[{ login,
+  // displayName, tickets:[{ shortId, url, title, note (the contractor's typed reason), at (when they
+  // marked it) }] }] }, the agents sorted by login and each agent's tickets newest mark first.
+  // Grouped BY AGENT, not by upload date: a contractor marks a ticket Error whenever they hit one, so
+  // an upload date would say nothing here. Only agents with a ticket awaiting approval are in the
+  // payload, so only they are listed. Every viewer sees the rows (a contractor only their own); the
+  // owner (o.review, the server's canReview) also gets a checkbox per row with a per-agent tri-state
+  // select-all (the tracker sets `indeterminate` from data-stvmixed), [Approve] / [Send back] per row
+  // and the bulk Approve bar over the whole selection. One agent's table stops at ERR_ROW_CAP rows
+  // with the same notice as the Error detected section, so a large backlog cannot blow up the render.
+  // o = { review, sel:{shortId:true}, revBusy, h:{ ic, when, url } }.
+  function approvalSectionHtml(payload, o) {
+    o = o || {}; var h = o.h || {}, rev = !!o.review, sel = o.sel || {}, rb = !!o.revBusy;
+    var agents = ((payload && payload.agents) || []).filter(function (a) { return a && (a.tickets || []).length; });
+    if (!agents.length) return '<p class="tb-asg-empty">No tickets are waiting for error approval.</p>';
+    var all = []; agents.forEach(function (a) { a.tickets.forEach(function (t) { all.push(t); }); });
+    var ss = selState(all, sel), span = (rev ? 2 : 0) + 4;
+    var bar = !rev ? '' : (ss.n
+      ? '<div class="stv-bulk" role="group" aria-label="Actions for the selected error tickets"><span class="stv-bulk-n">' + plural(ss.n, 'ticket') + ' selected</span>'
+        + '<button type="button" class="tb-san-btn stv-save" data-stvrev="approve:*"' + (rb ? ' disabled' : '') + '>Approve ' + ss.n + '</button>'
+        + '<button type="button" class="tb-san-btn stv-link" data-stvclear="1"' + (rb ? ' disabled' : '') + '>Clear selection</button></div>'
+      : '<p class="stv-help">Approve or send back one ticket with the buttons on its row, or tick several and approve them together (Shift+click selects a range inside an agent).</p>');
+    return bar + (rev ? errOpenHtml(all, o) : '') + agents.map(function (a, i) {
+      var rows = a.tickets, lg = String(a.login || ''), name = a.displayName || '', as = selState(rows, sel);
+      return '<details class="st-apv-d" data-stvagent="' + esc(lg) + '"' + (i === 0 ? ' open' : '') + '>'
+        + '<summary><span class="st-apv-agh">' + esc(lg)
+        + (name && name !== lg ? ' <span class="st-apv-agn">' + esc(name) + '</span>' : '') + '</span>'
+        + '<b>' + plural(rows.length, 'ticket') + '</b>'
+        + (as.n ? '<span class="st-apv-p">' + as.n + ' selected</span>' : '') + '</summary>'
+        + '<div class="st-apv-in"><div class="tb-asg-scroll stv-scroll" role="region" aria-label="Error tickets of ' + esc(lg) + ' waiting for approval" tabindex="0">'
+        + '<table class="stv-tbl is-flat is-line st-apv-t">'
+        + '<caption class="tb-asg-sr">Tickets ' + esc(lg) + ' marked as an error, waiting for the owner\u2019s approval, most recently marked first</caption>'
+        + '<thead><tr>'
+        + (rev ? '<th scope="col" class="stv-fit stv-ck"><input type="checkbox" data-stvall="' + esc(lg) + '"' + (as.state === 'all' ? ' checked' : '')
+          + (as.state === 'some' ? ' data-stvmixed="1" aria-checked="mixed"' : '') + (rb ? ' disabled' : '')
+          + ' aria-label="Select all ' + rows.length + ' error tickets of ' + esc(lg) + '"></th>' : '')
+        + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th>'
+        + '<th scope="col" class="stv-mc">Reason</th><th scope="col" class="stv-fit">Marked at</th>'
+        + (rev ? '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th>' : '') + '</tr></thead><tbody>'
+        + rows.slice(0, ERR_ROW_CAP).map(function (t) {
+          var sid = esc(t.shortId), on = !!sel[t.shortId];
+          return '<tr' + (on ? ' class="is-sel"' : '') + '>'
+            + (rev ? '<td class="stv-fit stv-ck"><input type="checkbox" data-stvpick="' + sid + '" data-stvag="' + esc(lg) + '"' + (on ? ' checked' : '')
+              + (rb ? ' disabled' : '') + ' aria-label="Select ' + sid + '"></td>' : '')
+            + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title') + clipCell('stv-mc', t.note || '')
+            + '<td class="tb-asg-nw stv-fit">' + esc(h.when(t.at)) + '</td>'
+            + (rev ? '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn stv-save" data-stvrev="approve:' + sid + '"' + (rb ? ' disabled' : '') + '>Approve<span class="tb-asg-sr"> ' + sid + '</span></button> '
+              + '<button type="button" class="tb-san-btn" data-stvrev="return:' + sid + '"' + (rb ? ' disabled' : '') + '>Send back<span class="tb-asg-sr"> ' + sid + ' to ' + esc(lg) + '</span></button></td>' : '')
+            + '</tr>';
+        }).join('')
+        + (rows.length > ERR_ROW_CAP ? '<tr class="st-apv-more"><td colspan="' + span + '">'
+          + '<p class="tb-asg-empty">Showing the first ' + ERR_ROW_CAP + ' of ' + rows.length
+          + ' tickets waiting for approval for ' + esc(lg) + ' \u00b7 the rest appear here once these are reviewed.</p></td></tr>' : '')
+        + '</tbody></table></div></div></details>';
+    }).join('');
+  }
+  // v = the contractor's view; o = { who, login, pageSize, page:{need, ok}, open ('need'|'wait'|'ok'|null,
   // default 'need'), errForm, busy:{shortId:true}, readOnly (no marking buttons / Undo: the
-  // viewer may not mark this contractor's tickets), review (owner: Error tickets section + review
-  // actions), sel {shortId:true}, revBusy, apprOpen, h }.
-  // The tickets the last upload flagged are NOT a section here: they live in the page's own top-level
-  // Error detected section (errorSectionHtml). Only their count stays, in the KPI strip.
+  // viewer may not mark this contractor's tickets), review (owner: the Approved errors list with
+  // Restore), apprOpen, h }.
+  // Neither the tickets the last upload flagged nor the tickets the contractor marked Error are a
+  // section here: they live in the page's own top-level sections (errorSectionHtml,
+  // approvalSectionHtml). Only their counts stay, in the KPI strip.
   function viewHtml(v, o) {
     o = o || {}; var h = o.h || {};
     if (v && v.maxScore != null) setMax(v.maxScore);
@@ -502,12 +540,6 @@
       + '<p class="stv-help">Checked on the next data upload, on the closure code the upload carries. ' + RULES_TEXT
       + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: it is listed in ' + dedLbl + ' at the top of the page, with everything it is missing, until the owner accepts it as a sanitized error or sends it back to you for rework.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
-    if (rev) {
-      html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)
-        + '<p class="stv-help">Marked as error tickets by the contractor. Approve counts a ticket as sanitized here (tagged Approved error) and leaves it out of the sanitization scores; Send back returns it to Tickets to sanitize with your message.</p>'
-        + (S.err.length ? errReviewHtml(S.err, o, h) : '<p class="tb-asg-empty">No tickets waiting for error review.</p>')
-        + approvedHtml(v.approved, o, h) + '</div></details>';
-    }
     html += sec('ok', 'is-ok', 'Tickets sanitized successfully', S.ok.length, ' id="tbSanOkSec"');
     if (!S.ok.length) html += '<p class="tb-asg-empty">No sanitized tickets yet.</p>';
     else {
@@ -534,6 +566,10 @@
         + pager('ok', okPg, size, S.ok.length, 'Tickets sanitized successfully');
     }
     html += '</div></details>';
+    // The tickets this contractor marked Error are reviewed in the page's top-level "Error tickets
+    // that need approval" section; what is left here for the owner is the Approved errors list, the
+    // Restore safety net for a ticket approved by mistake.
+    if (rev) html += approvedHtml(v.approved, o, h);
     if (S.nf.length || S.ex.length) {
       var ids = function (l) { return l.map(function (t) { return esc(t.shortId); }).join(', '); };
       html += '<p class="tb-san-muted">'
@@ -548,7 +584,7 @@
     sortNeed: sortNeed, sections: sections, totalsOf: totalsOf, statusAfter: statusAfter, viewHtml: viewHtml, plural: plural,
     nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds,
     hueRatio: hueRatio, ratioHtml: ratioHtml, cardStatsHtml: cardStatsHtml, sumStatsHtml: sumStatsHtml, pillHtml: pillHtml, codeTag: codeTag,
-    errorSectionHtml: errorSectionHtml, RULES_TEXT: RULES_TEXT,
+    errorSectionHtml: errorSectionHtml, approvalSectionHtml: approvalSectionHtml, RULES_TEXT: RULES_TEXT,
     STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PHDSanView = api;

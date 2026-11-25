@@ -395,6 +395,67 @@ test('an accepted ticket is no longer a detected error, and ?login= narrows the 
   assert.deepEqual(none.body.tickets, []);
 });
 
+// ---- handleApprovals: the top-level "Error tickets that need approval" section ----
+// The same endpoint the owner's approvals pop-up already used, now readable by a contractor for their
+// own rows (the section is visible to them, without the buttons).
+const errMark = (id, login, at, reason) => ({ login: login || AGENT, shortId: id, status: 'error',
+  reason: reason || ('why ' + id), at: at || '2026-02-12T00:00:00.000Z', by: login || AGENT, dataStamp: '2026-02-01T00:00:00.000Z' });
+function apvDeps(o) {
+  const d = o || {};
+  return { contractors: ERR_CONTRACTORS, canViewAll: d.canViewAll,
+    load: async () => ({ docs: ERR_ASG, report: ERR_REPORT, stamp: STAMP,
+      marks: d.marks || [errMark('BAD'), errMark('OK2', AGENT, '2026-02-13T00:00:00.000Z', 'OK2 is a duplicate of BAD'), errMark('BAD2', AGENT2)],
+      approved: d.approved || [], validations: [], accepts: [] }) };
+}
+
+test('the owner sees every agent with a ticket waiting, newest mark first, with the reason and date', async () => {
+  const out = await san.handleApprovals({}, { user: { username: OWNER }, ...apvDeps() });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.owner, true);
+  assert.equal(out.body.canReview, true);
+  assert.equal(out.body.dataAsOf, STAMP);
+  assert.equal(out.body.total, 3);
+  assert.deepEqual(out.body.agents.map(a => a.login), [AGENT, AGENT2]);
+  assert.deepEqual(out.body.agents.map(a => a.displayName), ['Agent One', 'Agent Two']);
+  assert.deepEqual(out.body.agents[0].tickets.map(t => t.shortId), ['OK2', 'BAD']);   // 13 Feb before 12 Feb
+  const t = out.body.agents[0].tickets[0];
+  assert.deepEqual(Object.keys(t).sort(), ['at', 'note', 'shortId', 'title', 'url']);
+  assert.equal(t.note, 'OK2 is a duplicate of BAD');
+  assert.equal(t.at, '2026-02-13T00:00:00.000Z');
+  assert.equal(t.title, 'OK2 title');
+});
+
+test('a contractor sees only their own rows and cannot approve', async () => {
+  const out = await san.handleApprovals({}, { user: { username: AGENT2 }, ...apvDeps() });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.canReview, false);
+  assert.deepEqual(out.body.agents.map(a => a.login), [AGENT2]);
+  assert.deepEqual(out.body.agents[0].tickets.map(t => t.shortId), ['BAD2']);
+  // ...and asking for somebody else's rows is refused.
+  const other = await san.handleApprovals({ login: AGENT }, { user: { username: AGENT2 }, ...apvDeps() });
+  assert.equal(other.status, 403);
+});
+
+test('a view-all login sees every agent but cannot approve, and a stranger gets 403', async () => {
+  const all = await san.handleApprovals({}, { user: { username: 'viewer' }, ...apvDeps({ canViewAll: true }) });
+  assert.equal(all.status, 200);
+  assert.equal(all.body.canReview, false);
+  assert.equal(all.body.total, 3);
+  const stranger = await san.handleApprovals({}, { user: { username: 'nobody' }, ...apvDeps() });
+  assert.equal(stranger.status, 403);
+  const unknown = await san.handleApprovals({ login: 'ghost' }, { user: { username: OWNER }, ...apvDeps() });
+  assert.equal(unknown.status, 404);
+});
+
+test('an approved ticket leaves the section, and an agent with nothing waiting is not listed', async () => {
+  const some = await san.handleApprovals({}, { user: { username: OWNER }, ...apvDeps({ approved: [{ shortId: 'BAD2', approvedBy: OWNER, login: AGENT2 }] }) });
+  assert.deepEqual(some.body.agents.map(a => a.login), [AGENT]);
+  assert.equal(some.body.total, 2);
+  const none = await san.handleApprovals({}, { user: { username: OWNER }, ...apvDeps({ marks: [claim('BAD'), claim('OK2')] }) });
+  assert.deepEqual(none.body.agents, []);
+  assert.equal(none.body.total, 0);
+});
+
 // ---- Closure-code groups (Sanitization scores page) ----
 const score = require('./sanitization-score');
 const gt = (id, cc, o) => ({ shortId: id, url: 'u/' + id, title: id + ' title', score: 5, cc, pass: 1, need: 11, miss: ['res'],

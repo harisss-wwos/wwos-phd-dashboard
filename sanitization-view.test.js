@@ -190,6 +190,96 @@ test('errorSectionHtml caps one agent block at 100 rows and says how many are he
   assert.equal(V.errorSectionHtml({ tickets: rows.slice(0, 100) }, errOpts({ review: true })).includes('Showing the first'), false);
 });
 
+// ---- approvalSectionHtml: the page's top-level Error tickets that need approval section ----
+// GET /api/my-sanitization/approvals: agents sorted by login, each agent's tickets newest mark first.
+const APV_AT = '2026-11-25T06:12:00.000Z';
+const apvRow = (o) => Object.assign({ shortId: 'A0', url: 'https://sim/A0', title: 'A ticket', note: 'The requester closed it himself', at: APV_AT }, o);
+const apvPayload = () => ({ owner: true, canReview: true, dataAsOf: APV_AT, total: 3, agents: [
+  { login: 'chousoud', displayName: 'Chou', tickets: [apvRow({ shortId: 'A1' })] },
+  { login: 'tanviroo', displayName: 'Tanvir', tickets: [apvRow({ shortId: 'A2' }), apvRow({ shortId: 'A3', note: 'Duplicate of A2' })] },
+] });
+
+test('approvalSectionHtml groups by agent, lists only the agents it was sent and opens the first', () => {
+  const html = V.approvalSectionHtml(apvPayload(), opts({ review: true }));
+  const ags = [...html.matchAll(/<details class="st-apv-d" data-stvagent="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
+  assert.deepEqual(ags, [['chousoud', true], ['tanviroo', false]]);
+  assert.match(html, /<b>1 ticket<\/b>/);
+  assert.match(html, /<b>2 tickets<\/b>/);
+  // No upload-date grouping anywhere: a contractor's Error mark is not tied to an upload.
+  assert.equal(html.includes('data-stvdate'), false);
+});
+
+test('approvalSectionHtml shows Ticket ID | Title | Reason | Marked at', () => {
+  const html = V.approvalSectionHtml(apvPayload(), opts({ review: false }));
+  const head = html.match(/<thead><tr>([\s\S]*?)<\/tr><\/thead>/);
+  assert.ok(head);
+  assert.equal((head[1].match(/<th /g) || []).length, 4);          // no checkbox and no actions column
+  assert.match(head[1], /Ticket ID[\s\S]*Title[\s\S]*Reason[\s\S]*Marked at/);
+  assert.match(html, /The requester closed it himself/);
+  assert.match(html, />2026-11-25</);                              // the marked date on the row
+});
+
+test('approvalSectionHtml gives the owner the row actions, the checkboxes and the bulk Approve', () => {
+  const own = V.approvalSectionHtml(apvPayload(), opts({ review: true }));
+  assert.match(own, /data-stvrev="approve:A1"/);
+  assert.match(own, /data-stvrev="return:A1"/);
+  assert.match(own, /data-stvall="tanviroo"/);
+  assert.match(own, /data-stvpick="A2" data-stvag="tanviroo"/);
+  // Nothing selected: the help line, no bulk bar.
+  assert.equal(own.includes('data-stvrev="approve:*"'), false);
+  const sel = V.approvalSectionHtml(apvPayload(), opts({ review: true, sel: { A2: true, A3: true } }));
+  assert.match(sel, /2 tickets selected/);
+  assert.match(sel, /data-stvrev="approve:\*"[^>]*>Approve 2</);
+  assert.match(sel, /data-stvclear="1"/);
+  assert.match(sel, /data-stvall="tanviroo" checked/);             // that agent is fully selected
+  // A contractor sees the rows and nothing to act with.
+  const con = V.approvalSectionHtml(apvPayload(), opts({ review: false }));
+  ['data-stvrev', 'data-stvpick', 'data-stvall', 'data-stvopen', 'stv-bulk'].forEach(s => assert.equal(con.includes(s), false, 'no ' + s));
+  assert.match(con, /data-stvagent="tanviroo"/);
+  // Every button is disabled while a review request is running.
+  const busy = V.approvalSectionHtml(apvPayload(), opts({ review: true, revBusy: true }));
+  assert.ok((busy.match(/ disabled/g) || []).length >= 8);
+});
+
+test('approvalSectionHtml caps one agent at 100 rows and renders the empty state', () => {
+  const rows = [];
+  for (let i = 0; i < 150; i++) rows.push(apvRow({ shortId: 'A' + i }));
+  const html = V.approvalSectionHtml({ agents: [{ login: 'tanviroo', tickets: rows }] }, opts({ review: true }));
+  assert.equal((html.match(/data-stvrev="approve:A/g) || []).length, 100);
+  assert.match(html, /Showing the first 100 of 150 tickets waiting for approval for tanviroo/);
+  assert.match(html, /<b>150 tickets<\/b>/);
+  assert.equal(V.approvalSectionHtml({ agents: [{ login: 'tanviroo', tickets: rows.slice(0, 100) }] }, opts({ review: true })).includes('Showing the first'), false);
+  // Empty payloads and an agent sent with no ticket at all read as the empty state.
+  assert.match(V.approvalSectionHtml({ agents: [] }, opts({ review: true })), /tb-asg-empty/);
+  assert.match(V.approvalSectionHtml(null, opts()), /tb-asg-empty/);
+  assert.match(V.approvalSectionHtml({ agents: [{ login: 'tanviroo', tickets: [] }] }, opts({ review: true })), /tb-asg-empty/);
+});
+
+test('approvalSectionHtml escapes every interpolation', () => {
+  const html = V.approvalSectionHtml({ agents: [{ login: 'a<s>', displayName: '<i>n', tickets: [apvRow({ shortId: 'X"><s>', note: '<b>why' })] }] }, opts({ review: true }));
+  ['a<s>', '<i>n', 'X"><s>', '<b>why'].forEach(s => assert.equal(html.includes(s), false, 'escaped: ' + s));
+  assert.match(html, /&lt;b&gt;why/);
+  assert.match(html, /data-stvrev="approve:X&quot;&gt;&lt;s&gt;"/);
+});
+
+test('viewHtml keeps the Errors awaiting approval tile but has no error-ticket section', () => {
+  // The rows moved to the page's own top-level section (approvalSectionHtml); the tile stays.
+  const v = payload();
+  v.tickets.push(ticket({ shortId: 'ERR1', status: 'error-ticket', mark: { status: 'error', reason: 'bad data', at: DETECTED, by: 'chousoud' } }));
+  const html = V.viewHtml(v, opts({ review: true }));
+  assert.match(html, /Errors awaiting approval<\/span>[\s\S]*?<dd><b>1<\/b>/);
+  assert.equal(html.includes('data-stvsec="err"'), false);
+  // The phrase is left only on the tile's own label, never as a section summary.
+  assert.equal(/<summary>Error tickets that need approval/.test(html), false);
+  assert.equal(html.includes('data-stvrev'), false);
+  assert.equal(html.includes('data-stvpick'), false);
+  assert.deepEqual(V.sections(v).err.map(t => t.shortId), ['ERR1']);   // the bucket itself stays
+  // The owner keeps the Approved errors list (Restore) in the agent's card.
+  const appr = V.viewHtml(Object.assign(payload(), { approved: [{ shortId: 'AP1', title: 'x', reason: 'r', approvedAt: DETECTED, approvedBy: 'harisss' }] }), opts({ review: true }));
+  assert.match(appr, /data-stvappr="1"/);
+  assert.match(appr, /data-stvrestore="AP1"/);
+});
+
 test('errorSectionHtml renders the empty state and escapes every interpolation', () => {
   assert.match(V.errorSectionHtml({ tickets: [] }, errOpts({ review: true })), /tb-asg-empty/);
   assert.match(V.errorSectionHtml(null, errOpts()), /tb-asg-empty/);

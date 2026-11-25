@@ -1070,10 +1070,51 @@ async function handleErrors(query, deps) {
   return { status: 200, body: { owner, viewer: me, canReview: owner, dataAsOf: stamp || null, tickets } };
 }
 
+// GET /api/my-sanitization/approvals[?login=] — the top-level "Error tickets that need approval"
+// section of the Sanitization Tracker (sanitization-view.js approvalSectionHtml) and the owner's
+// approvals pop-up: every ticket a contractor marked Error with a reason that the owner has not
+// approved yet, grouped BY AGENT. There is no upload date to group by - a contractor marks a ticket
+// whenever they hit one - and only agents with a ticket waiting are listed.
+// Access is handleErrors' gate: the owner and the view-all teams (deps.canViewAll) see every agent, a
+// contractor only their own rows, anyone else 403. Approve / Send back are owner-only: canReview.
+// The rows come from contractorView's 'error-ticket' bucket, the same one the agent's "Errors
+// awaiting approval" tile counts, so the section total and the tiles always agree.
+// deps: { user, contractors, canViewAll?, load: async () => ({ docs, report, stamp, marks?, approved?,
+//   validations?, accepts? }) } — the same load() handleMine takes. Never writes.
+async function handleApprovals(query, deps) {
+  const me = normLogin(deps.user && deps.user.username);
+  const list = deps.contractors || [];
+  const owner = !!me && isOwner(me);
+  const findC = l => list.find(c => c.login === l);
+  const canViewAll = owner || !!deps.canViewAll;
+  if (!me || (!canViewAll && !findC(me))) return { status: 403, body: { error: 'My sanitization is available only to the PHD teams.' } };
+  const want = normLogin(query && query.login);
+  if (want && !findC(want)) return { status: 404, body: { error: 'Unknown contractor.' } };
+  if (want && !canViewAll && want !== me) return { status: 403, body: { error: 'You can see only your own tickets.' } };
+  const { docs, report, stamp, marks, approved, validations, accepts } = await deps.load();
+  const apprIds = apprMap(approved);
+  const vals = valMap(validations), acc = acceptMap(accepts);
+  const mine = want ? [findC(want)] : (canViewAll ? list : [findC(me)]);
+  const agents = [];
+  mine.forEach(c => {
+    const tickets = contractorView(docs, c.login, report, stamp, marks, apprIds, vals, acc).tickets
+      .filter(t => t.status === 'error-ticket')
+      .map(t => ({
+        shortId: t.shortId, url: t.url || '', title: t.title || '',
+        note: (t.mark && t.mark.reason) || '', at: (t.mark && t.mark.at) || null,
+      }))
+      // Most recently marked first, so the newest reason is the one the owner reads first.
+      .sort((x, y) => String(y.at || '').localeCompare(String(x.at || '')) || x.shortId.localeCompare(y.shortId));
+    if (tickets.length) agents.push({ login: c.login, displayName: c.displayName || '', tickets });
+  });
+  agents.sort((a, b) => a.login.localeCompare(b.login));
+  return { status: 200, body: { owner, viewer: me, canReview: owner, dataAsOf: stamp || null, agents, total: agents.reduce((n, a) => n + a.tickets.length, 0) } };
+}
+
 module.exports = {
   COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts, markedTickets,
   closureGroups, availableInGroup,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, sectionCounts, contractorView, handleMine, handleMark, markValid,
-  handleErrorReview, handleRestore, handleDetectedReview, handleErrors, missingChips, passedResult, chipFor, missingRequired,
+  handleErrorReview, handleRestore, handleDetectedReview, handleErrors, handleApprovals, missingChips, passedResult, chipFor, missingRequired,
   CLAIMS, NEED_REASONS, claimPending, verifiedClaim, verifyClaim, evalTicket, rowOf, markMap,
 };

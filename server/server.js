@@ -3895,31 +3895,26 @@ app.get('/api/resolved-errors', requireRole('user'), async (req, res) => {
 // POST /api/my-sanitization/restore { shortId } (owner only; logic in sanAssign.handleErrorReview /
 // handleRestore). Approve writes COLLECTIONS.sanitizationExcluded (the ticket leaves sanitization
 // tracking everywhere); return sends the error mark back to the contractor with the owner's note.
-// GET /api/my-sanitization/approvals -> every error ticket still awaiting the owner's approval,
-// grouped by the contractor who marked it. Owner-only; feeds the approval pop-up, which approves
-// across contractors in one call. Uses the shared loaders, so no extra database passes.
-app.get('/api/my-sanitization/approvals', requireSanOwner, async (req, res) => {
+// GET /api/my-sanitization/approvals[?login=] (logic in sanAssign.handleApprovals) -> every error
+// ticket still awaiting the owner's approval, grouped by the contractor who marked it. It feeds BOTH
+// the tracker's top-level "Error tickets that need approval" section and the owner's approvals
+// pop-up, which approves across contractors in one call. The owner and the BLR / AZA / WFH view-all
+// logins get every agent, a contractor only their own rows; the Approve / Send back buttons are
+// owner-only (canReview). STRICTLY READ-ONLY, and it reuses the shared loaders of
+// /api/my-sanitization, so it adds no database pass.
+app.get('/api/my-sanitization/approvals', requireRole('user'), async (req, res) => {
   try {
-    const [docs, marks, approved] = await Promise.all([sanActiveAsgShared(), sanMarksShared(), sanApprovedShared()]);
-    const done = new Set((approved || []).map(a => a && a.shortId).filter(Boolean));
-    const latest = new Map();                      // newest 'error' mark per ticket
-    (marks || []).forEach(m => {
-      if (!m || !m.shortId || String(m.status || '') !== 'error') return;
-      const p = latest.get(m.shortId);
-      if (!p || String(m.at || '') > String(p.at || '')) latest.set(m.shortId, m);
+    const sanCanViewAll = sanIsOwner(req.user.username) || SAN_VIEW_GROUPS.indexOf(grpOf(req.user.username)) >= 0;
+    const out = await sanAssign.handleApprovals(req.query || {}, {
+      user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
+      load: async () => {
+        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+          sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
+      },
     });
-    const meta = new Map();                        // title / url from the assignment it came in
-    (docs || []).forEach(a => (a && a.tickets || []).forEach(t => { if (t && t.shortId && !meta.has(t.shortId)) meta.set(t.shortId, t); }));
-    const byAgent = {};
-    latest.forEach((m, sid) => {
-      if (done.has(sid)) return;                   // already approved
-      const login = String(m.login || '').trim().toLowerCase();
-      const t = meta.get(sid) || {};
-      if (ticketRules.excludeReason(t.title)) return;   // TEST / NON-PHD ticket: out of the tracker (ticket-rules.js)
-      (byAgent[login] = byAgent[login] || []).push({ shortId: sid, url: t.url || '', title: String(t.title || ''), note: String(m.reason || ''), at: m.at || null });
-    });
-    const agents = Object.keys(byAgent).sort().map(l => ({ login: l, tickets: byAgent[l].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')) || a.shortId.localeCompare(b.shortId)) }));
-    res.json({ agents: agents, total: agents.reduce((n, a) => n + a.tickets.length, 0) });
+    res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization approvals error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the tickets awaiting approval.' });
