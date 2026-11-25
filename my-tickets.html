@@ -2036,7 +2036,10 @@ function kpiHtml(){
   let open=0,over=0,soon=0,temp=0,noEmt=0,sr=0,appeal=0,pet=0;
   TICKETS.forEach(function(t){
     if(TEMP_RESOLVED.has(String(t.shortId))){ temp++; return; }
-    open++; const c=dueOf(t); if(c==='over') over++; else if(c==='warn') soon++;
+    // Same rule as the B / R chips (ticketMatches): a resolved-and-reopened ticket is purple only,
+    // so it is not counted as overdue / due-soon and the cards never disagree with the chips.
+    open++; const c=dueOf(t), pur=colorOf(t)==='purple';
+    if(c==='over'&&!pur) over++; else if(c==='warn'&&!pur) soon++;
     // Same markers as each ticket row: No EMT (title / server flag) and Station Request (t.priority).
     if(ticketIsNoEmt(t)) noEmt++;
     if(t.priority) sr++;
@@ -2059,7 +2062,10 @@ function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed||FILTER.coun
 // Quick-filter buttons (one active at a time; 'Hide viewed' is a separate on/off toggle).
 //   overdue = past the 240h deadline · red = due within 72h (about to cross the SLA)
 //   A resolved-and-reopened ticket (server colour 'purple') belongs to P only: it is excluded from
-//   overdue even when its 240h deadline has passed, so it is never counted/listed under both.
+//   overdue and from red even when its 240h deadline has passed / is inside the last 72h, so it is
+//   never counted/listed under two colours. B and R are the only deadline-derived colour chips, so
+//   this keeps all five (B/R/P/Y/G) mutually exclusive: P/Y/G already read the server's single
+//   t.color, which is purple for a reopened ticket whatever its age.
 //   purple / yellow / green = the age colour from the server (t.color, same as the dashboard BY AGE tiles)
 //   noemt / sr = the same markers shown on each ticket (No EMT, Station Request / Address Exclusion)
 // Entry: [key, visible label, dot colour, full description]. Colour chips use short letters
@@ -2091,7 +2097,7 @@ function colorOf(t){
 function ticketMatches(t,f){
   if(f==='all') return true;
   if(f==='overdue') return dueOf(t)==='over' && colorOf(t)!=='purple';
-  if(f==='red') return dueOf(t)==='warn';
+  if(f==='red') return dueOf(t)==='warn' && colorOf(t)!=='purple';
   if(f==='noemt') return !!ticketIsNoEmt(t);
   if(f==='sr') return !!t.priority;
   if(f==='appeal') return ticketIsAppeal(t);
