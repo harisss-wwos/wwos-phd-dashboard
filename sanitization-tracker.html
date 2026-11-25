@@ -29,12 +29,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <link rel="stylesheet" href="app-light.css?v=5">
 <link rel="stylesheet" href="shimmer.css">
 <style id="st-light">
-/* Sanitization Tracker (also the Ticket Sanitization page): navy hero with an orange rule and two rows
-   of tool buttons, then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
-   Sanitization checklist (everyone), Contractors (owner + contractors: KPI cards, the contractor cards,
-   the selected contractor's view = sanitization-view.js markup), and owner only (sanitization-checklist.js):
-   the assignment log, Sanitization scores (by closure code), Sanitized tickets and, last, Approved errors &
-   agent-marked duplicates. Page styles are scoped under .st. */
+/* Sanitization Tracker (also the Ticket Sanitization page): navy hero split 60/40 - title block on the
+   left, two buttons per row on the right, two of which open the Sanitization checklist and Sanitization
+   assignment log pop-ups - then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
+   Contractors (owner + contractors: KPI cards, the contractor cards, the selected contractor's view =
+   sanitization-view.js markup), and owner only (sanitization-checklist.js): Sanitization scores (by closure
+   code), Sanitized tickets and, last, Approved errors & agent-marked duplicates.
+   Page styles are scoped under .st. */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
 .st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
   --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
@@ -51,23 +52,25 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
 .st-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
 .st-hero-ttl{min-width:0;flex:1 1 auto}
-/* Summary chips (sanitization-checklist.js) + the "Data as of" pill, one wrapping row under the subtitle. */
-.st-hero-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+/* The <h1> and, beside it, the summary chips (sanitization-checklist.js) + the "Data as of" pill. */
+.st-hero-ttlrow{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px}
+.st-hero-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .st-hero-chips .ts-hero-chips{margin:0}
+.st-hero-chips .ts-hero-chips:empty{display:none}
 .st-asof{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;color:#e9edf3;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums;white-space:nowrap}
 .st-asof svg{color:#ffb26b;flex-shrink:0}
 .st-asof b{color:#fff;font-weight:800}
 .st-asof[hidden]{display:none}
-.st-hero .ts-hero-acts.is-rows{position:relative;margin-top:18px}
-.st-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
-.st-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.st-hero .ts-hero-acts.is-rows{position:relative}
+/* 60/40: 3fr/2fr of the width left after the gap, so the two blocks can never overflow the hero. */
+.st-hero-in{position:relative;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px 28px;align-items:start}
+@container (max-width:860px){.st-hero-in{grid-template-columns:minmax(0,1fr)}}
+.st-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0}
 .st-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
   background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
 .st-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
 .st-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
-.st-hero-sub{margin-top:9px;max-width:64ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
-@media (min-width:1100px){.st-hero-sub{max-width:none;white-space:nowrap}}
 .st-meta{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;max-width:100%}
 .st-meta li{display:flex;flex-direction:column;gap:3px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
@@ -78,7 +81,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   .st-hero{padding:20px 18px 20px 22px}
   .st-hero h1{font-size:1.65em}
   .st-hero-ic{width:40px;height:40px}
-  .st-hero-main{flex-basis:100%}
 }
 
 /* ---- KPI row (top of the Contractors section) ---- */
@@ -142,6 +144,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #apvModal .tbl-card button.tbl-submit[aria-busy="true"]{opacity:1;cursor:progress;color:#fff!important;
   background:linear-gradient(180deg,#c2570a,#a94a05)!important;border-color:#9a4100!important}
 @media (max-width:720px){#apvModal.tbl-bg{padding:2vw}#apvModal .tbl-card.apv-card{width:96vw!important;max-width:96vw!important}}
+/* ---- Checklist (#tsCkModal) and assignment-log (#tsLogModal) pop-ups, opened from the hero ----
+   Same .tbl-* shell; their bodies carry the class .ts so the checklist / log markup keeps its own
+   variables and size container (sanitization-checklist.css is scoped under .ts). The head holds a count
+   pill, the Editor tag and "Add new check", so those three get dark-hero colours here. */
+#tsCkModal .tbl-card.ts-dlg{width:min(1040px,92vw)!important;max-width:92vw!important}
+#tsLogModal .tbl-card.ts-dlg{width:min(1240px,94vw)!important;max-width:94vw!important}
+#tsCkModal [hidden],#tsLogModal [hidden]{display:none!important}
+.ts-dlg-n{display:inline-flex;align-items:center;padding:2px 10px;border-radius:99px;font-size:.5em;font-weight:800;letter-spacing:0;
+  color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.26);font-variant-numeric:tabular-nums;white-space:nowrap}
+#tsCkModal .tbl-title,#tsLogModal .tbl-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#tsCkModal .ts-dlg-acts{display:flex;align-items:center;gap:10px;margin-left:auto}
+#tsCkModal .ts-mode{font-size:.66em;background:rgba(236,114,17,.2);color:#ffd2a8;border-color:rgba(236,114,17,.5)}
+#tsCkModal .ts-mode::before{background:#ffb26b}
+#tsCkModal .tbl-head .ts-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);text-transform:none}
+#tsCkModal .tbl-head .ts-btn:hover{background:rgba(255,255,255,.18)}
+#tsLogModal .ts-own{font-size:.6em;background:rgba(255,255,255,.12);color:#cfe0f2;border-color:rgba(255,255,255,.26)}
+@media (max-width:720px){#tsCkModal.tbl-bg,#tsLogModal.tbl-bg{padding:2vw}
+  #tsCkModal .tbl-card.ts-dlg,#tsLogModal .tbl-card.ts-dlg{width:96vw!important;max-width:96vw!important}}
 .apv-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border-radius:8px;
   background:#fff7ef;border:1px solid #f6d7b6;font-size:.86em;font-weight:700;color:#8a3a00}
 .apv-bar b{font-size:1.15em}
@@ -513,8 +533,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con-cards{margin-bottom:16px}
 .st-con .st-sec{margin-bottom:0}
 </style>
-<link rel="stylesheet" href="sanitization-tools.css?v=2">
-<link rel="stylesheet" href="sanitization-checklist.css?v=5">
+<link rel="stylesheet" href="sanitization-tools.css?v=3">
+<link rel="stylesheet" href="sanitization-checklist.css?v=6">
 </head>
 <body data-nav-active="sanitization-tracker" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
@@ -552,6 +572,44 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
         <button type="button" class="tbl-submit" id="apvGo" onclick="apvApprove()" disabled>Approve</button>
       </div>
     </div>
+  </div>
+</div>
+<!-- Sanitization checklist pop-up (everyone; opened by the hero button). It sits BEFORE #tsAddModal so the
+     Add-new-check pop-up, which shares the same z-index, paints on top of it. sanitization-checklist.js
+     paints #tsCkBody and the head's count / Editor tag / Add button. -->
+<div class="tbl-bg" id="tsCkModal" style="display:none" onclick="if(event.target===this)tsCkClose()">
+  <div class="tbl-card ts-dlg" role="dialog" aria-modal="true" aria-labelledby="tsCkT">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="clipboard" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization</div>
+        <h2 class="tbl-title" id="tsCkT">Sanitization checklist <span class="ts-dlg-n" id="tsCkCount" hidden></span></h2></div>
+      <div class="ts-dlg-acts">
+        <span class="ts-mode" id="tsCkMode" hidden>Editor</span>
+        <button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()" data-ic="plus" data-sz="14" hidden><span>Add new check</span></button>
+      </div>
+      <button type="button" class="tbl-x" onclick="tsCkClose()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub">What the server checks on every ticket after a data upload, plus the Hashtags lines to work through.</p>
+    </div>
+    <div class="tbl-body ts">
+      <div id="tsCkBody" aria-busy="true"></div>
+      <!-- Error slot (a failed delete reports here, since its own pop-up closes first). -->
+      <div class="ts-err" id="tsErr" role="alert"></div>
+    </div>
+  </div>
+</div>
+<!-- Sanitization assignment log pop-up (owner only: the hero button is rendered for nobody else and
+     tsLogOpen() checks again; the endpoint is owner-only too). Body painted by sanitization-checklist.js. -->
+<div class="tbl-bg" id="tsLogModal" style="display:none" onclick="if(event.target===this)tsLogClose()">
+  <div class="tbl-card ts-dlg" role="dialog" aria-modal="true" aria-labelledby="tsLogT">
+    <div class="tbl-head">
+      <span class="tbl-head-ic" aria-hidden="true" data-ic="clock-rewind" data-sz="20"></span>
+      <div class="tbl-head-tx"><div class="tbl-eyebrow">Ticket Sanitization</div>
+        <h2 class="tbl-title" id="tsLogT">Sanitization assignment log <span class="ts-dlg-n" id="tsLogCount" hidden></span>
+          <span class="ts-own">Only visible to you</span></h2></div>
+      <button type="button" class="tbl-x" onclick="tsLogClose()" aria-label="Close" data-ic="close" data-sz="18"></button>
+      <p class="tbl-sub">Who was assigned how many tickets, by day, newest first, and where they are now.</p>
+    </div>
+    <div class="tbl-body ts"><div id="tsLogBody" aria-busy="true"></div></div>
   </div>
 </div>
 <div class="tbl-bg" id="tsAddModal" style="display:none" onclick="if(event.target===this)tsCloseAdd()">
@@ -605,13 +663,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
-<!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
-<script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=242"></script>
 <script src="sanitization-view.js?v=28"></script>
-<script src="sanitization-tools.js?v=2"></script>
-<!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=12"></script>
+<script src="sanitization-tools.js?v=3"></script>
+<!-- Checklist / Copy prompt / scores / assignment log (uses the pop-ups above). -->
+<script src="sanitization-checklist.js?v=13"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -665,15 +721,18 @@ function asOfText(){ return ST.state==='done'?(ST.asOf?esc(S.when(ST.asOf)):'Unk
 function asOfHtml(){ return ic('clock',13)+'<span>Data as of <b>'+asOfText()+'</b></span>'; }
 function renderAsOf(){ var el=$('stAsOf'); if(!el) return; el.hidden=!CON; el.innerHTML=asOfHtml(); }
 function heroHtml(gate){
-  // Two rows of equal-width buttons: [Update tickets data (owner only; the endpoint is owner-only too) | Generate…]
-  // and [Open assigned tickets sheet | Copy prompt (orange)]. "Data as of" (contractor data) is a pill by the chips.
-  var acts=gate?'':(TOOLS?TOOLS.heroActsHtml({owner:S&&S.isOwner(),extra:CK?CK.promptBtnHtml():''}):'');
+  // 60/40 split (.st-hero-in is a 3fr/2fr grid). Left: the eyebrow, then the title with the "Data as of"
+  // pill (contractor data) and the summary chips on its line. Right: two buttons per row - Update tickets
+  // data (owner only; the endpoint is owner-only too), Copy prompt (orange), Sanitization checklist and,
+  // for the owner, Sanitization assignment log; the last two open their pop-ups.
+  var extra=CK?(CK.promptBtnHtml()+CK.checklistBtnHtml()+CK.logBtnHtml()):'';
+  var acts=gate?'':(TOOLS?TOOLS.heroActsHtml({owner:S&&S.isOwner(),extra:extra}):'');
   var chips=gate?'':'<div class="st-hero-chips"><ul class="ts-hero-chips" id="tsHeroChips" aria-label="Summary">'+(CK?CK.chipsHtml():'')+'</ul>'+
     '<span class="st-asof" id="stAsOf" aria-live="off"'+(CON?'':' hidden')+'>'+asOfHtml()+'</span></div>';
   return '<header class="st-hero"><div class="st-hero-in"><div class="st-hero-main"><span class="st-hero-ic" aria-hidden="true">'+ic('eraser',24)+'</span><div class="st-hero-ttl">'+
-    '<p class="st-eyebrow">Ticket sanitization</p><h1>Sanitization Tracker</h1>'+
-    '<p class="st-hero-sub">Work through the sanitization checklist, and track every contractor\u2019s tickets scored live.</p>'+chips+
-    '</div></div></div>'+acts+'</header>';
+    '<p class="st-eyebrow">Ticket sanitization</p>'+
+    '<div class="st-hero-ttlrow"><h1>Sanitization Tracker</h1>'+chips+'</div>'+
+    '</div></div>'+acts+'</div></header>';
 }
 function gate(){
   var body='<p class="st-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="st-btn" href="app.html">Go to the live dashboard</a></p>';
@@ -958,13 +1017,13 @@ function conHtml(){
       acts:'<div class="ts-top-acts st-info"><button type="button" class="st-info-btn" id="stInfoBtn" aria-label="How it works" aria-describedby="stInfoTip">'+ic('info',18)+'</button></div>'})+
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
-// The page shell (built once): hero, then Checklist / Assignment log / Scores (closure-code groups) /
-// Error detected (#stErr) / Error tickets that need approval (#stApv, the other error section, right
-// under it) / Sanitization Center (#stCon) / Sanitized tickets (#tsSanitized) /
-// Approved errors & agent-marked duplicates (#tsMarked, last). DOM order = visual order.
+// The page shell (built once): hero (the checklist and the assignment log are pop-ups opened from it),
+// then Scores (closure-code groups) / Error detected (#stErr) / Error tickets that need approval (#stApv,
+// the other error section, right under it) / Sanitization Center (#stCon) / Sanitized tickets
+// (#tsSanitized) / Approved errors & agent-marked duplicates (#tsMarked, last). DOM order = visual order.
 function buildPage(){
   $('wrap').innerHTML='<div class="st ts">'+heroHtml(false)+'<div class="ts-main">'+
-    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?errSecHtml():'')+(CON?apvSecHtml():'')+(CON?conHtml():'')+CK.sanitizedHtml()+CK.markedHtml()+'</div></div>';
+    CK.scoreHtml()+(CON?errSecHtml():'')+(CON?apvSecHtml():'')+(CON?conHtml():'')+CK.sanitizedHtml()+CK.markedHtml()+'</div></div>';
 }
 // Re-render the Contractors section's contents in place (the other sections keep their state).
 function render(){

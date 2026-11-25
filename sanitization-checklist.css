@@ -9,13 +9,12 @@
 .ts button,.ts-modal button{font-family:inherit}
 .ts :is(button,a,input,li[tabindex]):focus-visible,.ts-modal :is(button,textarea):focus-visible{outline:3px solid var(--focus,#f0a35a);outline-offset:2px}
 
-/* ---- Hero summary chips ('N steps', 'Editor access') ---- */
+/* ---- Hero summary chips ('View only', 'Checklist unavailable') ---- */
 .ts-hero-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
 .ts-hero-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
   color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
 .ts-hero-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
 .ts-hero-chips li b{color:#fff;font-weight:800}
-.ts-hero-chips li.is-acc{background:rgba(236,114,17,.18);border-color:rgba(236,114,17,.5);color:#ffd2a8}
 .ts-hero-chips li.is-skel::before{display:none}
 
 /* ---- Layout: single full-width content column ---- */
@@ -152,7 +151,8 @@
 }
 
 /* ---- Edit / delete modal popup ---- */
-.ts-modal-bg{position:fixed;inset:0;background:rgba(16,24,38,.55);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}
+/* z-index above div.tbl-bg's 3000 (topbar-auth.js): Edit / Delete a line open ON TOP of the checklist pop-up. */
+.ts-modal-bg{position:fixed;inset:0;background:rgba(16,24,38,.55);z-index:3100;display:none;align-items:center;justify-content:center;padding:16px}
 .ts-modal-bg.show{display:flex;animation:tsFade .16s ease-out}
 @keyframes tsFade{from{opacity:0}to{opacity:1}}
 .ts-modal{--focus:#f0a35a;position:relative;overflow:auto;background:#fff;border:1px solid #e2e6ea;border-radius:12px;width:min(560px,100%);max-height:88vh;padding:22px 22px 18px;color:#1b2026;

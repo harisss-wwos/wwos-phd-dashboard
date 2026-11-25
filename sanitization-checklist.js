@@ -1,14 +1,15 @@
 // Ticket Sanitization sections of sanitization-tracker.html (moved here from ticket-sanitization.html):
-//   - the hero "Copy prompt" button (TS_PROMPT) and the hero summary chips,
+//   - the hero buttons "Copy prompt" (TS_PROMPT), "Sanitization checklist" and "Sanitization assignment
+//     log" (owner only), plus the hero summary chips,
 //   - the top-level one-open-at-a-time accordion (also used by the page's Contractors section),
-//   - "Sanitization checklist" (everyone; editors add / edit / delete checks),
+//   - the "Sanitization checklist" pop-up (everyone; editors add / edit / delete checks),
 //   - "Sanitization scores" (closure-code groups) + the "Assign to sanitize" pop-up (owner only),
 //   - "Sanitized tickets" and "Approved errors & agent-marked duplicates" (owner only),
-//   - "Sanitization assignment log" (owner only).
+//   - the "Sanitization assignment log" pop-up (owner only).
 // Styles: sanitization-checklist.css. Needs icons.js, api-config.js, topbar-auth.js (PHDAuth, PHDLoginUI,
-// PHDConfirm, PHDBanner, the shared .tbl-* dialog shell) and the page's #tsAddModal / #tsEditModal /
-// #tsDelModal markup. Everything lives inside one IIFE; the inline-handler functions (window.ts*) and
-// window.PHDSanCheck are the only globals.
+// PHDConfirm, PHDBanner, the shared .tbl-* dialog shell) and the page's #tsCkModal / #tsLogModal /
+// #tsAddModal / #tsEditModal / #tsDelModal markup. Everything lives inside one IIFE; the inline-handler
+// functions (window.ts*) and window.PHDSanCheck are the only globals.
 (function () {
 const A=window.PHDAuth;
 const ic=(n,s)=>window.icon?window.icon(n,s||18):'';
@@ -23,7 +24,6 @@ var ICO_COPY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke
 var ICO_CHEV='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 var ICO_EDIT='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 var ICO_DEL='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
-var ICO_PLUS='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 var ICO_RETRY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>';
 var ICO_INFO='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
 var ICO_LIST='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h11M10 12h11M10 18h11"/><path d="M4 6h1v4M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>';
@@ -133,9 +133,10 @@ function tsToggleSec(key){
 window.tsToggleSec=tsToggleSec;
 
 // ---- Top-level accordion (checklist, scores, assignment log) ----
-// TS_TOP = id of the one open card (null = all collapsed). The checklist is open on every page load. In memory only.
+// TS_TOP = id of the one open card (null = all collapsed, which is the state on every page load now that
+// the checklist is a pop-up). In memory only.
 // Toggling only flips attributes, so inner accordions / pages keep their state; re-renders read TS_TOP.
-var TS_TOP='tsGuide';
+var TS_TOP=null;
 function tsTopCls(id){ return 'ts-card ts-acc'+(TS_TOP===id?' is-open':''); }
 function tsTopSum(text,cls){ return text?'<span class="ts-count ts-top-sum'+(cls?' '+cls:'')+'">'+text+'</span>':''; }
 // o = {icon, title, sum, tags, sub, acts}; acts sit OUTSIDE the toggle button (clicking them never toggles).
@@ -328,20 +329,33 @@ function tsCopyPrompt(btn){
 window.tsCopyPrompt=tsCopyPrompt;
 
 // ---- Building blocks ----
-// Hero summary chips ('N steps', 'Editor access' / 'View only'); the page puts them in its hero (#tsHeroChips).
+// Hero summary chips ('Checklist unavailable' after a failed load, 'View only' for non-editors); the page
+// puts them in its hero (#tsHeroChips). The check count and the Editor tag live in the checklist pop-up's head.
 function chipsHtml(editor){
-  var n=tsCount();   // the lines the card shows: the code-defined rules + the DB sections left
   return LOADING
     ? '<li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:120px;height:10px"></span></li><li class="is-skel" aria-hidden="true"><span class="ts-skel ts-skel-d" style="width:70px;height:10px"></span></li>'
-    : (LOAD_ERR?'<li><span>Checklist unavailable</span></li>':'<li><span><b>'+n+'</b> '+(n===1?'step':'steps')+'</span></li>')+
-      (editor?'<li class="is-acc">Editor access</li>':'<li>View only</li>');
+    : (LOAD_ERR?'<li><span>Checklist unavailable</span></li>':'')+
+      (editor?'':'<li>View only</li>');
 }
 function paintChips(){ var el=document.getElementById('tsHeroChips'); if(el) el.innerHTML=chipsHtml(tsCanEdit()); }
-// Hero "Copy prompt" button (orange; sits in the page's second hero row, see sanitization-tools.js heroActsHtml).
+// Hero "Copy prompt" button (orange; sits in the page's hero action grid, see sanitization-tools.js heroActsHtml).
 function promptBtnHtml(){
   return '<button type="button" class="ts-hero-link ts-hero-prompt" onclick="tsCopyPrompt(this)" title="Copy the AI prompt for writing PHD Findings, Primary Case Tag, SIM Root Cause Details and SIM Title">'+
     '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_COPY+'</span>'+
-    '<span class="ts-hl-txt"><span class="ts-hl-t">Copy prompt</span><span class="ts-hl-s" aria-hidden="true">Paste it into your AI tool before the incident</span></span></button>';
+    '<span class="ts-hl-txt"><span class="ts-hl-t">Copy prompt</span></span></button>';
+}
+// The other two hero buttons: each opens its pop-up (the page's #tsCkModal / #tsLogModal).
+// The assignment log is owner only, so its button is left out for everyone else.
+function checklistBtnHtml(){
+  return '<button type="button" class="ts-hero-link" id="tsCkBtn" onclick="tsCkOpen()" aria-haspopup="dialog" title="What the server checks on every ticket after a data upload">'+
+    '<span class="ts-hl-sheet" aria-hidden="true">'+ICO_LIST+'</span>'+
+    '<span class="ts-hl-txt"><span class="ts-hl-t">Sanitization checklist</span></span></button>';
+}
+function logBtnHtml(){
+  if(!tsIsOwner()) return '';
+  return '<button type="button" class="ts-hero-link" id="tsLogBtn" onclick="tsLogOpen()" aria-haspopup="dialog" title="Who was assigned how many tickets, by day">'+
+    '<span class="ts-hl-sheet" aria-hidden="true">'+ic('clock-rewind',18)+'</span>'+
+    '<span class="ts-hl-txt"><span class="ts-hl-t">Sanitization assignment log</span></span></button>';
 }
 
 // Loading placeholder: three collapsed sub-section header rows (chevron + icon + title + count).
@@ -404,29 +418,34 @@ function stepsHtml(editor,anim){
   }).join('')+'</div>';
 }
 
-// The checklist card (top-level accordion section 'tsGuide'). anim = the one entrance animation of its steps.
-function guideHtml(anim){
-  var editor=tsCanEdit(), n=tsCount();
-  var ready=!LOADING&&!LOAD_ERR;
-  return '<section class="'+tsTopCls('tsGuide')+(anim?' is-anim':'')+'" id="tsGuide" aria-labelledby="tsGuideHead" aria-busy="'+(LOADING?'true':'false')+'">'+
-        tsTopHead('tsGuide',{icon:ICO_LIST,title:'Sanitization checklist',
-          sum:ready?tsTopSum(n.toLocaleString()+' '+(n===1?'check':'checks')):'',
-          tags:ready&&editor?'<span class="ts-mode">Editor</span>':'',
-          sub:'What the server checks on every ticket after a data upload, plus the Hashtags lines to work through.',
-          acts:ready&&editor?'<button class="ts-btn" type="button" id="tsAddBtn" aria-haspopup="dialog" onclick="tsOpenAdd()">'+ICO_PLUS+'<span>Add new check</span></button>':''})+
-        tsTopBody('tsGuide')+
-        stepsHtml(editor,anim)+
-        // Card-level error slot (a failed delete reports here, since its pop-up closes).
-        (ready&&editor?'<div class="ts-err" id="tsErr" role="alert"></div>':'')+
-      '</div></section>';
-}
-// Re-render the checklist card in place (the page's other sections are left alone) + the hero chips.
+// Re-paint the checklist pop-up's body and head in place (the page's sections are left alone) + the hero chips.
+// The pop-up's markup is the page's #tsCkModal, so it is painted whether or not the pop-up is open.
 function render(){
   var anim=FIRST&&!LOADING&&!LOAD_ERR; if(anim) FIRST=false;
-  var el=document.getElementById('tsGuide');
-  if(el) tsKeepFocus(function(){ el.outerHTML=guideHtml(anim); });
+  var editor=tsCanEdit(), ready=!LOADING&&!LOAD_ERR;
+  var el=document.getElementById('tsCkBody');
+  if(el){ tsKeepFocus(function(){ el.innerHTML=stepsHtml(editor,anim); }); el.setAttribute('aria-busy',LOADING?'true':'false'); }
+  var cnt=document.getElementById('tsCkCount');
+  if(cnt){ var n=tsCount(); cnt.textContent=n.toLocaleString()+' '+(n===1?'check':'checks'); cnt.hidden=!ready; }
+  var mode=document.getElementById('tsCkMode'); if(mode) mode.hidden=!(ready&&editor);
+  var add=document.getElementById('tsAddBtn'); if(add) add.hidden=!(ready&&editor);
   paintChips();
 }
+// ---- "Sanitization checklist" pop-up (hero button -> the page's #tsCkModal, the shared .tbl-* shell) ----
+// Its [data-ic] icon slots are filled once at load, with the add pop-up's (see the loop at the end of this file).
+function tsCkOpen(){
+  var bg=document.getElementById('tsCkModal'); if(!bg) return;
+  render();
+  bg.style.display='flex';
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,tsCkClose,null);
+}
+window.tsCkOpen=tsCkOpen;
+function tsCkClose(){
+  var bg=document.getElementById('tsCkModal'); if(!bg||bg.style.display==='none') return;
+  bg.style.display='none';
+  if(window.PHDLoginUI) window.PHDLoginUI.closed(bg); else { var b=document.getElementById('tsCkBtn'); if(b) b.focus(); }
+}
+window.tsCkClose=tsCkClose;
 
 function tsErr(msg){ var e=document.getElementById('tsErr'); if(e){ e.textContent=msg||''; e.style.display=msg?'flex':'none'; } }
 
@@ -444,7 +463,8 @@ async function loadChecklist(fromRetry){
     if(fromRetry){ var rb=document.getElementById('tsRetry'); if(rb) rb.focus(); }
   } else {
     announce('Loaded '+tsCount()+' checklist '+(tsCount()===1?'step':'steps')+'.');
-    if(fromRetry){ var h=document.getElementById('tsGuideBtn'); if(h) h.focus(); }
+    // Retry lives inside the checklist pop-up and is gone once the load succeeds: keep focus in there.
+    if(fromRetry){ var ab=document.getElementById('tsAddBtn'), h=(ab&&!ab.hidden)?ab:document.querySelector('#tsCkModal .tbl-x'); if(h) h.focus(); }
   }
 }
 function tsRetry(){ loadChecklist(true); }
@@ -502,11 +522,16 @@ function tsEdit(i){
   TS_EDIT_ID=it.id; TS_LAST_FOCUS=document.activeElement;
   var ta=document.getElementById('tsEditText'); ta.value=it.text;
   tsModalErr('tsEditErr','');
-  document.getElementById('tsEditModal').classList.add('show');
+  var m=document.getElementById('tsEditModal'); m.classList.add('show');
+  // Registered with the shared shell helper as well, so Esc and the Tab trap find THIS modal and not
+  // the checklist pop-up underneath it (topbar-auth.js handles Escape in the capture phase).
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(m,tsCloseEdit,null);
   setTimeout(function(){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); },40);
 }
 window.tsEdit=tsEdit;
-function tsCloseEdit(){ var m=document.getElementById('tsEditModal'); var open=m.classList.contains('show'); m.classList.remove('show'); TS_EDIT_ID=null; if(open) tsRestoreFocus(); }
+function tsCloseEdit(){ var m=document.getElementById('tsEditModal'); var open=m.classList.contains('show'); m.classList.remove('show'); TS_EDIT_ID=null;
+  if(open&&window.PHDLoginUI) window.PHDLoginUI.closed(m);
+  if(open) tsRestoreFocus(); }
 window.tsCloseEdit=tsCloseEdit;
 async function tsEditSave(){
   if(!tsCanEdit()||!TS_EDIT_ID) return;
@@ -525,11 +550,14 @@ function tsDelete(i){
   var it=TS_ITEMS[i]; if(!it) return;
   TS_DEL_ID=it.id; TS_LAST_FOCUS=document.activeElement;
   document.getElementById('tsDelBody').textContent=it.text;
-  document.getElementById('tsDelModal').classList.add('show');
+  var m=document.getElementById('tsDelModal'); m.classList.add('show');
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(m,tsCloseDel,null);   // see tsEdit: Esc / Tab must find this modal
   setTimeout(function(){ var b=document.getElementById('tsDelConfirm'); if(b) b.focus(); },40);
 }
 window.tsDelete=tsDelete;
-function tsCloseDel(){ var m=document.getElementById('tsDelModal'); var open=m.classList.contains('show'); m.classList.remove('show'); TS_DEL_ID=null; if(open) tsRestoreFocus(); }
+function tsCloseDel(){ var m=document.getElementById('tsDelModal'); var open=m.classList.contains('show'); m.classList.remove('show'); TS_DEL_ID=null;
+  if(open&&window.PHDLoginUI) window.PHDLoginUI.closed(m);
+  if(open) tsRestoreFocus(); }
 window.tsCloseDel=tsCloseDel;
 async function tsDelConfirm(){
   if(!tsCanEdit()||!TS_DEL_ID) return;
@@ -972,34 +1000,38 @@ async function loadAssign(fromRetry,focusSel){
 }
 function tsAsgRetry(){ loadAssign(true); }
 window.tsAsgRetry=tsAsgRetry;
-// The assignment log is a top-level accordion card, re-rendered in place by id. (Contractor
-// performance and Needs rework moved to sanitization-tracker.html.)
-var SA_CARDS=['tsAsgLog'];
+// The assignment log lives in the owner's "Sanitization assignment log" pop-up (the page's #tsLogModal);
+// its body is re-painted in place by id. (Contractor performance and Needs rework moved to
+// sanitization-tracker.html.)
 function saRender(focusSel){
-  if(!document.getElementById('tsAsgLog')) return;
-  tsKeepFocus(function(){ SA_CARDS.forEach(function(id){ var el=document.getElementById(id); if(el) el.outerHTML=saCardHtml(id); }); });
+  var el=document.getElementById('tsLogBody'); if(!el) return;
+  var d=SA.data, ready=!SA.loading&&!SA.err&&d;
+  tsKeepFocus(function(){ el.innerHTML=SA.loading?saSkel():(SA.err?saErrHtml():saLogHtml(d)); });
+  el.setAttribute('aria-busy',SA.loading?'true':'false');
+  var cnt=document.getElementById('tsLogCount');
+  if(cnt){ if(ready) cnt.textContent=saPlural((d.assignments||[]).length,'assignment'); cnt.hidden=!ready; }
   if(focusSel){ var f=document.querySelector(focusSel); if(f) f.focus(); }
 }
-function saCard(id,icon,title,sub,body,sum){
-  return '<section class="'+tsTopCls(id)+'" id="'+id+'" aria-labelledby="'+id+'Head" aria-busy="'+(SA.loading?'true':'false')+'">'+
-    tsTopHead(id,{icon:icon,title:title,sum:sum,tags:'<span class="ts-own">Only visible to you</span>',sub:sub})+
-    tsTopBody(id)+body+'</div></section>';
+// ---- "Sanitization assignment log" pop-up (owner only; the hero button is left out for everyone else) ----
+function tsLogOpen(){
+  if(!tsIsOwner()) return;
+  var bg=document.getElementById('tsLogModal'); if(!bg) return;
+  saRender();
+  bg.style.display='flex';
+  if(window.PHDLoginUI) window.PHDLoginUI.opened(bg,tsLogClose,null);
 }
+window.tsLogOpen=tsLogOpen;
+function tsLogClose(){
+  var bg=document.getElementById('tsLogModal'); if(!bg||bg.style.display==='none') return;
+  bg.style.display='none';
+  if(window.PHDLoginUI) window.PHDLoginUI.closed(bg); else { var b=document.getElementById('tsLogBtn'); if(b) b.focus(); }
+}
+window.tsLogClose=tsLogClose;
 function saSkel(){ return '<div aria-hidden="true"><span class="ts-skel" style="width:100%;height:14px;margin-bottom:10px"></span><span class="ts-skel" style="width:70%;height:14px"></span></div>'; }
 function saErrHtml(){
   return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
     '<p class="ts-state-t">Couldn\u2019t load the sanitization assignments</p><p class="ts-state-p">'+esc(SA.err)+'</p></div>'+
     '<button type="button" class="ts-btn" id="tsAsgRetry" onclick="tsAsgRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
-}
-// The assignment log card (a load error shows inside it, with Retry).
-function saCardHtml(id){
-  var d=SA.data, ready=!SA.loading&&!SA.err&&d;
-  return saCard('tsAsgLog',ic('clock-rewind',17),'Sanitization assignment log','Who was assigned how many tickets, by day, newest first, and where they are now.',
-    SA.loading?saSkel():(SA.err?saErrHtml():saLogHtml(d)), ready?tsTopSum(saPlural((d.assignments||[]).length,'assignment')):'');
-}
-function saSecsHtml(){
-  if(!tsIsOwner()) return '';
-  return SA_CARDS.map(saCardHtml).join('');
 }
 function saStatusHtml(a){
   if(a.status==='revoked') return '<span class="tsa-pill revoked">Revoked by '+esc(a.revokedBy||'\u2014')+' \u00b7 '+esc(saDate(a.revokedAt))+'</span>';
@@ -1288,21 +1320,35 @@ document.addEventListener('keydown',function(ev){
   else if(t.classList&&t.classList.contains('tsa-q')&&t.closest('#tsAsgDlg')){ ev.preventDefault(); saSubmit(); }
 });
 
-// Esc closes whichever modal is open.
-document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ tsCloseEdit(); tsCloseDel(); tsCloseAdd(); tsAsgClose(); } });
-// Fill the add pop-up's [data-ic] icon slots (icons.js).
-document.querySelectorAll('#tsAddModal [data-ic]').forEach(function(el){ el.insertAdjacentHTML('afterbegin',ic(el.getAttribute('data-ic'),+el.getAttribute('data-sz')||16)); });
+// Esc closes whichever modal is open. A pop-up stacked on top of the checklist or the log pop-up
+// (Add / Edit / Delete a line, Assign to sanitize) closes on its own, leaving the one underneath open.
+function tsStacked(){
+  var a=document.getElementById('tsAddModal'), e=document.getElementById('tsEditModal'), d=document.getElementById('tsDelModal');
+  return !!(document.getElementById('tsAsgDlg')||(a&&a.style.display==='flex')||
+    (e&&e.classList.contains('show'))||(d&&d.classList.contains('show')));
+}
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape') return;
+  var stacked=tsStacked();
+  tsCloseEdit(); tsCloseDel(); tsCloseAdd(); tsAsgClose();
+  if(!stacked){ tsCkClose(); tsLogClose(); }
+});
+// Fill the [data-ic] icon slots of the page's static pop-ups (icons.js).
+document.querySelectorAll('#tsAddModal [data-ic],#tsCkModal [data-ic],#tsLogModal [data-ic]').forEach(function(el){ el.insertAdjacentHTML('afterbegin',ic(el.getAttribute('data-ic'),+el.getAttribute('data-sz')||16)); });
 
-// API for sanitization-tracker.html. The page builds its shell once (hero + the four sections), then
-// calls start() for logged-in users (the login gate is the page's). Any logged-in user sees the checklist;
-// only harisss/flofalgu see edit controls; scores + the assignment log are owner only (servers enforce both).
+// API for sanitization-tracker.html. The page builds its shell once (hero + its sections), then calls
+// start() for logged-in users (the login gate is the page's). Any logged-in user opens the checklist
+// pop-up; only harisss/flofalgu see its edit controls; the scores and the assignment log pop-up are
+// owner only (servers enforce both).
 window.PHDSanCheck = {
   isOwner: tsIsOwner, canEdit: tsCanEdit,
-  // Top-level accordion helpers: open(id) = the open section on first paint (default: the checklist).
+  // Top-level accordion helpers: open(id) = the open card (null = all collapsed, the state on first paint).
   open: function (id) { if (id !== undefined) TS_TOP = id; return TS_TOP; },
   topCls: tsTopCls, topHead: tsTopHead, topBody: tsTopBody, topSum: tsTopSum,
   chipsHtml: function () { return chipsHtml(tsCanEdit()); }, promptBtnHtml: promptBtnHtml,
-  guideHtml: function () { return guideHtml(false); }, scoreHtml: scoreHtml, logHtml: saSecsHtml,
+  checklistBtnHtml: checklistBtnHtml, logBtnHtml: logBtnHtml,
+  ckOpen: tsCkOpen, ckClose: tsCkClose, logOpen: tsLogOpen, logClose: tsLogClose,
+  scoreHtml: scoreHtml,
   sanitizedHtml: sanitizedHtml, markedHtml: markedHtml,
   start: function () {
     loadChecklist();
