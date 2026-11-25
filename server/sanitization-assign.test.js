@@ -101,6 +101,36 @@ test('a ticket sent back for Rework is in Tickets to sanitize with the owner not
   assert.equal(v.totals.needsCorrection, 1);
 });
 
+test('a Rework stays in Tickets to sanitize even when rule A would pass the ticket', () => {
+  // The closure-code-only error: 'Automatically Closed' on an Immediately Resolved eligible title has
+  // no defects and pass === need, so rule A passes it while the upload's checks flag the code. A
+  // 'returned' mark must never reach that rule, or the Rework would read as sanitized and the owner's
+  // note would never be shown.
+  const auto = rt('AUTO', { cc: 'Automatically Closed', score: 11, pass: 3, need: 3, miss: [],
+    tgt: 'Immediately Resolved', grp: 'auto-closed', def: [] });
+  const report = { tickets: [auto], excludedTickets: [] };
+  const asg = [{ _id: 'a3', status: 'active', assignee: AGENT, assignedAt: '2026-02-01T00:00:00.000Z', score: 11, count: 1,
+    tickets: [{ shortId: 'AUTO', url: 'u/AUTO', title: 'AUTO title', cq: '2026-Q1', scoreAtAssign: 11 }] }];
+  const FAIL_CODE = { key: 'closureCode', group: 'closure', label: 'Closure code',
+    message: 'Automatically Closed is not Successful, Immediately Resolved or Duplicate.' };
+  const returned = { login: AGENT, shortId: 'AUTO', status: 'returned', at: '2026-02-10T00:00:00.000Z',
+    ownerNote: FAIL_CODE.label + ': ' + FAIL_CODE.message, returnedAt: '2026-03-02T09:00:00.000Z', returnedBy: OWNER };
+  const val = { ...valDoc('AUTO', [FAIL_CODE]), closureCode: 'Automatically Closed' };
+  // The record the Rework left in place, and (Accept's shape) no record at all: both stay with the agent.
+  [[val], []].forEach((validations) => {
+    const v = san.contractorView(asg, AGENT, report, STAMP, [returned], null, validations, []);
+    const t = v.tickets[0];
+    assert.equal(t.status, 'needs-correction');
+    assert.equal(t.reason, 'open');
+    assert.equal(t.clearedNow, false);
+    assert.equal(t.returned.note, returned.ownerNote);
+    assert.equal(t.returned.by, OWNER);
+    assert.equal(v.totals.cleared, 0);
+    assert.equal(v.totals.needsCorrection, 1);
+    assert.equal(v.totals.errorDetected, 0);
+  });
+});
+
 test('an Error mark keeps the ticket with the owner, whatever the record says', () => {
   const v = view({ marks: [{ login: AGENT, shortId: 'BAD', status: 'error', reason: 'wrong ticket', at: '2026-02-10T00:00:00.000Z' }] });
   assert.equal(row(v, 'BAD').status, 'error-ticket');
@@ -188,6 +218,7 @@ function reviewDeps(o) {
   const d = o || {};
   return {
     user: { username: d.user || OWNER },
+    contractors: d.contractors || CONTRACTORS,
     validationColl: fakeColl('sanitization_validations', d.validations || [valDoc('BAD', [FAIL_RES, FAIL_CC])]),
     acceptColl: fakeColl('sanitization_error_accepts', d.accepts || []),
     marksColl: fakeColl('sanitization_marks', d.marks || [claim('BAD')]),
@@ -282,6 +313,14 @@ test('a Rework on a ticket nobody marked uses the login the owner is viewing', a
   const orphan = await san.handleDetectedReview({ shortId: 'BAD', action: 'rework' }, reviewDeps({ marks: [] }));
   assert.equal(orphan.status, 409);
   assert.equal(orphan.body.error.indexOf('send it back') >= 0, true);
+});
+
+test('a Rework for a login that is not a contractor writes nothing', async () => {
+  const deps = reviewDeps({ marks: [] });
+  const out = await san.handleDetectedReview({ shortId: 'BAD', action: 'rework', login: 'stranger' }, deps);
+  assert.equal(out.status, 404);
+  assert.equal(out.body.error, 'Unknown contractor.');
+  assert.equal(allWrites(deps).length, 0);
 });
 
 test('the review writes nothing to ticket_docs', async () => {

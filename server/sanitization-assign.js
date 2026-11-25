@@ -500,7 +500,8 @@ async function handleGet(deps) {
 //                 until the owner approves it (handleErrorReview 'approve' -> excluded everywhere) or
 //                 sends it back ('return').
 //   'returned'  - sent back by the owner: as unmarked, with `returned: { note, at, by }` on the row
-//                 until the contractor marks it again.
+//                 until the contractor marks it again, except that rule A can never clear it (see
+//                 evalTicket: a Rework always leaves the ticket in Tickets to sanitize).
 //   'completed' - legacy (before the claims): carries NO claim, the ticket counts as unmarked;
 //                 `legacyCompleted` lets the UI say "Previously marked Completed".
 // Tickets the owner approved as errors (approvedIds / excludedReason 'approved error') count as
@@ -636,7 +637,13 @@ function evalTicket(cur, why, m, stamp, vx) {
   }
   // Unmarked but already passing rule A on the current SIM data (e.g. 11/11 Successful, an eligible
   // Immediately Resolved with all title checks, or Duplicate): sanitized - no mark needed.
-  const ruleAPass = cur ? (!(cur.def && cur.def.length) && typeof cur.pass === 'number' && cur.pass === cur.need) : why === DUP_REASON;
+  // NEVER for a ticket the owner sent back for Rework: rule A asks less than the upload's checks (an
+  // 'Automatically Closed' ticket with a clean title passes it while the engine flags the code), so
+  // without this a reworked ticket would come back 'cleared', the owner's note would never be shown
+  // and the contractor would never be told (handleDetectedReview 'rework'). A 'returned' mark stays in
+  // Tickets to sanitize with that note until the contractor marks the ticket again.
+  const ruleAPass = (m && m.status === 'returned') ? false
+    : (cur ? (!(cur.def && cur.def.length) && typeof cur.pass === 'number' && cur.pass === cur.need) : why === DUP_REASON);
   if (ruleAPass) {
     out.status = 'cleared';
     out.passed = cur ? cur.pass : null; out.required = cur ? cur.need : null; out.missing = [];
@@ -983,8 +990,9 @@ const OWNER_VALIDATION = 'Only harisss can review detected errors.';
 //     sanitize queue; ownerNote names every failing item ('label: message', <= REASON_MAX) and nothing
 //     else. The validation record is left in place: the next upload refreshes or clears it.
 // login = whose mark is sent back (the tracker view the owner is acting in); otherwise the ticket's
-// newest mark decides. It is resolved BEFORE any write, so a Rework never half-happens.
-// deps: { user, validationColl, acceptColl, marksColl, now? }
+// newest mark decides. It is resolved and checked against the contractor list BEFORE any write, so a
+// Rework never half-happens and never writes a mark for a non-contractor.
+// deps: { user, contractors, validationColl, acceptColl, marksColl, now? }
 async function handleDetectedReview(body, deps) {
   const me = normLogin(deps.user && deps.user.username);
   if (!me || !isOwner(me)) return { status: 403, body: { error: OWNER_VALIDATION } };
@@ -1015,6 +1023,9 @@ async function handleDetectedReview(body, deps) {
   const newest = (marks || []).filter(m => m && m.login).sort((x, y) => when(y) - when(x))[0];
   const login = asked || normLogin(newest && newest.login);
   if (!login) return { status: 409, body: { error: 'This ticket has no contractor to send it back to.' } };
+  // The mark goes to a CONTRACTOR, the same gate handleMark applies: a posted `login` that is not one
+  // would leave a stray mark nobody's tracker ever reads.
+  if (!(deps.contractors || []).some(c => c && c.login === login)) return { status: 404, body: { error: 'Unknown contractor.' } };
   const ownerNote = failures.map(f => f.label + ': ' + f.message).join(' ').slice(0, REASON_MAX);
   await deps.marksColl.updateOne({ login, shortId },
     { $set: { login, shortId, status: 'returned', ownerNote, returnedAt: at, returnedBy: me } }, { upsert: true });

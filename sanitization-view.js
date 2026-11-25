@@ -401,6 +401,12 @@
   // (o.review, the server's canReview) also gets the two whole-ticket actions per row: [Rework]
   // (data-stvfix) sends it back naming everything missing, [Accept Sanitized error] (data-stvacc)
   // counts it as sanitized for good.
+  // One agent's table for one date is CAPPED at ERR_ROW_CAP rows, the way needTable and the other
+  // ticket tables stop at a page: the section has no pager of its own and is built as one string, and
+  // a single upload can flag thousands of tickets (a closure code outside the three is an error, and
+  // 'Automatically Closed' alone is common in the data). The hidden rows surface here as soon as the
+  // shown ones are reviewed; the date's summary still counts every ticket.
+  var ERR_ROW_CAP = 100;
   // o = { review, busy:{shortId:true}, h:{ ic, when, url, day(iso) -> the calendar day label } }.
   function errorSectionHtml(payload, o) {
     o = o || {}; var h = o.h || {}, rev = !!o.review, busy = o.busy || {};
@@ -435,7 +441,7 @@
             + '<thead><tr><th scope="col" class="stv-fit">Closure Code</th><th scope="col" class="stv-fit">Ticket ID</th>'
             + '<th scope="col" class="stv-mc">Missing Fields</th>'
             + (rev ? '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th>' : '') + '</tr></thead><tbody>'
-            + ag.rows.map(function (t) {
+            + ag.rows.slice(0, ERR_ROW_CAP).map(function (t) {
               var sid = esc(t.shortId), ms = t.missing || [], b = !!busy[t.shortId];
               return '<tr><td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
                 + '<td class="stv-mc">' + (ms.length ? '<ul class="stv-items">' + ms.map(function (f) {
@@ -444,7 +450,11 @@
                 + (rev ? '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to ' + esc(ag.login) + '</span></button> '
                   + '<button type="button" class="tb-san-btn stv-save" data-stvacc="' + sid + '"' + (b ? ' disabled' : '') + '>Accept Sanitized error<span class="tb-asg-sr"> on ' + sid + '</span></button></td>' : '')
                 + '</tr>';
-            }).join('') + '</tbody></table></div></section>';
+            }).join('')
+            + (ag.rows.length > ERR_ROW_CAP ? '<tr class="st-err-more"><td colspan="' + (rev ? 4 : 3) + '">'
+              + '<p class="tb-asg-empty">Showing the first ' + ERR_ROW_CAP + ' of ' + ag.rows.length
+              + ' errors for ' + esc(ag.login) + ' on ' + esc(g.key) + ' \u00b7 the rest appear here once these are reviewed.</p></td></tr>' : '')
+            + '</tbody></table></div></section>';
         }).join('') + '</div></details>';
     }).join('');
   }

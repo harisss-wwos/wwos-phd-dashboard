@@ -3985,6 +3985,7 @@ app.post('/api/sanitization-validation/review', requireSanOwner, async (req, res
   try {
     const out = await sanAssign.handleDetectedReview(req.body, {
       user: req.user,
+      contractors: await sanContractorsShared(),
       validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
       acceptColl: await getCollection(COLLECTIONS.sanitizationErrorAccepts),
       marksColl: await getCollection(COLLECTIONS.sanitizationMarks),

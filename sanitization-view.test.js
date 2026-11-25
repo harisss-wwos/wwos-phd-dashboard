@@ -177,6 +177,19 @@ test('errorSectionHtml puts both actions on each row for the owner and neither f
   assert.equal((busy.match(/ disabled/g) || []).length, 2);
 });
 
+test('errorSectionHtml caps one agent block at 100 rows and says how many are held back', () => {
+  // The section has no pager, so it must not try to render an upload that flagged thousands of
+  // tickets in one string: the first 100 per agent per date, with the true count in the summary.
+  const rows = [];
+  for (let i = 0; i < 150; i++) rows.push(errRow({ shortId: 'E' + i }));
+  const html = V.errorSectionHtml({ tickets: rows }, errOpts({ review: true }));
+  assert.equal((html.match(/data-stvacc="/g) || []).length, 100);
+  assert.match(html, /Showing the first 100 of 150 errors for tanviroo on 2026-11-25/);
+  assert.match(html, /<b>150 tickets<\/b>/);
+  // Under the cap nothing is held back and no notice is rendered.
+  assert.equal(V.errorSectionHtml({ tickets: rows.slice(0, 100) }, errOpts({ review: true })).includes('Showing the first'), false);
+});
+
 test('errorSectionHtml renders the empty state and escapes every interpolation', () => {
   assert.match(V.errorSectionHtml({ tickets: [] }, errOpts({ review: true })), /tb-asg-empty/);
   assert.match(V.errorSectionHtml(null, errOpts()), /tb-asg-empty/);
