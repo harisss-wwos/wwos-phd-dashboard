@@ -5,17 +5,18 @@
 // stamped with the upload that revealed the errors (detectedAt = eirDataStamp's publishedAt), so
 // re-uploading the same ticket refreshes the timestamp the tracker shows. A ticket that comes back
 // clean has its doc deleted; a ticket the contractor has not claimed yet (claimedIds), one they marked
-// Error, and one the owner approved as an error are left alone entirely (the engine returns no result
-// for them, so neither an upsert nor a delete is planned). Scope = the tickets of the ACTIVE
+// Error, one the owner approved as an error and one the owner accepted as a sanitized error
+// (acceptedSet, COLLECTIONS.sanitizationErrorAccepts) are left alone entirely (the engine returns no
+// result for them, so neither an upsert nor a delete is planned). Scope = the tickets of the ACTIVE
 // sanitization assignments whose claim this upload has already seen: validation follows the
 // contractor's cleanup, so an unmarked ticket is never flagged. A doc whose dataStamp is not the
 // current upload is therefore out of date, and the tracker ignores it (sanitization-assign.js
 // validationOf).
 // No reads of its own and no DB I/O in planUpsert: server.js passes the rows, the assignments, the
-// marks, the approvals and the field approvals it already loads (sanValidateAfterUpload), so this
+// marks, the approvals and the owner's acceptances it already loads (sanValidateAfterUpload), so this
 // module is unit-testable with a fake collection. COLLECTIONS.ticketDocs is never written.
 'use strict';
-const { validateRows, approvalKey, CLAIM_STATUSES } = require('./sanitization-validate');
+const { validateRows, CLAIM_STATUSES } = require('./sanitization-validate');
 
 const BATCH = 500;   // operations per bulkWrite, as in sanitization-update.js
 
@@ -62,14 +63,13 @@ function claimedIds(marks, stamp) {
   });
   return out;
 }
-// COLLECTIONS.sanitizationFieldApprovals docs -> the Set of '<shortId>|<FIELD>' keys the engine reads
-// (the _id of each doc; { shortId, field } is accepted too).
-function fieldApprovalSet(docs) {
+// COLLECTIONS.sanitizationErrorAccepts docs -> the Set of shortIds the engine skips for good (the _id
+// of each doc is the shortId; { shortId } is accepted too).
+function acceptedSet(docs) {
   const out = new Set();
   (docs || []).forEach(d => {
-    if (!d) return;
-    const key = d._id ? str(d._id) : (d.shortId && d.field ? approvalKey(d.shortId, d.field) : '');
-    if (key) out.add(key);
+    const id = typeof d === 'string' ? d : (d && (d.shortId || d._id));
+    if (id) out.add(str(id).trim());
   });
   return out;
 }
@@ -98,8 +98,8 @@ function planUpsert(results, detectedAt, dataStamp) {
 
 // One validation run after an upload. Loads nothing: deps = { validationColl, ticketRows (the scope
 // rows), assignments (every assignment doc; only the active ones count), marks (the claims this upload
-// has seen pick the tickets, claimedIds), approved (approved error docs / ids), approvedFields (Set of
-// '<shortId>|<FIELD>'), types (issue-type names), stamp (the upload's publishedAt), now?() }.
+// has seen pick the tickets, claimedIds), approved (approved error docs / ids), accepted (Set / docs of
+// the shortIds the owner accepted as sanitized errors), types (issue-type names), stamp (the upload's publishedAt), now?() }.
 // -> { validated, flagged, clean, ops, detectedAt }.
 async function runValidation(deps) {
   const d = deps || {};
@@ -107,7 +107,7 @@ async function runValidation(deps) {
   const rows = (d.ticketRows || []).filter(r => r && ids.has(str(r.ShortId || r.IssueId).trim()));
   const results = validateRows(rows, { types: d.types }, {
     claimed: claimedIds(d.marks, d.stamp), markStatus: markStatusMap(d.marks),
-    approvedError: d.approved, approvedFields: d.approvedFields,
+    approvedError: d.approved, accepted: d.accepted,
   });
   const detectedAt = d.stamp || (d.now ? d.now() : new Date()).toISOString();
   const ops = planUpsert(results, detectedAt, d.stamp || null);
@@ -119,4 +119,4 @@ async function runValidation(deps) {
   return { validated: results.size, flagged, clean: results.size - flagged, ops: ops.length, detectedAt };
 }
 
-module.exports = { BATCH, assignedIds, newestMarks, markStatusMap, claimedIds, fieldApprovalSet, planUpsert, runValidation };
+module.exports = { BATCH, assignedIds, newestMarks, markStatusMap, claimedIds, acceptedSet, planUpsert, runValidation };

@@ -196,7 +196,37 @@ test('Immediately Resolved: a valid Issue field also stands in for the title iss
 });
 
 
-// ---- Engine: skips and approvals ----
+// ---- Engine: the uploaded closure code alone selects the checks ----
+test('the contractor mark never changes the checks: the uploaded closure code alone does', () => {
+  // The owner's rule: an agent who marks everything Duplicate buys nothing. A ticket that is complete
+  // for the code the upload carries passes quietly, whatever they marked.
+  const complete = { ShortId: 'DUP', Title: GOOD_TITLE, RootCauseDetails: FULL_RCD };
+  ['duplicate', 'successful', 'immediate'].forEach(mark => {
+    ['Successful', 'Immediately Resolved'].forEach(code => {
+      const out = eng.validateRows([{ ...complete, ClosureCode: code }], CTX, { claimed: ['DUP'], markStatus: { DUP: mark } });
+      assert.equal(out.get('DUP').ok, true, mark + ' / ' + code);
+      assert.equal(out.get('DUP').scope, code === 'Successful' ? 'title+rcd' : 'title', mark + ' / ' + code);
+    });
+  });
+  // The same ticket missing a required field is flagged for an uploaded Successful...
+  const noRes = { ...complete, RootCauseDetails: FULL_RCD.replace('Res: Coaching', '') };
+  const dupMark = { claimed: ['DUP'], markStatus: { DUP: 'duplicate' } };
+  const flagged = eng.validateRows([{ ...noRes, ClosureCode: 'Successful' }], CTX, dupMark);
+  assert.deepEqual(keys(flagged.get('DUP')), ['Res']);
+  // ...and not for an uploaded Immediately Resolved, which never looks at the RCD fields.
+  assert.equal(eng.validateRows([{ ...noRes, ClosureCode: 'Immediately Resolved' }], CTX, dupMark).get('DUP').ok, true);
+  // An uploaded Duplicate checks nothing, even for a ticket marked Successful.
+  assert.equal(eng.validateRows([{ ...noRes, ClosureCode: 'Duplicate' }], CTX, { claimed: ['DUP'], markStatus: { DUP: 'successful' } }).get('DUP').ok, true);
+});
+
+test('the required fields reject absence as well as every N/A spelling', () => {
+  // No Issue / Date / Res lines at all: all three are required and all three fail.
+  const bare = eng.validateTicket(ticket({ RootCauseDetails: ['SID: DAB5', 'Cnt: 1'].join('\n') }), CTX);
+  assert.deepEqual(keys(bare), ['Date', 'Issue', 'Res']);
+  eng.REQUIRED_FIELDS.forEach(k => assert.equal(bare.fields[k], 'N/A', k + ' is stored as N/A'));
+});
+
+// ---- Engine: skips and whole-ticket acceptance ----
 test('a ticket the contractor marked Error gets no result', () => {
   const rows = [ticket({ ShortId: 'T1', Title: 'bad title' }), ticket({ ShortId: 'T2', Title: 'bad title' })];
   const out = eng.validateRows(rows, CTX, { markStatus: new Map([['T1', 'error']]) });
@@ -221,15 +251,17 @@ test('a ticket the owner approved as an error gets no result', () => {
   assert.equal(out.size, 0);
 });
 
-test('an approved field is never raised again while the un-approved ones still are', () => {
+test('a ticket the owner accepted as a sanitized error is never validated again', () => {
   const rcd = ['Issue: Theft', 'SID: DAB5', 'Cnt: abc', 'Zip: 90001', 'Res: Coaching'].join('\n');
   const rows = [ticket({ RootCauseDetails: rcd })];
-  const all = eng.validateRows(rows, CTX, {});
-  assert.deepEqual(keys(all.get('T1')), ['Cnt', 'Date']);
-  const some = eng.validateRows(rows, CTX, { approvedFields: new Set([eng.approvalKey('T1', 'Cnt')]) });
-  assert.deepEqual(keys(some.get('T1')), ['Date']);
-  const none = eng.validateRows(rows, CTX, { approvedFields: new Set([eng.approvalKey('T1', 'Cnt'), eng.approvalKey('T1', 'Date')]) });
-  assert.equal(none.get('T1').ok, true);
+  assert.deepEqual(keys(eng.validateRows(rows, CTX, {}).get('T1')), ['Cnt', 'Date']);
+  // A Set of ids, a list of ids and a list of accept docs all mean the same thing.
+  [new Set(['T1']), ['T1'], [{ shortId: 'T1', acceptedBy: 'harisss' }]].forEach(accepted => {
+    assert.equal(eng.validateRows(rows, CTX, { accepted }).size, 0);
+  });
+  // ...and the acceptance is per ticket: another ticket keeps being checked.
+  const two = eng.validateRows(rows.concat([ticket({ ShortId: 'T2', RootCauseDetails: rcd })]), CTX, { accepted: ['T1'] });
+  assert.deepEqual(Array.from(two.keys()), ['T2']);
 });
 
 test('the rules are code-defined and ordered', () => {
@@ -273,7 +305,7 @@ test('runValidation writes only the assigned tickets, flagged as upserts and cle
   const coll = fakeColl();
   const rows = [ticket({ ShortId: 'BAD', Title: 'nothing valid' }), ticket({ ShortId: 'OK' }), ticket({ ShortId: 'NOT-ASSIGNED', Title: 'nothing valid' })];
   const out = await store.runValidation({ validationColl: coll, ticketRows: rows, assignments: asg(['BAD', 'OK']),
-    marks: claims(['BAD', 'OK', 'NOT-ASSIGNED']), approved: [], approvedFields: new Set(), types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
+    marks: claims(['BAD', 'OK', 'NOT-ASSIGNED']), approved: [], accepted: new Set(), types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
   assert.deepEqual({ validated: out.validated, flagged: out.flagged, clean: out.clean }, { validated: 2, flagged: 1, clean: 1 });
   assert.equal(coll.calls.length, 1);
   assert.deepEqual(upserts(coll).map(o => o.updateOne.filter._id), ['BAD']);
@@ -327,15 +359,17 @@ test('a newer upload refreshes detectedAt on a ticket that is still flagged', as
   assert.equal(upserts(second)[0].updateOne.update.$set.detectedAt, '2026-03-05T08:30:00.000Z');
 });
 
-test('field approvals come from the approval docs _id and suppress that item only', async () => {
+test('acceptedSet reads the accept docs and an accepted ticket gets neither an upsert nor a delete', async () => {
   const coll = fakeColl();
   const rcd = ['Issue: Theft', 'SID: DAB5', 'Cnt: abc', 'Zip: 90001', 'Res: Coaching', 'Date: 2026-01-15'].join('\n');
-  const approvedFields = store.fieldApprovalSet([{ _id: 'BAD|Cnt' }, { shortId: 'BAD', field: 'Zip' }]);
-  assert.deepEqual(Array.from(approvedFields).sort(), ['BAD|Cnt', 'BAD|Zip']);
+  // _id, shortId and a bare string are all accepted shapes.
+  const accepted = store.acceptedSet([{ _id: 'BAD', shortId: 'BAD', acceptedBy: 'harisss' }, { _id: 'GONE' }, 'ALSO']);
+  assert.deepEqual(Array.from(accepted).sort(), ['ALSO', 'BAD', 'GONE']);
   const out = await store.runValidation({ validationColl: coll, ticketRows: [ticket({ ShortId: 'BAD', RootCauseDetails: rcd })],
-    assignments: asg(['BAD']), marks: claims(['BAD']), approved: [], approvedFields, types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
-  assert.deepEqual({ validated: out.validated, flagged: out.flagged }, { validated: 1, flagged: 0 });
-  assert.deepEqual(deletes(coll).map(o => o.deleteMany.filter._id.$in), [['BAD']]);
+    assignments: asg(['BAD']), marks: claims(['BAD']), approved: [], accepted, types: TYPES, stamp: '2026-03-01T10:00:00.000Z' });
+  assert.deepEqual({ validated: out.validated, flagged: out.flagged, ops: out.ops }, { validated: 0, flagged: 0, ops: 0 });
+  assert.equal(coll.calls.length, 0);
+  assert.equal(store.acceptedSet(null).size, 0);
 });
 
 test('only ACTIVE assignments are in scope and the newest mark decides', () => {

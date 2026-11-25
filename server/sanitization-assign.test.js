@@ -1,4 +1,5 @@
-// Tests for the validation-driven tracker rows and the owner's per-item review (node --test).
+// Tests for the validation-driven tracker rows, the owner's whole-ticket Accept / Rework review and
+// the Error detected section's endpoint (node --test).
 // In-memory fixtures and fake collection objects only: nothing here touches MongoDB Atlas, and every
 // fake records its writes so the tests can prove no operation targets ticket_docs.
 'use strict';
@@ -28,7 +29,7 @@ const valDoc = (id, failures) => ({ _id: id, shortId: id, title: id + ' title', 
   failures: failures, ok: false, detectedAt: DETECTED, dataStamp: DETECTED });
 
 const view = (o) => san.contractorView(ASG, AGENT, REPORT, STAMP, (o && o.marks) || [claim('BAD'), claim('OK2')],
-  null, (o && o.validations) || [valDoc('BAD', [FAIL_RES, FAIL_CC])], (o && o.approvedFields) || []);
+  null, (o && o.validations) || [valDoc('BAD', [FAIL_RES, FAIL_CC])], (o && o.accepts) || []);
 const row = (v, id) => v.tickets.find(t => t.shortId === id);
 
 // ---- contractorView / rowOf ----
@@ -66,20 +67,25 @@ test('a marked ticket the upload did not flag is sanitized', () => {
   assert.match(t.note, /detected no errors/);
 });
 
-test('every failure approved makes the ticket cleared', () => {
-  const v = view({ approvedFields: [{ _id: 'BAD|Res' }, { shortId: 'BAD', field: 'country' }] });
+test('a ticket the owner accepted is a cleared row with acceptedError', () => {
+  const v = view({ accepts: [{ _id: 'BAD', shortId: 'BAD', acceptedBy: OWNER, acceptedAt: '2026-03-03T12:00:00.000Z',
+    note: 'checked in SIM', closureCode: 'Successful' }] });
   const t = row(v, 'BAD');
   assert.equal(t.status, 'cleared');
   assert.equal(t.clearedNow, true);
-  assert.deepEqual(t.validation.failures, []);
-  assert.equal(v.totals.errorDetected, 0);
+  assert.deepEqual(t.acceptedError, { by: OWNER, at: '2026-03-03T12:00:00.000Z', note: 'checked in SIM' });
+  assert.equal(t.validation, null);                                // the stale record decides nothing
+  assert.deepEqual(t.missingNow, []);
+  assert.match(t.note, /Accepted by harisss/);
   assert.equal(v.totals.cleared, 2);
+  assert.equal(v.totals.errorDetected, 0);
 });
 
-test('one approved item leaves the other one open', () => {
-  const v = view({ approvedFields: [{ _id: 'BAD|country' }] });
-  assert.deepEqual(row(v, 'BAD').validation.failures.map(f => f.key), ['Res']);
-  assert.equal(v.totals.errorDetected, 1);
+test('an accept doc given as a bare shortId still clears the ticket', () => {
+  const v = view({ accepts: ['BAD'] });
+  assert.equal(row(v, 'BAD').status, 'cleared');
+  assert.deepEqual(row(v, 'BAD').acceptedError, { by: '', at: null, note: '' });
+  assert.equal(v.totals.errorDetected, 0);
 });
 
 test('a ticket sent back for Rework is in Tickets to sanitize with the owner note', () => {
@@ -140,7 +146,7 @@ test('without any validation record every row carries validation null', () => {
 
 // ---- handleMine: the detected errors are owner-only ----
 const mineDeps = () => ({ contractors: CONTRACTORS, load: async () => ({ docs: ASG, report: REPORT, stamp: STAMP,
-  marks: [claim('BAD'), claim('OK2')], approved: [], validations: [valDoc('BAD', [FAIL_RES, FAIL_CC])], approvedFields: [] }) });
+  marks: [claim('BAD'), claim('OK2')], approved: [], validations: [valDoc('BAD', [FAIL_RES, FAIL_CC])], accepts: [] }) });
 
 test('a contractor gets the detected-error count but no row', async () => {
   const out = await san.handleMine({ login: AGENT }, { user: { username: AGENT }, ...mineDeps() });
@@ -166,7 +172,7 @@ test('the contractor list carries totals.errorDetected', async () => {
   assert.equal(out.body.contractors[0].cleared, 1);
 });
 
-// ---- handleValidationReview ----
+// ---- handleDetectedReview (whole-ticket Accept / Rework) ----
 function fakeColl(name, docs) {
   return {
     name, docs: (docs || []).slice(), writes: [],
@@ -174,6 +180,7 @@ function fakeColl(name, docs) {
     async findOne(filter) { return this.docs.find(d => hit(d, filter)) || null; },
     async bulkWrite(ops, options) { this.writes.push({ coll: this.name, bulkWrite: ops, options }); return { ok: 1 }; },
     async updateOne(filter, update, options) { this.writes.push({ coll: this.name, updateOne: { filter, update, options } }); return { ok: 1 }; },
+    async deleteOne(filter) { this.writes.push({ coll: this.name, deleteOne: { filter } }); return { deletedCount: 1 }; },
   };
 }
 const hit = (d, f) => Object.keys(f || {}).every(k => String(d[k]) === String(f[k]));
@@ -182,69 +189,67 @@ function reviewDeps(o) {
   return {
     user: { username: d.user || OWNER },
     validationColl: fakeColl('sanitization_validations', d.validations || [valDoc('BAD', [FAIL_RES, FAIL_CC])]),
-    approvalColl: fakeColl('sanitization_field_approvals', d.approvals || []),
+    acceptColl: fakeColl('sanitization_error_accepts', d.accepts || []),
     marksColl: fakeColl('sanitization_marks', d.marks || [claim('BAD')]),
     now: () => new Date('2026-03-03T12:00:00.000Z'),
   };
 }
-const allWrites = (deps) => deps.validationColl.writes.concat(deps.approvalColl.writes, deps.marksColl.writes);
+const allWrites = (deps) => deps.validationColl.writes.concat(deps.acceptColl.writes, deps.marksColl.writes);
 
-test('approving every failing item writes only the approval docs', async () => {
+test('Accept writes one accept doc, deletes the validation record and sends nothing back', async () => {
   const deps = reviewDeps();
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['Res', 'country'], note: 'checked in SIM' }, deps);
+  const out = await san.handleDetectedReview({ shortId: 'BAD', action: 'accept', note: 'checked in SIM' }, deps);
   assert.equal(out.status, 200);
-  assert.deepEqual(out.body.approved, ['Res', 'country']);
-  assert.deepEqual(out.body.rework, []);
+  assert.equal(out.body.action, 'accept');
+  assert.deepEqual(out.body.items, ['Res', 'country']);
   assert.equal(out.body.ownerNote, null);
+  assert.equal(out.body.login, null);
   assert.equal(deps.marksColl.writes.length, 0);                   // nothing is sent back
-  assert.equal(deps.approvalColl.writes.length, 1);
-  const ops = deps.approvalColl.writes[0].bulkWrite;
-  assert.deepEqual(ops.map(o => o.updateOne.filter._id), ['BAD|Res', 'BAD|country']);
-  assert.deepEqual(ops[0].updateOne.update.$set, { shortId: 'BAD', field: 'Res', approvedBy: OWNER, approvedAt: '2026-03-03T12:00:00.000Z', note: 'checked in SIM' });
-  assert.equal(ops[0].updateOne.update.$set._id, undefined);       // _id comes from the filter only
-  assert.equal(ops[0].updateOne.upsert, true);
+  assert.equal(deps.acceptColl.writes.length, 1);
+  const w = deps.acceptColl.writes[0].updateOne;
+  assert.deepEqual(w.filter, { _id: 'BAD' });
+  assert.equal(w.options.upsert, true);
+  assert.deepEqual(w.update.$set, { shortId: 'BAD', acceptedBy: OWNER, acceptedAt: '2026-03-03T12:00:00.000Z',
+    note: 'checked in SIM', closureCode: 'Successful', failures: [FAIL_RES, FAIL_CC] });
+  assert.equal(w.update.$set._id, undefined);                      // _id comes from the filter only
+  assert.deepEqual(deps.validationColl.writes[0].deleteOne.filter, { _id: 'BAD' });
+  assert.equal(deps.validationColl.writes.length, 1);
   assert.equal(JSON.stringify(allWrites(deps)).indexOf('ticket_docs'), -1);
 });
 
-test('a partial approval also sends the ticket back, naming only the items left open', async () => {
+test('Rework writes only the returned mark, naming every detected item', async () => {
   const deps = reviewDeps();
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['country'] }, deps);
+  const out = await san.handleDetectedReview({ shortId: 'BAD', action: 'rework' }, deps);
   assert.equal(out.status, 200);
-  assert.deepEqual(out.body.rework, ['Res']);
+  assert.equal(out.body.action, 'rework');
+  assert.deepEqual(out.body.items, ['Res', 'country']);
   assert.equal(out.body.login, AGENT);
-  assert.equal(deps.approvalColl.writes[0].bulkWrite.length, 1);
+  assert.equal(deps.acceptColl.writes.length, 0);
+  assert.equal(deps.validationColl.writes.length, 0);              // the next upload refreshes the record
   assert.equal(deps.marksColl.writes.length, 1);
   const w = deps.marksColl.writes[0].updateOne;
   assert.deepEqual(w.filter, { login: AGENT, shortId: 'BAD' });
   assert.deepEqual(w.update.$set, { login: AGENT, shortId: 'BAD', status: 'returned',
-    ownerNote: 'Sim Root Cause Details: Res: Res: has no value (it is required).',
+    ownerNote: 'Sim Root Cause Details: Res: Res: has no value (it is required). Title: country code: The title does not start with a known country code.',
     returnedAt: '2026-03-03T12:00:00.000Z', returnedBy: OWNER });
   assert.equal(w.options.upsert, true);
-  assert.equal(w.update.$set.ownerNote.indexOf('country'), -1);    // nothing but the open items
   assert.equal(out.body.ownerNote, w.update.$set.ownerNote);
 });
 
-test('Rework with nothing approved returns the ticket with every open item', async () => {
+test('an unknown or missing action is rejected and nothing is written', async () => {
   const deps = reviewDeps();
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: [] }, deps);
-  assert.equal(out.status, 200);
-  assert.deepEqual(out.body.rework, ['Res', 'country']);
-  assert.equal(deps.approvalColl.writes.length, 0);
-  assert.match(deps.marksColl.writes[0].updateOne.update.$set.ownerNote, /Title: country code/);
-});
-
-test('an already approved item is not open any more', async () => {
-  const deps = reviewDeps({ approvals: [{ _id: 'BAD|Res', shortId: 'BAD', field: 'Res' }] });
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['Res'] }, deps);
-  assert.equal(out.status, 400);
-  assert.match(out.body.error, /Not an open detected error/);
+  for (const body of [{ shortId: 'BAD' }, { shortId: 'BAD', action: 'approve' }, { shortId: 'BAD', action: '' }]) {
+    const out = await san.handleDetectedReview(body, deps);
+    assert.equal(out.status, 400);
+    assert.match(out.body.error, /action must be/);
+  }
   assert.equal(allWrites(deps).length, 0);
 });
 
 test('a bulk-shaped body is rejected', async () => {
   const deps = reviewDeps();
-  for (const body of [{ shortIds: ['BAD'], approveFields: ['Res'] }, { shortId: ['BAD', 'OK2'], approveFields: ['Res'] }]) {
-    const out = await san.handleValidationReview(body, deps);
+  for (const body of [{ shortIds: ['BAD'], action: 'accept' }, { shortId: ['BAD', 'OK2'], action: 'accept' }]) {
+    const out = await san.handleDetectedReview(body, deps);
     assert.equal(out.status, 400);
     assert.match(out.body.error, /one ticket at a time/);
   }
@@ -253,39 +258,102 @@ test('a bulk-shaped body is rejected', async () => {
 
 test('a non-owner gets 403', async () => {
   const deps = reviewDeps({ user: AGENT });
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['Res'] }, deps);
+  const out = await san.handleDetectedReview({ shortId: 'BAD', action: 'accept' }, deps);
   assert.equal(out.status, 403);
   assert.equal(allWrites(deps).length, 0);
 });
 
-test('a ticket without a record, and an unknown item, are refused', async () => {
+test('a ticket without a detected error, a bad id and a long note are refused', async () => {
   const deps = reviewDeps();
-  const none = await san.handleValidationReview({ shortId: 'OK2', approveFields: [] }, deps);
+  const none = await san.handleDetectedReview({ shortId: 'OK2', action: 'accept' }, deps);
   assert.equal(none.status, 409);
-  const unknown = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['Zip'] }, deps);
-  assert.equal(unknown.status, 400);
-  const badId = await san.handleValidationReview({ shortId: 'not a ticket!', approveFields: [] }, deps);
+  const badId = await san.handleDetectedReview({ shortId: 'not a ticket!', action: 'accept' }, deps);
   assert.equal(badId.status, 400);
-  const longNote = await san.handleValidationReview({ shortId: 'BAD', approveFields: ['Res'], note: 'x'.repeat(san.REASON_MAX + 1) }, deps);
+  const longNote = await san.handleDetectedReview({ shortId: 'BAD', action: 'accept', note: 'x'.repeat(san.REASON_MAX + 1) }, deps);
   assert.equal(longNote.status, 400);
   assert.equal(allWrites(deps).length, 0);
 });
 
 test('a Rework on a ticket nobody marked uses the login the owner is viewing', async () => {
   const deps = reviewDeps({ marks: [] });
-  const out = await san.handleValidationReview({ shortId: 'BAD', approveFields: [], login: AGENT }, deps);
+  const out = await san.handleDetectedReview({ shortId: 'BAD', action: 'rework', login: AGENT }, deps);
   assert.equal(out.status, 200);
   assert.deepEqual(deps.marksColl.writes[0].updateOne.filter, { login: AGENT, shortId: 'BAD' });
-  const orphan = await san.handleValidationReview({ shortId: 'BAD', approveFields: [] }, reviewDeps({ marks: [] }));
+  const orphan = await san.handleDetectedReview({ shortId: 'BAD', action: 'rework' }, reviewDeps({ marks: [] }));
   assert.equal(orphan.status, 409);
+  assert.equal(orphan.body.error.indexOf('send it back') >= 0, true);
 });
 
 test('the review writes nothing to ticket_docs', async () => {
-  const deps = reviewDeps();
-  await san.handleValidationReview({ shortId: 'BAD', approveFields: ['country'] }, deps);
-  const touched = allWrites(deps).map(w => w.coll);
-  assert.deepEqual(touched.sort(), ['sanitization_field_approvals', 'sanitization_marks']);
-  assert.equal(JSON.stringify(allWrites(deps)).indexOf('ticket_docs'), -1);
+  const accept = reviewDeps();
+  await san.handleDetectedReview({ shortId: 'BAD', action: 'accept' }, accept);
+  assert.deepEqual(allWrites(accept).map(w => w.coll).sort(), ['sanitization_error_accepts', 'sanitization_validations']);
+  const rework = reviewDeps();
+  await san.handleDetectedReview({ shortId: 'BAD', action: 'rework' }, rework);
+  assert.deepEqual(allWrites(rework).map(w => w.coll), ['sanitization_marks']);
+  assert.equal(JSON.stringify(allWrites(accept).concat(allWrites(rework))).indexOf('ticket_docs'), -1);
+});
+
+// ---- handleErrors: the top-level Error detected section ----
+const AGENT2 = 'agent2';
+const ERR_CONTRACTORS = [{ login: AGENT, displayName: 'Agent One' }, { login: AGENT2, displayName: 'Agent Two' }];
+const ERR_ASG = ASG.concat([{ _id: 'a2', status: 'active', assignee: AGENT2, assignedAt: '2026-02-01T00:00:00.000Z', score: 9, count: 1,
+  tickets: [{ shortId: 'BAD2', url: 'u/BAD2', title: 'BAD2 title', cq: '2026-Q1', scoreAtAssign: 9 }] }]);
+const ERR_REPORT = { tickets: [rt('BAD'), rt('OK2'), rt('BAD2')], excludedTickets: [] };
+const claim2 = (id) => ({ ...claim(id), login: AGENT2, by: AGENT2 });
+function errDeps(o) {
+  const d = o || {};
+  return { contractors: ERR_CONTRACTORS, canViewAll: d.canViewAll,
+    load: async () => ({ docs: ERR_ASG, report: ERR_REPORT, stamp: STAMP,
+      marks: [claim('BAD'), claim('OK2'), claim2('BAD2')], approved: [],
+      validations: d.validations || [valDoc('BAD', [FAIL_RES, FAIL_CC]), valDoc('BAD2', [FAIL_CC])], accepts: d.accepts || [] }) };
+}
+
+test('the owner sees every agent that has detected errors, with the failing items', async () => {
+  const out = await san.handleErrors({}, { user: { username: OWNER }, ...errDeps() });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.owner, true);
+  assert.equal(out.body.canReview, true);
+  assert.equal(out.body.dataAsOf, STAMP);
+  assert.deepEqual(out.body.tickets.map(t => t.shortId), ['BAD', 'BAD2']);
+  assert.deepEqual(out.body.tickets.map(t => t.login), [AGENT, AGENT2]);
+  const t = out.body.tickets[0];
+  assert.deepEqual(Object.keys(t).sort(), ['closureCode', 'detectedAt', 'displayName', 'login', 'missing', 'shortId', 'title', 'url']);
+  assert.equal(t.closureCode, 'Successful');
+  assert.equal(t.detectedAt, DETECTED);
+  assert.equal(t.displayName, 'Agent One');
+  assert.deepEqual(t.missing, [{ key: 'Res', label: FAIL_RES.label, message: FAIL_RES.message },
+    { key: 'country', label: FAIL_CC.label, message: FAIL_CC.message }]);
+});
+
+test('a contractor sees only their own rows and cannot review', async () => {
+  const out = await san.handleErrors({}, { user: { username: AGENT2 }, ...errDeps() });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.canReview, false);
+  assert.deepEqual(out.body.tickets.map(t => t.shortId), ['BAD2']);
+  // ...and asking for somebody else's rows is refused.
+  const other = await san.handleErrors({ login: AGENT }, { user: { username: AGENT2 }, ...errDeps() });
+  assert.equal(other.status, 403);
+});
+
+test('a view-all login sees every agent but cannot review, and a stranger gets 403', async () => {
+  const all = await san.handleErrors({}, { user: { username: 'viewer' }, ...errDeps({ canViewAll: true }) });
+  assert.equal(all.status, 200);
+  assert.equal(all.body.canReview, false);
+  assert.deepEqual(all.body.tickets.map(t => t.shortId), ['BAD', 'BAD2']);
+  const stranger = await san.handleErrors({}, { user: { username: 'nobody' }, ...errDeps() });
+  assert.equal(stranger.status, 403);
+  const unknown = await san.handleErrors({ login: 'ghost' }, { user: { username: OWNER }, ...errDeps() });
+  assert.equal(unknown.status, 404);
+});
+
+test('an accepted ticket is no longer a detected error, and ?login= narrows the section', async () => {
+  const accepted = await san.handleErrors({}, { user: { username: OWNER }, ...errDeps({ accepts: [{ _id: 'BAD', shortId: 'BAD', acceptedBy: OWNER }] }) });
+  assert.deepEqual(accepted.body.tickets.map(t => t.shortId), ['BAD2']);
+  const one = await san.handleErrors({ login: AGENT }, { user: { username: OWNER }, ...errDeps() });
+  assert.deepEqual(one.body.tickets.map(t => t.shortId), ['BAD']);
+  const none = await san.handleErrors({}, { user: { username: OWNER }, ...errDeps({ validations: [] }) });
+  assert.deepEqual(none.body.tickets, []);
 });
 
 // ---- Closure-code groups (Sanitization scores page) ----

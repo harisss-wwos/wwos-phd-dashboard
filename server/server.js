@@ -3666,18 +3666,18 @@ async function sanWarm(why) {
 // doc per flagged ticket is written to COLLECTIONS.sanitizationValidations, stamped with the upload
 // (detectedAt = eirDataStamp). Only a ticket whose closure claim the upload has already seen is
 // checked, so validation follows the contractor's cleanup and an unmarked ticket is never flagged
-// (sanitization-validate-store.js claimedIds). Tickets marked Error in the app, tickets approved as errors and items
-// the owner approved (COLLECTIONS.sanitizationFieldApprovals) are left out. Never throws: a failure
+// (sanitization-validate-store.js claimedIds). Tickets marked Error in the app, tickets approved as errors and tickets
+// the owner accepted as sanitized errors (COLLECTIONS.sanitizationErrorAccepts) are left out. Never throws: a failure
 // leaves the previous validation docs in place and the next upload retries.
 async function sanValidateAfterUpload(why) {
   const t0 = Date.now();
   try {
-    const [data, rows, assignments, marks, approved, fieldApprovals] = await Promise.all([eirDataStamp(),
-      sanScopeRows(SAN_SINCE_ID), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanFieldApprovalsShared()]);
+    const [data, rows, assignments, marks, approved, accepts] = await Promise.all([eirDataStamp(),
+      sanScopeRows(SAN_SINCE_ID), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanErrorAcceptsShared()]);
     const out = await sanValidateStore.runValidation({
       validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
       ticketRows: rows.filter(d => !ticketRules.ticketExcludeReason(d)), assignments, marks, approved,   // TEST / NON-PHD tickets are never validated
-      approvedFields: sanValidateStore.fieldApprovalSet(fieldApprovals),
+      accepted: sanValidateStore.acceptedSet(accepts),
       types: eirIssueTypes(), stamp: data.stamp,
     });
     console.log('Sanitization validation (' + why + '): ' + out.flagged + ' of ' + out.validated + ' tickets flagged in ' + (Date.now() - t0) + ' ms');
@@ -3714,10 +3714,10 @@ const sanActiveAsgShared = () => _sanReads.run('asg:active', async () => (await 
 const sanAsgMetaShared = () => _sanReads.run('asg:meta', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray());
 const sanMarksShared = () => _sanReads.run('marks', sanMarks);
 const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
-// Owner-approved single items of a flagged ticket (COLLECTIONS.sanitizationFieldApprovals, read-only here): the validation hook drops those checks (sanitization-validate.js approvedFields).
-const sanFieldApprovals = () => getCollection(COLLECTIONS.sanitizationFieldApprovals)
-  .then(c => c.find({}, { projection: { shortId: 1, field: 1, approvedBy: 1, approvedAt: 1 } }).toArray());
-const sanFieldApprovalsShared = () => _sanReads.run('fieldApprovals', sanFieldApprovals);
+// Tickets the owner accepted as sanitized errors (COLLECTIONS.sanitizationErrorAccepts, read-only here): the validation hook never checks them again (sanitization-validate.js opts.accepted) and the tracker counts them as sanitized (sanitization-assign.js acceptMap).
+const sanErrorAccepts = () => getCollection(COLLECTIONS.sanitizationErrorAccepts)
+  .then(c => c.find({}, { projection: { _id: 0, shortId: 1, acceptedBy: 1, acceptedAt: 1, note: 1, closureCode: 1 } }).toArray());
+const sanErrorAcceptsShared = () => _sanReads.run('accepts', sanErrorAccepts);
 // Validation records of the latest upload (COLLECTIONS.sanitizationValidations, read-only here): the Sanitization Tracker's per-ticket outcome comes from them (sanitization-assign.js validationOf), projected to the fields a row and the owner's review pop-up show plus dataStamp (a record of an earlier upload is out of date and decides nothing).
 const sanValidations = () => getCollection(COLLECTIONS.sanitizationValidations)
   .then(c => c.find({}, { projection: { _id: 0, shortId: 1, closureCode: 1, scope: 1, detectedAt: 1, dataStamp: 1, failures: 1, fields: 1 } }).toArray());
@@ -3836,9 +3836,9 @@ app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
       user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
         const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
-        const [base, docs, marks, approved, validations, approvedFields] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
-          sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanFieldApprovalsShared()]);
-        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, approvedFields };
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+          sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
       },
     });
     res.status(out.status).json(out.body);
@@ -3951,19 +3951,42 @@ app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
     res.status(500).json({ error: 'Could not restore the ticket.' });
   }
 });
-// POST /api/sanitization-validation/review { shortId, approveFields:[item keys], note, login? } (owner
-// only; logic in sanAssign.handleValidationReview): the review of ONE ticket the last upload flagged
-// (status 'error-detected'), per item and never in bulk. Approve writes one doc per item to
-// COLLECTIONS.sanitizationFieldApprovals, so no later upload raises that item on that ticket again;
-// approving every open item makes the ticket count as sanitized. Any item left un-approved (Rework)
-// also sends the ticket back to the contractor (the mark becomes 'returned' with a note naming exactly
-// the items still missing something).
+// GET /api/sanitization-errors[?login=] (logic in sanAssign.handleErrors): the top-level Error detected
+// section of the Sanitization Tracker - every ticket the latest upload flagged and nobody has reviewed
+// yet, as flat rows the browser groups by detection day and then by agent. The owner and the
+// BLR / AZA / WFH view-all logins see every agent, a contractor only their own rows; the Accept / Rework
+// buttons are owner-only (canReview). STRICTLY READ-ONLY, and it reuses the shared loaders of
+// /api/my-sanitization, so it adds no database pass.
+app.get('/api/sanitization-errors', requireRole('user'), async (req, res) => {
+  try {
+    const sanCanViewAll = sanIsOwner(req.user.username) || SAN_VIEW_GROUPS.indexOf(grpOf(req.user.username)) >= 0;
+    const out = await sanAssign.handleErrors(req.query || {}, {
+      user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
+      load: async () => {
+        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+          sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
+        return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
+      },
+    });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sanitization-errors error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the detected errors.' });
+  }
+});
+// POST /api/sanitization-validation/review { shortId, action:'accept'|'rework', note, login? } (owner
+// only; logic in sanAssign.handleDetectedReview): the review of ONE ticket the last upload flagged
+// (status 'error-detected'), whole-ticket and never in bulk. 'accept' writes one doc to
+// COLLECTIONS.sanitizationErrorAccepts and deletes the ticket's validation record, so the ticket counts
+// as sanitized and no later upload validates it again. 'rework' sends the ticket back to the contractor
+// (the mark becomes 'returned' with a note naming every item the upload flagged).
 app.post('/api/sanitization-validation/review', requireSanOwner, async (req, res) => {
   try {
-    const out = await sanAssign.handleValidationReview(req.body, {
+    const out = await sanAssign.handleDetectedReview(req.body, {
       user: req.user,
       validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
-      approvalColl: await getCollection(COLLECTIONS.sanitizationFieldApprovals),
+      acceptColl: await getCollection(COLLECTIONS.sanitizationErrorAccepts),
       marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
     });
     _sanReads.bump();

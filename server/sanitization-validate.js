@@ -3,8 +3,8 @@
 // ticket_docs of the sanitization scope (sanScopeRows) and the issue-type list (issue-types-data.js
 // IZ_CATS, via errors-in-resolved.js), then calls validateRows();
 // server/sanitization-validate-store.js persists one doc per flagged ticket in
-// COLLECTIONS.sanitizationValidations and reads the owner's per-field approvals from
-// COLLECTIONS.sanitizationFieldApprovals.
+// COLLECTIONS.sanitizationValidations and reads the tickets the owner accepted as sanitized errors
+// from COLLECTIONS.sanitizationErrorAccepts.
 // The checks are selected by the UPLOADED ClosureCode only (closureKey: trimmed, inner whitespace
 // collapsed, lower-cased), never by the contractor's mark in the app:
 //   Immediately Resolved -> scope 'title'      the 3 SIM Title checks only; the Sim Root Cause Details
@@ -49,13 +49,14 @@
 // already marked with a closure claim the upload has seen (opts.claimed, built by
 // sanitization-validate-store.js claimedIds from COLLECTIONS.sanitizationMarks and the upload stamp)
 // is checked — an assigned ticket nobody has marked yet stays in their "Tickets to sanitize" queue and
-// gets no result at all. A ticket the contractor marked 'error' in the app and a ticket the owner
-// approved as an error (COLLECTIONS.sanitizationExcluded) get no result either — no checks, no flags.
-// These three skips come FIRST and are unconditional: the closure-code error above is raised only for
+// gets no result at all. A ticket the contractor marked 'error' in the app, a ticket the owner
+// approved as an error (COLLECTIONS.sanitizationExcluded) and a ticket the owner accepted as a
+// sanitized error (opts.accepted, COLLECTIONS.sanitizationErrorAccepts) get no result either — no
+// checks, no flags. Acceptance is whole-ticket and permanent: a ticket harisss accepts is never
+// validated again, however the uploads change.
+// These four skips come FIRST and are unconditional: the closure-code error above is raised only for
 // a ticket that got through them, so an unmarked or Error-marked ticket is never pulled into the
 // owner-only Error detected section by its closure code.
-// opts.approvedFields (a Set of approvalKey(shortId, key) strings) suppresses those single checks
-// permanently, while every un-approved check keeps being validated on each upload.
 'use strict';
 const { RCD_ISSUE_RE, RCD_RESOLUTION_RE, RCD_NEXT_KEYS, rcdPlain } = require('./pulse-check');
 const { titleCountry, titleSeverity, prepList, findInText, matchExact, closureKey } = require('./sanitization-score');
@@ -135,17 +136,16 @@ function parseRcdFields(rootCauseDetails) {
   return out;
 }
 
-// One approved field: COLLECTIONS.sanitizationFieldApprovals _id (and the opts.approvedFields keys).
-function approvalKey(shortId, key) { return str(shortId).trim() + '|' + str(key); }
 const rcdLabel = k => 'Sim Root Cause Details: ' + k;
 const fail = (key, group, label, message) => ({ key, group, label, message });
 
 // ---- One ticket ----
 // ticket: a ticket doc (ShortId / IssueId, Title, RootCauseDetails, ClosureCode). ctx: { types }.
-// opts: { approvedFields } (a Set of approvalKey strings; those checks are dropped).
+// Every check of the uploaded closure code's scope is applied: there is nothing to suppress per item
+// any more (acceptance takes the whole ticket out of validation, in validateRows).
 // -> { shortId, title, closureCode, scope, fields (all ten), failures:[{ key, group, label, message }], ok }.
-function validateTicket(ticket, ctx, opts) {
-  const t = ticket || {}, o = opts || {};
+function validateTicket(ticket, ctx) {
+  const t = ticket || {};
   const shortId = str(t.ShortId || t.IssueId).trim();
   const title = str(t.Title);
   const closureCode = clean(t.ClosureCode);
@@ -178,9 +178,7 @@ function validateTicket(ticket, ctx, opts) {
       }
     });
   }
-  const appr = o.approvedFields;
-  const kept = (appr && appr.size) ? failures.filter(f => !appr.has(approvalKey(shortId, f.key))) : failures;
-  return { shortId, title: clean(title), closureCode, scope, fields, failures: kept, ok: !kept.length };
+  return { shortId, title: clean(title), closureCode, scope, fields, failures, ok: !failures.length };
 }
 
 // Set of shortIds from a Set, an array of ids or an array of docs ({ shortId }).
@@ -196,13 +194,14 @@ function markMap(x) { return x instanceof Map ? x : new Map(Object.entries(x || 
 // ---- Many tickets ----
 // rows: ticket docs. opts: { claimed (Set / array of the shortIds whose claim the upload has already
 // seen — the only tickets validated; omit it to validate every row), markStatus (Map / object shortId
-// -> mark status), approvedError (Set / array of owner-approved error shortIds), approvedFields (Set
-// of approvalKey) }.
+// -> mark status), approvedError (Set / array of owner-approved error shortIds), accepted (Set /
+// array of ids / array of docs: the tickets the owner accepted as sanitized errors) }.
 // -> Map shortId -> validateTicket result. A ticket the contractor has not claimed yet, one they marked
-// 'error', and one the owner approved as an error are skipped entirely: they get no entry at all.
+// 'error', one the owner approved as an error and one the owner accepted as a sanitized error are
+// skipped entirely: they get no entry at all.
 function validateRows(rows, ctx, opts) {
   const o = opts || {};
-  const marks = markMap(o.markStatus), approved = idSet(o.approvedError);
+  const marks = markMap(o.markStatus), approved = idSet(o.approvedError), accepted = idSet(o.accepted);
   const claimed = o.claimed == null ? null : idSet(o.claimed);
   const ctx2 = { types: typeList(ctx) };
   const out = new Map();
@@ -212,7 +211,8 @@ function validateRows(rows, ctx, opts) {
     if (claimed && !claimed.has(shortId)) return;   // not sanitized yet: nothing to validate
     if (str(marks.get(shortId)).trim().toLowerCase() === 'error') return;
     if (approved.has(shortId)) return;
-    out.set(shortId, validateTicket(r, ctx2, { approvedFields: o.approvedFields }));
+    if (accepted.has(shortId)) return;              // accepted as a sanitized error: never validated again
+    out.set(shortId, validateTicket(r, ctx2));
   });
   return out;
 }
@@ -246,12 +246,12 @@ const RULES = Object.freeze([
     'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
     'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
     'A ticket approved as an error is never validated again.',
-    'An item harisss approves on a ticket is never raised again; the other items keep being checked on every upload.',
+    'A ticket harisss accepts as a sanitized error is never validated again; Rework sends it back instead.',
   ]) }),
 ]);
 
 module.exports = {
   RCD_FIELDS, REQUIRED_FIELDS, NA, TITLE_CHECKS, SCOPE_BY_CODE, CLAIM_STATUSES, RCD_RE, RULES,
   ALLOWED_CODES, ALLOWED_TEXT, CODE_KEY, CODE_LABEL, BLANK_CODE,
-  parseRcdFields, validateTicket, validateRows, approvalKey,
+  parseRcdFields, validateTicket, validateRows,
 };

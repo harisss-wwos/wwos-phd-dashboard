@@ -79,7 +79,7 @@ var TS_RULES=[
     'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
     'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
     'A ticket approved as an error is never validated again.',
-    'An item harisss approves on a ticket is never raised again; the other items keep being checked on every upload.']}
+    'A ticket harisss accepts as a sanitized error is never validated again; Rework sends it back instead.']}
 ];
 // The sections still rendered from the sanitization_checklist collection (and editable). The rows that
 // described the old 11-point SIM Title / Root Cause Details / ClosureCode checks are no longer shown -
