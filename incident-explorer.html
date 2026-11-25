@@ -332,6 +332,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-map-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;list-style:none;font-size:.74em;font-weight:700;color:var(--mut)}
 .iex-map-key li{display:inline-flex;align-items:center;gap:6px}
 .iex-map-key i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(20,30,50,.12)}
+/* ---- Zoom transition (click a country: the map zooms into it; Back zooms out) ----
+   The zoom itself is the svg's viewBox, animated in the script (MZ): no CSS transform on the map, so
+   the strokes stay hairline, the shapes stay crisp at any zoom and the hover / click targets keep
+   lining up with what is drawn. Only the swap between the world map and a country's state map is CSS:
+   the layer that is leaving is lifted out of the flow (iex-mz-top) so the card is already at its final
+   height while it fades, and the layer that is arriving fades in underneath it. The reduced-motion
+   block at the end of this stylesheet switches both fades off; the script skips the zoom animation. */
+.iex-map-in.iex-mz-fade{transition:opacity .2s linear}
+.iex-map-in.iex-mz-top{position:absolute;left:0;top:0;width:100%;z-index:2}
 /* ---- State / province map (maps/<ISO2>.svg, loaded on demand into #iexStIn; same fills as the world map).
    Paths are focusable buttons: keyboard focus gets the hover fill plus a dark outline. ---- */
 .iex-st-in path{fill-rule:evenodd}
@@ -1303,7 +1312,8 @@ async function loadMap(){
     box.innerHTML=svg.replace(/^[\s\S]*?(?=<svg)/,'');
     MAP.loaded=true; MAP.names={};
     Array.prototype.forEach.call(box.querySelectorAll('path'),function(p){ MAP.names[p.getAttribute('id')]=p.getAttribute('title')||p.getAttribute('id'); });
-    paintMap(); renderOff();
+    MZ.vb0=mzCurVb(); MZ.frames={};             // the whole-world frame: what the zoom goes back out to
+    paintMap(); renderOff(); mzRun();           // mzRun: a #path link that already names a country lands zoomed
   }catch(e){
     MAP.err=(e&&e.message)||'network error';
     var s=$('iexMapSub'); if(s&&!SM.iso) s.textContent='The map could not be loaded ('+MAP.err+'). Every country is listed below the map instead.';
@@ -1321,22 +1331,19 @@ function renderMap(){
   if(SM.want){ var w=SM.want; SM.want=null; openStateMap(w); }
   else if(SM.iso) paintStateMap();
   renderOff();
+  mzRun();                                     // the map follows the selection: zoom in / out, state map in / out
 }
-// Click a country: open the explorer at [region, country] (it shows from that country's States down).
+// Click a country: open the explorer at [region, country] (it shows from that country's States down) and,
+// from that selection change, zoom the map into it (mzRun; a state-map country then cross-fades into its
+// state map). It happens in place: nothing scrolls, or the zoom would play off-screen. Focus goes to
+// 'Back to world map', the control that undoes the click.
 function mapClick(p){
   var id=p.getAttribute('id'), d=MAP.by[id];
   if(!d||!d.n) return;                    // muted country: the filter would be empty
   EXP.openAt(d.path);
-  if(STATE_MAP_ISO.indexOf(id)>=0){
-    // Countries with a state map: open it in place (no scroll); the explorer below is at that country.
-    openStateMap(id);
-    var back=$('iexMapBack'); if(back) back.focus({preventScroll:true});
-    announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets. Its state map is open; use Back to world map to return.');
-    return;
-  }
-  var bx=EXP.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
-  EXP.focusToggle();
-  announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets in the explorer.');
+  var back=$('iexMapBack'); if(back) back.focus({preventScroll:true});
+  announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets. The map zoomed into it'+
+    (mzHasSm(id)?' and its state map is open':'')+'; use Back to world map to return.');
 }
 
 // ---- STATE MAPS (maps/<ISO2>.svg, built by tools/build-country-maps.js from Natural Earth Admin 1) ----------
@@ -1540,21 +1547,25 @@ function paintStateMap(){
   var t=$('iexMapTip');
   if(t&&!t.hidden&&String(t.getAttribute('data-id')||'').indexOf('sm-')===0) t.innerHTML=smTipHtml(t.getAttribute('data-id'));
 }
-// Back to the world map: clears the country selection, so the explorer hides again.
+// Back to the world map: clear the country selection, so the explorer hides again. The map itself is not
+// touched here — clearing the selection runs onChange() -> renderMap() -> mzRun(), which cross-fades out
+// of the state map and zooms the world map back out (and calls smClose() on the way).
 function smBack(){
-  SM.iso=null; SM.seq++; SM.err=''; mapHideTip();
   EXP.clear();
-  var w=$('iexMapIn'), st=$('iexStIn'), b=$('iexMapBack'), note=$('iexStNote'), h=$('iexMapH');
-  if(st) st.hidden=true;
-  if(w) w.hidden=false;
-  if(b) b.hidden=true;
+  var h=$('iexMapH'); if(h) h.focus({preventScroll:true});
+  announce('World map shown. Pick a country to open the explorer.');
+}
+// Give the card back to the world map: drop the state map's state, heading, legend and note. The layers'
+// hidden flags belong to the cross-fade (mzFade), so this never swaps them itself.
+function smClose(){
+  SM.iso=null; SM.seq++; SM.err=''; mapHideTip();
+  var note=$('iexStNote'), h=$('iexMapH');
   if(note) note.innerHTML='';
   if(h) h.textContent='Successfully resolved by country';
   if(MAP.loaded) paintMap();
   else { var s=$('iexMapSub'); if(s) s.textContent=MAP.err?'The map could not be loaded ('+MAP.err+'). Every country is listed below the map instead.':'Loading the map\u2026'; var k=$('iexMapKey'); if(k) k.innerHTML=''; }
+  renderOff();
   writeHash();
-  if(h) h.focus({preventScroll:true});
-  announce('World map shown. Pick a country to open the explorer.');
 }
 // Click / Enter / Space on a region: select Country > State in the explorer (the ticket list and exports
 // follow). A region carrying several explorer States with tickets (US-PR) opens the country instead.
@@ -1571,6 +1582,212 @@ function smClick(p){
   var chip=bx&&bx.querySelector('.iex-it[aria-pressed="true"]'); if(chip) chip.focus({preventScroll:true});
   announce(r.names.length===1?r.name+' selected from the map: '+num(r.n)+' successfully resolved tickets in the explorer.':
     r.name+' covers '+r.names.length+' explorer states; pick one in the States list.');
+}
+
+// ---- ZOOM TRANSITION: world map <-> one country (MZ) ------------------------------------------------
+// The map follows the explorer's SELECTION, it has no navigation of its own: as soon as a country is
+// selected (clicked on the map, picked from an off-map chip, or carried in the #path link) the world map
+// zooms into it and, for the 22 countries that have one, cross-fades into its state map; as soon as the
+// selection goes back up (Back to world map, a crumb, Start over, or a driver filter that drops the
+// country) it cross-fades back and zooms out. Every selection change already runs through onChange() ->
+// renderMap(), so the map, the crumbs and the region cards cannot end up telling different stories.
+//
+// The zoom animates the svg's viewBox rather than transforming the svg: hit areas follow the viewBox, so
+// hover / click keep landing on the shape under the cursor, and the strokes (vector-effect:non-scaling-
+// stroke) stay hairline instead of fattening. Frames keep the world viewBox's aspect ratio, so the svg
+// (width:100%; height:auto) keeps its height and nothing below the map moves while it animates.
+var MZ_DUR=520;          // zoom, ms (the card's own entrance animations are .45-.5s)
+var MZ_FADE=200;         // world map <-> state map cross-fade, ms
+var MZ_FILL=0.92;        // zoom-only country: how much of the frame its bounding box fills
+// A country that has a state map is framed the way maps/<ISO>.svg frames its own content — an 8-unit
+// margin inside viewBox="0 0 1000 650" (tools/build-country-maps.js), i.e. 98.4% of the width / 97.54% of
+// the height — so the shape is the same size either side of the cross-fade. The two files are not in a
+// shared coordinate space (each state map is fitted to its own projection and records no fit bounds), so
+// this lines up the dimension that the fit binds on and the cross-fade absorbs the rest; see the report.
+var MZ_SM_FX=0.984, MZ_SM_FY=0.9754;
+var MZ_MAXZ=40;          // cap: the frame is never narrower than 1/40 of the world (~9 degrees of longitude),
+                         // so a speck (Singapore, Malta, Monaco) zooms to a readable size instead of a blur
+var MZ_SPLIT=0.6;        // a bbox wider than this much of the world is treated as scattered, not as one view
+var MZ={ iso:'', vb0:null, frames:{}, raf:0, busy:false, pend:false, init:true };
+function mzReduce(){ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches); }catch(e){ return false; } }
+function mzSvg(){ var b=$('iexMapIn'); return b?b.querySelector('svg'):null; }
+function mzHasSm(iso){ return !!iso&&STATE_MAP_ISO.indexOf(iso)>=0; }
+// The country the map should be framing: the selected country, when it has a shape on the world map.
+function mzWant(){
+  var sel=EXP.sel(), iso=sel.length>1?mapId(sel[1]):'';
+  return iso&&Object.prototype.hasOwnProperty.call(MAP.names,iso)?iso:'';
+}
+// Measure inside fn() with the world layer rendered: getBBox() needs a laid-out element, and the layer is
+// display:none while a state map is open. Nothing is painted in between (one synchronous task), so it
+// cannot flash; it costs one forced layout, and frames are cached.
+function mzMeasure(fn){
+  var w=$('iexMapIn');
+  if(!w||!w.hidden) return fn();
+  var css=w.style.cssText;
+  w.style.cssText='position:absolute;left:0;top:0;width:100%;visibility:hidden';
+  w.hidden=false;
+  try{ return fn(); }
+  finally{ w.hidden=true; w.style.cssText=css; }
+}
+// The shape's bounding box, with scattered outliers dropped. Only needed for the handful of countries
+// whose parts sit on both sides of the date line: Kiribati's islands span 97% of the map width, so its
+// raw box is the whole world and 'zooming in' would do nothing. Those are clustered along x (sampled
+// points in bins of 2% of the width, runs joined across up to two empty bins) and the biggest cluster
+// by area wins — for Kiribati the
+// Gilbert / Phoenix group on the right-hand edge. Everything else keeps its raw box, including Russia
+// (47% wide but one piece, clipped at the map's right edge) and the United States, whose box covers
+// Alaska and Hawaii as well as the mainland: that is the US as this map draws it, and it matches the
+// US state map, which also carries Alaska and Hawaii.
+function mzBox(p){
+  var r=p.getBBox(), W=MZ.vb0.w, b={ x:r.x, y:r.y, w:r.width, h:r.height };
+  if(!(b.w>W*MZ_SPLIT)||!p.getTotalLength) return b;
+  var L=p.getTotalLength(); if(!(L>0)) return b;
+  var bin=W/50, N=400, pts=[], bins={}, i, q, k;
+  for(i=0;i<N;i++){
+    q=p.getPointAtLength(L*i/(N-1)); pts.push(q);
+    k=Math.floor(q.x/bin); bins[k]=(bins[k]||0)+1;
+  }
+  var keys=Object.keys(bins).map(Number).sort(function(a,z){ return a-z; }), runs=[], cur=null;
+  keys.forEach(function(kk){
+    if(cur&&kk-cur.hi<=2) cur.hi=kk;
+    else { cur={ lo:kk, hi:kk }; runs.push(cur); }
+  });
+  var best=null;
+  runs.forEach(function(rn){
+    var x0=rn.lo*bin, x1=(rn.hi+1)*bin, mnx=1/0, mny=1/0, mxx=-1/0, mxy=-1/0, n=0;
+    pts.forEach(function(pt){
+      if(pt.x<x0||pt.x>x1) return;
+      n++; if(pt.x<mnx) mnx=pt.x; if(pt.x>mxx) mxx=pt.x; if(pt.y<mny) mny=pt.y; if(pt.y>mxy) mxy=pt.y;
+    });
+    if(!n) return;
+    var c={ x:mnx, y:mny, w:mxx-mnx, h:mxy-mny };
+    if(!best||(c.w+1)*(c.h+1)>(best.w+1)*(best.h+1)) best=c;
+  });
+  return best||b;
+}
+// The frame to zoom to for one country: its box, padded to MZ_FILL, grown to the world's aspect ratio,
+// capped at MZ_MAXZ and kept inside the world. Cached per country: the numbers are viewBox units, so
+// they survive a window resize (the svg scales, the frame does not change).
+function mzFrame(iso){
+  if(MZ.frames[iso]) return MZ.frames[iso];
+  if(!MZ.vb0) return null;
+  var s=mzSvg(), p=s?s.querySelector('[id="'+iso+'"]'):null;
+  if(!p) return null;
+  var b=mzMeasure(function(){ return mzBox(p); });
+  if(!b||!(b.w>=0)||!(b.h>=0)) return null;
+  var v=MZ.vb0, asp=v.w/v.h, sm=mzHasSm(iso);
+  var fx=sm?MZ_SM_FX:MZ_FILL, fy=sm?MZ_SM_FY:MZ_FILL;
+  // The frame keeps the world's aspect ratio (so the card keeps its height): take the wider of what the
+  // box needs across and what it needs down, then cap the zoom.
+  var w=Math.max(b.w/fx,(b.h/fy)*asp,v.w/MZ_MAXZ), h=w/asp;
+  if(w>=v.w){ MZ.frames[iso]=v; return v; }     // nothing to zoom into: keep the whole world
+  var f={ x:b.x+b.w/2-w/2, y:b.y+b.h/2-h/2, w:w, h:h };
+  f.x=Math.min(Math.max(f.x,v.x),v.x+v.w-w);
+  f.y=Math.min(Math.max(f.y,v.y),v.y+v.h-h);
+  MZ.frames[iso]=f;
+  return f;
+}
+function mzSetVb(f){
+  var s=mzSvg(); if(!s||!f) return;
+  s.setAttribute('viewBox',[f.x,f.y,f.w,f.h].map(function(v){ return Math.round(v*1000)/1000; }).join(' '));
+}
+function mzCurVb(){
+  var s=mzSvg(); if(!s) return null;
+  var a=String(s.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
+  return a.length===4&&a.every(function(n){ return isFinite(n); })&&a[2]>0?{ x:a[0], y:a[1], w:a[2], h:a[3] }:null;
+}
+function mzEase(t){ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+// Animate the viewBox to `to`. The scale moves geometrically (a zoom only reads as even on a log scale)
+// and the centre linearly; the tween always starts from the live viewBox, so a click during an animation
+// just re-targets it instead of stacking up.
+function mzTween(to,instant){
+  var from=mzCurVb();
+  if(!to||!from||to.w===from.w&&to.x===from.x&&to.y===from.y) { if(to) mzSetVb(to); return Promise.resolve(); }
+  if(MZ.raf){ cancelAnimationFrame(MZ.raf); MZ.raf=0; }
+  if(instant||mzReduce()||!window.requestAnimationFrame){ mzSetVb(to); return Promise.resolve(); }
+  return new Promise(function(done){
+    var t0=0, cx0=from.x+from.w/2, cy0=from.y+from.h/2, cx1=to.x+to.w/2, cy1=to.y+to.h/2, k=to.w/from.w;
+    var step=function(ts){
+      if(!t0) t0=ts;
+      var t=Math.min(1,(ts-t0)/MZ_DUR), e=mzEase(t), z=Math.pow(k,e);
+      var w=from.w*z, h=from.h*z, cx=cx0+(cx1-cx0)*e, cy=cy0+(cy1-cy0)*e;
+      mzSetVb({ x:cx-w/2, y:cy-h/2, w:w, h:h });
+      if(t<1){ MZ.raf=requestAnimationFrame(step); return; }
+      MZ.raf=0; mzSetVb(to); done();
+    };
+    MZ.raf=requestAnimationFrame(step);
+  });
+}
+// Cross-fade one map layer into the other (both are .iex-map-in children of the map box).
+function mzFade(outEl,inEl,instant){
+  if(!outEl||!inEl) return Promise.resolve();
+  inEl.hidden=false;
+  if(instant||mzReduce()){ outEl.hidden=true; return Promise.resolve(); }
+  outEl.hidden=false;
+  outEl.classList.add('iex-mz-top','iex-mz-fade'); inEl.classList.add('iex-mz-fade');
+  outEl.style.opacity='1'; inEl.style.opacity='0';
+  void inEl.offsetWidth;                       // commit the start values before the target ones
+  outEl.style.opacity='0'; inEl.style.opacity='1';
+  return new Promise(function(done){
+    setTimeout(function(){
+      outEl.classList.remove('iex-mz-top','iex-mz-fade'); inEl.classList.remove('iex-mz-fade');
+      outEl.style.opacity=''; inEl.style.opacity='';
+      outEl.hidden=true; done();
+    },MZ_FADE+40);
+  });
+}
+// 'Back to world map' is the way out of both a state map and a zoomed world map.
+function mzBackBtn(){ var b=$('iexMapBack'); if(b) b.hidden=!(MZ.iso||SM.iso); }
+// Fetch a state map into SM.cache without showing it, so it is painted before the cross-fade starts.
+async function smPreload(iso){
+  if(!mzHasSm(iso)||SM.cache[iso]!=null) return;
+  try{
+    var r=await fetch('maps/'+iso+'.svg?v='+STATE_MAP_V,{cache:'force-cache'});
+    if(r.ok) SM.cache[iso]=await r.text();
+  }catch(e){}
+}
+// Bring the map in line with the selection, one visual step per pass, re-reading the wanted country
+// after each step: clicking another country mid-animation simply changes where this is heading.
+async function mzRun(){
+  if(!MAP.loaded||!MZ.vb0){ return; }
+  if(MZ.busy){ MZ.pend=true; return; }
+  MZ.busy=true;
+  try{
+    for(var i=0;i<8;i++){
+      MZ.pend=false;
+      var inst=MZ.init, want=mzWant(), w=$('iexMapIn'), st=$('iexStIn');
+      MZ.init=false;
+      if(!w||!st) break;
+      if(SM.iso&&SM.iso!==want){               // a state map is open for a country we are leaving
+        w.hidden=false;
+        mzSetVb(mzFrame(MZ.iso)||MZ.vb0);      // the world layer takes over exactly where the state map was
+        smClose();
+        mzBackBtn();
+        await mzFade(st,w,inst);
+        continue;
+      }
+      if(MZ.iso!==want){                       // zoom in, zoom out, or straight on to another country
+        var to=want?mzFrame(want):MZ.vb0;
+        if(!to){ MZ.iso=want; continue; }
+        mapHideTip(); MZ.iso=want; mzBackBtn();
+        await mzTween(to,inst||w.hidden);      // while hidden (deep link into a state map): no animation
+        continue;
+      }
+      if(want&&mzHasSm(want)&&!SM.iso){        // settled on a country that has a state map: fade into it
+        await smPreload(want);
+        if(mzWant()!==want) continue;          // the selection moved on while the file was loading
+        openStateMap(want);
+        mzBackBtn();
+        await mzFade(w,st,inst);
+        continue;
+      }
+      mzBackBtn();
+      break;
+    }
+  }finally{
+    MZ.busy=false;
+    if(MZ.pend){ MZ.pend=false; mzRun(); }
+  }
 }
 
 function shell(){
