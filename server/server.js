@@ -24,6 +24,7 @@ const sanAssign = require('./sanitization-assign');
 const sanUpdate = require('./sanitization-update');
 const sanValidateStore = require('./sanitization-validate-store');
 const resolvedErrors = require('./resolved-errors');
+const leave = require('./leave');
 const { createSingleFlight } = require('./single-flight');
 const ticketRules = require('./ticket-rules');   // shared TEST / NON-PHD / malformed-country title rules (Sanitization + Incident Explorer)
 const hiLinesErrors = require('./hi-lines-errors');
@@ -3889,6 +3890,30 @@ app.get('/api/resolved-errors', requireRole('user'), async (req, res) => {
   } catch (e) {
     console.error('resolved-errors error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the resolved tickets.' });
+  }
+});
+// GET /api/leave (calendar.html team leave calendar; logic in ./leave.js). The 2026-12-01..2027-03-31
+// range, the 121 days, the 15 members with their groups, the caller's own canMark list and EVERY
+// leave record: anyone with access sees the whole team. Only the 15 may read (403 otherwise).
+app.get('/api/leave', requireRole('user'), async (req, res) => {
+  try {
+    const out = await leave.handleGet(req.query || {}, { user: req.user, coll: await getCollection(COLLECTIONS.teamLeave) });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('leave error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the leave calendar.' });
+  }
+});
+// POST /api/leave { login, date, on } (logic in ./leave.js handleMark). Everyone marks themselves, a
+// BLR / AZA member may also mark the two managers and harisss may mark anyone (403 otherwise); one
+// upsert on on:true, one delete on on:false. No approval step: a mark is removed the same way.
+app.post('/api/leave', requireRole('user'), async (req, res) => {
+  try {
+    const out = await leave.handleMark(req.body || {}, { user: req.user, coll: await getCollection(COLLECTIONS.teamLeave) });
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('leave mark error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not save the leave.' });
   }
 });
 // POST /api/my-sanitization/error-review { shortIds:[<=500], action:'approve'|'return', note } and
