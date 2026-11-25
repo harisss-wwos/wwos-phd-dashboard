@@ -449,9 +449,13 @@
   // select-all (the tracker sets `indeterminate` from data-stvmixed), [Approve] / [Send back] per row
   // and the bulk Approve bar over the whole selection. One agent's table stops at ERR_ROW_CAP rows
   // with the same notice as the Error detected section, so a large backlog cannot blow up the render.
-  // o = { review, sel:{shortId:true}, revBusy, h:{ ic, when, url } }.
+  // openAgent = the agent the viewer has open (the tracker keeps it, the way OPEN/nextOpen keeps the
+  // view's open section), so that ticking a row - which re-renders the whole section - does not throw
+  // the viewer back to the first agent. Nothing open yet: the first agent.
+  // o = { review, sel:{shortId:true}, revBusy, openAgent, h:{ ic, when, url } }.
   function approvalSectionHtml(payload, o) {
     o = o || {}; var h = o.h || {}, rev = !!o.review, sel = o.sel || {}, rb = !!o.revBusy;
+    var openAg = o.openAgent ? String(o.openAgent) : '';
     var agents = ((payload && payload.agents) || []).filter(function (a) { return a && (a.tickets || []).length; });
     if (!agents.length) return '<p class="tb-asg-empty">No tickets are waiting for error approval.</p>';
     var all = []; agents.forEach(function (a) { a.tickets.forEach(function (t) { all.push(t); }); });
@@ -463,7 +467,7 @@
       : '<p class="stv-help">Approve or send back one ticket with the buttons on its row, or tick several and approve them together (Shift+click selects a range inside an agent).</p>');
     return bar + (rev ? errOpenHtml(all, o) : '') + agents.map(function (a, i) {
       var rows = a.tickets, lg = String(a.login || ''), name = a.displayName || '', as = selState(rows, sel);
-      return '<details class="st-apv-d" data-stvagent="' + esc(lg) + '"' + (i === 0 ? ' open' : '') + '>'
+      return '<details class="st-apv-d" data-stvagent="' + esc(lg) + '"' + (openAg === lg || (!openAg && i === 0) ? ' open' : '') + '>'
         + '<summary><span class="st-apv-agh">' + esc(lg)
         + (name && name !== lg ? ' <span class="st-apv-agn">' + esc(name) + '</span>' : '') + '</span>'
         + '<b>' + plural(rows.length, 'ticket') + '</b>'

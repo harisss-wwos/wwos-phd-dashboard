@@ -209,6 +209,17 @@ test('approvalSectionHtml groups by agent, lists only the agents it was sent and
   assert.equal(html.includes('data-stvdate'), false);
 });
 
+test('approvalSectionHtml keeps the agent the viewer opened open across a re-render', () => {
+  // Every tick of a row re-renders the whole section, so the open agent comes in as an option: the
+  // owner working in the second agent stays there instead of being thrown back to the first.
+  const openAgents = (o) => [...V.approvalSectionHtml(apvPayload(), opts(o))
+    .matchAll(/data-stvagent="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
+  assert.deepEqual(openAgents({ review: true, openAgent: 'tanviroo' }), [['chousoud', false], ['tanviroo', true]]);
+  // Only ever one open, and an agent who is no longer waiting opens nothing.
+  assert.deepEqual(openAgents({ review: true, openAgent: 'urmahala' }), [['chousoud', false], ['tanviroo', false]]);
+  assert.deepEqual(openAgents({ review: true, openAgent: '' }), [['chousoud', true], ['tanviroo', false]]);
+});
+
 test('approvalSectionHtml shows Ticket ID | Title | Reason | Marked at', () => {
   const html = V.approvalSectionHtml(apvPayload(), opts({ review: false }));
   const head = html.match(/<thead><tr>([\s\S]*?)<\/tr><\/thead>/);

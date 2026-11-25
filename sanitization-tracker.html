@@ -608,7 +608,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=242"></script>
-<script src="sanitization-view.js?v=27"></script>
+<script src="sanitization-view.js?v=28"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
 <script src="sanitization-checklist.js?v=12"></script>
@@ -640,8 +640,10 @@ var ERRSEC={loading:true, data:null, error:'', busy:{}, msg:''};
 // The top-level "Error tickets that need approval" section (#stApv), loaded once per page load from
 // GET /api/my-sanitization/approvals: the owner and the view-all logins get every agent, a contractor
 // only their own rows. sel = the owner's selection (shortId -> true) for the bulk Approve, last =
-// {login, i} the last row clicked (Shift+click selects a range inside that agent).
-var APVSEC={loading:true, data:null, error:'', msg:'', sel:{}, last:null};
+// {login, i} the last row clicked (Shift+click selects a range inside that agent), open = the login
+// of the agent whose table is open (null = none yet, so the first agent opens), which survives the
+// re-render every tick causes - the way OPEN survives the view's re-renders.
+var APVSEC={loading:true, data:null, error:'', msg:'', sel:{}, last:null, open:null};
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
 var ERRF=null;             // open "Why is this an error ticket?" form: {shortId, text, err, busy}
@@ -907,7 +909,7 @@ function apvSecBody(){
     '<p class="st-apv-note">'+(apvCanReview()
       ? 'Tickets an agent marked as an error with a reason, by agent. <b>Approve</b> counts a ticket as sanitized (tagged Approved error) and leaves it out of the sanitization scores and assignment picking; <b>Send back</b> returns it to that agent\u2019s Tickets to sanitize with your message. Tick several rows to approve them in one go.'
       : 'Tickets you marked as an error with a reason. They wait here until harisss approves one \u2014 it then counts as sanitized \u2014 or sends it back to your Tickets to sanitize with a message.')+'</p>'+
-    V.approvalSectionHtml(APVSEC.data,{review:apvCanReview(),sel:APVSEC.sel,revBusy:REVBUSY,h:{ic:ic,when:S.when,url:S.url}});
+    V.approvalSectionHtml(APVSEC.data,{review:apvCanReview(),sel:APVSEC.sel,revBusy:REVBUSY,openAgent:APVSEC.open,h:{ic:ic,when:S.when,url:S.url}});
 }
 function apvSecHtml(){
   return '<section class="'+CK.topCls('stApv')+'" id="stApv" aria-labelledby="stApvHead">'+
@@ -937,6 +939,8 @@ function loadApvSec(force){
       var live={}; apvSecRows().forEach(function(t){ live[t.shortId]=1; });
       Object.keys(APVSEC.sel).forEach(function(k){ if(!live[k]) delete APVSEC.sel[k]; });
       APVSEC.last=null;
+      // The open agent may have had their last ticket approved: fall back to the first agent.
+      if(APVSEC.open&&!apvSecAgents().some(function(a){ return a.login===APVSEC.open; })) APVSEC.open=null;
     }
     else APVSEC.error=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets waiting for error approval.');
     renderApvSec();
@@ -1343,9 +1347,13 @@ document.addEventListener('toggle',function(e){
     if(d.open){ var es=document.querySelectorAll('#stErrIn details[data-stvdate]'); for(var j=0;j<es.length;j++) if(es[j]!==d&&es[j].open) es[j].open=false; }
     return;
   }
-  // Error tickets that need approval: the same rule over the agents (the first opens on the first paint).
+  // Error tickets that need approval: the same rule over the agents (the first opens on the first
+  // paint). The open agent is kept in APVSEC.open so a tick, which re-renders the whole section,
+  // leaves it open instead of jumping back to the first agent.
   if(d.hasAttribute('data-stvagent')){
-    if(d.open){ var as=document.querySelectorAll('#stApvIn details[data-stvagent]'); for(var k=0;k<as.length;k++) if(as[k]!==d&&as[k].open) as[k].open=false; }
+    var ag=d.getAttribute('data-stvagent');
+    if(d.open){ APVSEC.open=ag; var as=document.querySelectorAll('#stApvIn details[data-stvagent]'); for(var k=0;k<as.length;k++) if(as[k]!==d&&as[k].open) as[k].open=false; }
+    else if(APVSEC.open===ag) APVSEC.open=null;
     return;
   }
   if(!d.closest('#stViewBody')) return;
