@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<title>Calendar &middot; WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="cal-light">
+/* Calendar — the team's leave calendar for December 2026 to 31 March 2027: the house navy hero with an
+   orange rule, then the four months the server returns as Mon-Sun day grids (2x2 at wide widths).
+   Every day cell names who is off that day; a cell is a toggle only for someone the viewer may mark.
+   Data: GET /api/leave, POST /api/leave (server/leave.js is the authority). Scoped under .cal. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.cal{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;--navy:#161d2d;
+  container-type:inline-size;color:var(--ink)}
+.cal button,.cal select{font-family:inherit;line-height:inherit;text-transform:none}
+.cal :is(button,a,select,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* ---- Hero ---- */
+.cal-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 28px 26px 32px;margin-bottom:16px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.cal-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.cal-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.cal-hero-in{position:relative;display:flex;gap:20px 28px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.cal-hero-main{display:flex;gap:16px;align-items:flex-start;min-width:0;flex:1 1 360px}
+.cal-hero-ic{width:48px;height:48px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.cal-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:6px}
+.cal-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.05}
+.cal-hero-sub{margin-top:9px;max-width:70ch;font-size:.92em;line-height:1.55;color:rgba(233,237,243,.8)}
+.cal-hero-range{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:40px;padding:9px 16px;border-radius:10px;margin-left:auto;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18)}
+.cal-meta-k{font-size:.62em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:rgba(233,237,243,.62)}
+.cal-meta-v{display:inline-flex;align-items:center;gap:7px;font-size:.86em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cal-meta-v svg{color:#ffb26b;flex-shrink:0}
+@container (max-width:560px){
+  .cal-hero{padding:20px 18px 20px 22px}
+  .cal-hero h1{font-size:1.65em}
+  .cal-hero-ic{width:40px;height:40px}
+  .cal-hero-main{flex-basis:100%}
+  .cal-hero-range{margin-left:0}
+}
+
+/* ---- Section cards ---- */
+.cal-sec{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);margin-bottom:16px;overflow:hidden}
+.cal-sec-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cal-sec-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.cal-sec-txt{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cal-sec-t{font-size:1.12em;font-weight:800;letter-spacing:-.3px;line-height:1.2;color:var(--ink)!important}
+.cal-sec-d{font-size:.82em;font-weight:500;color:var(--mut);line-height:1.4}
+.cal-sec-b{padding:16px 20px 18px}
+@container (max-width:640px){.cal-sec-h{padding:14px}.cal-sec-b{padding:14px}}
+.cal-empty{padding:18px;text-align:center;color:var(--mut);font-size:.9em;border:1px dashed #d4dade;border-radius:10px}
+.cal-err{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:10px;background:var(--red-bg);border:1px solid #f5c2c2;color:#8a1c12;font-weight:700;font-size:.9em}
+.cal-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid var(--navy);border-radius:8px;background:var(--navy);color:#f4f3ef;font-size:.84em;font-weight:800;cursor:pointer;text-decoration:none}
+.cal-btn:hover{background:#0f1420}
+.cal-btn.is-ghost{background:#fff;border-color:#d4dade;color:#2a3340}
+.cal-btn.is-ghost:hover{border-color:var(--acc);color:var(--acc-ink)}
+
+/* ---- "Marking leave for" picker + legend ---- */
+.cal-who{display:flex;align-items:center;gap:9px;flex:0 0 auto;margin-left:auto}
+.cal-who label{font-size:.72em;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.cal-who select{height:38px;padding:0 10px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:var(--ink);font-size:.88em;font-weight:700;cursor:pointer}
+.cal-who-fixed{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 12px;border-radius:8px;background:var(--acc-bg);border:1px solid #f7caa2;color:var(--acc-ink);font-size:.82em;font-weight:800}
+.cal-legend{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:14px;font-size:.8em;font-weight:600;color:var(--mut)}
+.cal-legend span.cal-key{display:inline-flex;align-items:center;gap:7px}
+.cal-swatch{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);background:#fff;flex-shrink:0}
+.cal-swatch.is-on{background:var(--acc-bg);border-color:var(--acc)}
+.cal-swatch.is-any{background:var(--blue-bg);border-color:#b8cdef}
+
+/* ---- The four months: 2x2 at wide widths, one column when narrow ---- */
+.cal-months{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@container (min-width:820px){.cal-months{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cal-m{min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px 12px 14px;background:#fff}
+.cal-m-h{font-size:.96em;font-weight:800;letter-spacing:-.2px;color:var(--ink)!important;margin-bottom:9px}
+.cal-wd,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-wd{margin-bottom:5px}
+.cal-wd span{text-align:center;font-size:.64em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.cal-cell{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:0;min-height:58px;padding:5px 5px 4px;
+  border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);text-align:left;font:inherit;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s,background .15s}
+.cal-cell.is-pad{border-color:transparent;background:transparent;cursor:default}
+.cal-cell.is-ro{cursor:default}
+.cal-cell:not(.is-pad):not(.is-ro):hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,114,17,.12)}
+.cal-cell.has-off{background:var(--blue-bg);border-color:#cfdcf3}
+.cal-cell.is-on{background:var(--acc-bg);border-color:var(--acc);box-shadow:0 0 0 2px rgba(236,114,17,.18)}
+.cal-cell[aria-busy="true"]{opacity:.55}
+.cal-cell.is-wknd:not(.has-off):not(.is-on){background:var(--soft)}
+.cal-d-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.cal-d{font-size:.76em;font-weight:800;font-variant-numeric:tabular-nums;color:#2a3340}
+.cal-n{min-width:17px;height:17px;padding:0 5px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--navy);color:#fff;font-size:.62em;font-weight:800;font-variant-numeric:tabular-nums}
+.cal-ppl{display:flex;flex-wrap:wrap;gap:2px}
+.cal-ini{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:17px;padding:0 3px;border-radius:5px;
+  background:#fff;border:1px solid #c3d2ea;color:#1f4f99;font-size:.6em;font-weight:800;letter-spacing:.4px}
+.cal-ini.is-me{background:var(--acc);border-color:var(--acc);color:#fff}
+.cal-ini.is-more{background:var(--soft);border-color:var(--line);color:var(--mut)}
+@container (max-width:560px){.cal-cell{min-height:50px}}
+
+/* ---- Who is off, by person ---- */
+.cal-tot{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cal-tot li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;min-width:0}
+.cal-tot .cal-tot-who{flex:1 1 auto;min-width:0;font-size:.84em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-tot .cal-tot-grp{flex-shrink:0;padding:1px 7px;border-radius:99px;background:var(--blue-bg);color:#1f4f99;font-size:.66em;font-weight:800;letter-spacing:.6px}
+.cal-tot .cal-tot-n{flex-shrink:0;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;color:var(--mut)}
+.cal-tot li.is-me{border-color:var(--acc);background:#fff8f1}
+.cal-tot li.is-zero .cal-tot-n{color:#a0a8b1}
+</style>
+</head>
+<body data-nav-active="calendar" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+<!-- One persistent polite live region (outside #wrap, so re-renders never replace it). -->
+<div id="calLive" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+
+<script src="icons.js?v=3"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=243"></script>
+<script>
+// Calendar: the team's leave calendar for the months the server hands back (December 2026 - 31 March 2027).
+// Everyone with access sees the whole team's leave; marking is a per-day toggle with no approval step and
+// no lock on past days. GET /api/leave returns { range, dates, members, me:{login,group,canMark}, leave }
+// and POST /api/leave takes { login, date, on } - window.PHDLeave only hides controls, server/leave.js
+// re-checks every call and answers 403.
+(function(){
+var A=window.PHDAuth, L=window.PHDLeave;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ic(n,s){return window.icon?window.icon(n,s||18):'';}
+function $(id){return document.getElementById(id);}
+function errMsg(r,fallback){ return (r&&r.data&&r.data.error)||(fallback+' (HTTP '+(r?r.status:'?')+').'); }
+function announce(msg){ var l=$('calLive'); if(l){ l.textContent=''; setTimeout(function(){ l.textContent=msg; },30); } }
+
+var MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var WEEKDAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var MAX_FACES=4;   // initials shown in a day cell before a "+n" chip
+
+// ---- State ----
+var ST={state:'loading',err:'',range:null,dates:[],members:[],leave:[]};
+var BY_MONTH={}, MONTH_KEYS=[];      // 'YYYY-MM' -> ['YYYY-MM-DD', ...]
+var OFF={}, ON_KEY={};               // date -> [logins];  'login|date' -> true
+var WHO='';                          // the person the day toggles mark (one of the logins I may mark)
+var BUSY='';                         // 'login|date' being written right now
+var MARK_ERR='';
+
+function me(){ return String(((A&&A.getUser&&A.getUser())||{}).username||'').trim().toLowerCase(); }
+function canMark(login){ return !!(L&&L.canMark&&L.canMark(login)); }
+function markable(){ return ST.members.map(function(m){ return m.login; }).filter(canMark); }
+function initials(login){ return String(login||'').slice(0,2).toUpperCase(); }
+function longDate(d){
+  var y=Number(d.slice(0,4)), m=Number(d.slice(5,7)), day=Number(d.slice(8,10));
+  return day+' '+MONTH_NAMES[m-1]+' '+y;
+}
+function weekIndex(d){   // Mon = 0 ... Sun = 6
+  return (new Date(Date.UTC(Number(d.slice(0,4)),Number(d.slice(5,7))-1,Number(d.slice(8,10)))).getUTCDay()+6)%7;
+}
+function reindex(){
+  OFF={}; ON_KEY={};
+  ST.leave.forEach(function(r){
+    var lg=String((r&&r.login)||'').trim().toLowerCase(), d=String((r&&r.date)||'');
+    if(!lg||!d) return;
+    ON_KEY[lg+'|'+d]=true;
+    (OFF[d]||(OFF[d]=[])).push(lg);
+  });
+  Object.keys(OFF).forEach(function(d){ OFF[d].sort(); });
+}
+function regroup(){
+  BY_MONTH={}; MONTH_KEYS=[];
+  ST.dates.forEach(function(d){
+    var k=String(d).slice(0,7);
+    if(!BY_MONTH[k]){ BY_MONTH[k]=[]; MONTH_KEYS.push(k); }
+    BY_MONTH[k].push(d);
+  });
+}
+function offCount(login){
+  var n=0; ST.dates.forEach(function(d){ if(ON_KEY[login+'|'+d]) n++; });
+  return n;
+}
+
+// ---- Hero / gate ----
+function heroHtml(isGate){
+  var from=ST.range&&ST.range.from, to=ST.range&&ST.range.to;
+  var span=(from&&to)?(longDate(from)+' \u2013 '+longDate(to)):(L?(L.RANGE_FROM+' \u2013 '+L.RANGE_TO):'\u2014');
+  return '<header class="cal-hero"><div class="cal-hero-in"><div class="cal-hero-main"><span class="cal-hero-ic" aria-hidden="true">'+ic('calendar',24)+'</span><div>'+
+    '<p class="cal-eyebrow">Team \u00b7 Leave</p><h1>Calendar</h1>'+
+    '<p class="cal-hero-sub">Mark the days you are on leave. Everyone on the PHD team sees the whole team\u2019s calendar; you mark yourself, and nobody signs it off \u2014 click a day again to take it back.</p>'+
+    '</div></div>'+(isGate?'':'<div class="cal-hero-range" aria-label="Calendar range"><span class="cal-meta-k">Range</span><span class="cal-meta-v">'+ic('clock',14)+esc(span)+'</span></div>')+
+    '</div></header>';
+}
+function gate(kind){
+  var head='PHD team only', body;
+  if(kind==='login'){ head='Login required'; body='<p class="cal-empty">Please log in from the Live Dashboard to use this page.</p><p style="margin-top:12px"><a class="cal-btn" href="app.html">Go to the live dashboard</a></p>'; }
+  else body='<p class="cal-empty">This page is for the PHD team.</p>';
+  $('wrap').innerHTML='<div class="cal">'+heroHtml(true)+'<section class="cal-sec" aria-labelledby="calGateH" style="margin-top:16px"><div class="cal-sec-h"><div class="cal-sec-txt"><h2 class="cal-sec-t" id="calGateH">'+head+'</h2></div></div><div class="cal-sec-b">'+body+'</div></section></div>';
+}
+
+// ---- Day cells ----
+function cellHtml(d){
+  var who=OFF[d]||[], n=who.length, wk=weekIndex(d)>=5;
+  var faces=who.slice(0,MAX_FACES).map(function(l){
+    return '<span class="cal-ini'+(l===WHO?' is-me':'')+'">'+esc(initials(l))+'</span>';
+  }).join('')+(n>MAX_FACES?'<span class="cal-ini is-more">+'+(n-MAX_FACES)+'</span>':'');
+  var inner='<span class="cal-d-row"><span class="cal-d">'+Number(d.slice(8,10))+'</span>'+(n?'<span class="cal-n">'+n+'</span>':'')+'</span>'+
+    '<span class="cal-ppl" aria-hidden="true">'+faces+'</span>';
+  var what=longDate(d)+' \u2014 '+(n?(n+' off: '+who.join(', ')):'nobody off');
+  var cls='cal-cell'+(wk?' is-wknd':'')+(n?' has-off':'');
+  if(!(WHO&&canMark(WHO))) return '<div class="'+cls+' is-ro" title="'+esc(what)+'" aria-label="'+esc(what)+'">'+inner+'</div>';
+  var on=!!ON_KEY[WHO+'|'+d], busy=BUSY===(WHO+'|'+d);
+  return '<button type="button" class="'+cls+(on?' is-on':'')+'" id="calD'+d+'" data-cal-day="'+d+'" aria-pressed="'+(on?'true':'false')+'"'+
+    (busy?' aria-busy="true" disabled':'')+' title="'+esc(what)+'" aria-label="'+esc(what+'. '+WHO+(on?' is marked on leave; activate to remove it.':' is not on leave; activate to mark it.'))+'">'+inner+'</button>';
+}
+function monthHtml(key){
+  var days=BY_MONTH[key]||[], y=Number(key.slice(0,4)), m=Number(key.slice(5,7));
+  var cells='', lead=days.length?weekIndex(days[0]):0, i;
+  for(i=0;i<lead;i++) cells+='<div class="cal-cell is-pad" aria-hidden="true"></div>';
+  days.forEach(function(d){ cells+=cellHtml(d); });
+  var id='calM'+key.replace('-','');
+  return '<section class="cal-m" aria-labelledby="'+id+'"><h3 class="cal-m-h" id="'+id+'">'+MONTH_NAMES[m-1]+' '+y+'</h3>'+
+    '<div class="cal-wd" aria-hidden="true">'+WEEKDAYS.map(function(w){ return '<span>'+w+'</span>'; }).join('')+'</div>'+
+    '<div class="cal-grid" role="group" aria-labelledby="'+id+'">'+cells+'</div></section>';
+}
+
+// ---- Sections ----
+function whoPickerHtml(){
+  var list=markable();
+  if(!list.length) return '<span class="cal-who-fixed">'+ic('eye',14)+'View only</span>';
+  if(list.length===1) return '<span class="cal-who-fixed">'+ic('user',14)+'Marking '+esc(list[0]===me()?'your own leave':list[0])+'</span>';
+  return '<span class="cal-who"><label for="calWho">Marking leave for</label><select id="calWho">'+
+    list.map(function(l){ return '<option value="'+esc(l)+'"'+(l===WHO?' selected':'')+'>'+esc(l)+(l===me()?' (you)':'')+'</option>'; }).join('')+'</select></span>';
+}
+function monthsSecHtml(){
+  var mk=WHO&&canMark(WHO);
+  return '<section class="cal-sec" aria-labelledby="calMonthsH"><div class="cal-sec-h">'+
+    '<span class="cal-sec-ic" aria-hidden="true">'+ic('calendar',17)+'</span>'+
+    '<div class="cal-sec-txt"><h2 class="cal-sec-t" id="calMonthsH">Leave calendar</h2>'+
+    '<p class="cal-sec-d">'+(mk?('Click a day to mark '+esc(WHO===me()?'yourself':WHO)+' on leave, and click it again to take it back. Past days work the same way.'):'You can see the whole team\u2019s leave here. Marking is limited to your own account.')+'</p></div>'+
+    whoPickerHtml()+'</div><div class="cal-sec-b">'+
+    (MARK_ERR?'<p class="cal-err" style="margin-bottom:12px">'+ic('alert-triangle',15)+esc(MARK_ERR)+'</p>':'')+
+    '<p class="cal-legend"><span class="cal-key"><span class="cal-swatch is-on"></span>'+(mk?esc(WHO===me()?'Your leave':WHO+'\u2019s leave'):'Selected person')+'</span>'+
+    '<span class="cal-key"><span class="cal-swatch is-any"></span>Someone on the team is off</span>'+
+    '<span class="cal-key">The number in a day is how many people are off; the tiles are the first two letters of each login.</span></p>'+
+    '<div class="cal-months">'+MONTH_KEYS.map(monthHtml).join('')+'</div></div></section>';
+}
+function totalsSecHtml(){
+  return '<section class="cal-sec" aria-labelledby="calTotH"><div class="cal-sec-h">'+
+    '<span class="cal-sec-ic" aria-hidden="true">'+ic('users',17)+'</span>'+
+    '<div class="cal-sec-txt"><h2 class="cal-sec-t" id="calTotH">Days off in this range</h2>'+
+    '<p class="cal-sec-d">Everyone with access to this page, and how many days each has marked between '+esc(ST.range?longDate(ST.range.from):'')+' and '+esc(ST.range?longDate(ST.range.to):'')+'.</p></div></div>'+
+    '<div class="cal-sec-b"><ul class="cal-tot">'+ST.members.map(function(m){
+      var n=offCount(m.login);
+      return '<li class="'+(m.login===me()?'is-me':'')+(n?'':' is-zero')+'"><span class="cal-tot-who">'+esc(m.login)+(m.login===me()?' (you)':'')+'</span>'+
+        '<span class="cal-tot-grp">'+esc(m.group||'')+'</span><span class="cal-tot-n">'+n+' day'+(n===1?'':'s')+'</span></li>';
+    }).join('')+'</ul></div></section>';
+}
+function render(){
+  var h='<div class="cal">'+heroHtml(false);
+  if(ST.state==='loading'){
+    h+='<section class="cal-sec" aria-labelledby="calLoadH" aria-busy="true"><div class="cal-sec-h"><div class="cal-sec-txt"><h2 class="cal-sec-t" id="calLoadH">Loading the calendar\u2026</h2></div></div><div class="cal-sec-b"><p class="cal-empty">Fetching the team\u2019s leave.</p></div></section>';
+  } else if(ST.state==='error'){
+    h+='<section class="cal-sec" aria-labelledby="calErrH"><div class="cal-sec-h"><div class="cal-sec-txt"><h2 class="cal-sec-t" id="calErrH">Calendar</h2></div></div><div class="cal-sec-b">'+
+      '<p class="cal-err">'+ic('alert-triangle',15)+esc(ST.err)+'<button type="button" class="cal-btn is-ghost" id="calRetry">'+ic('refresh',14)+'Try again</button></p></div></section>';
+  } else {
+    h+=monthsSecHtml()+totalsSecHtml();
+  }
+  $('wrap').innerHTML=h+'</div>';
+}
+
+// ---- Load / mark ----
+function apply(d){
+  ST.state='done'; ST.err='';
+  ST.range=(d&&d.range)||null;
+  ST.dates=(d&&Array.isArray(d.dates))?d.dates.slice():[];
+  ST.members=(d&&Array.isArray(d.members))?d.members.slice():((L&&L.members)||[]).slice();
+  ST.leave=(d&&Array.isArray(d.leave))?d.leave.slice():[];
+  regroup(); reindex();
+  var list=markable();
+  if(!WHO||list.indexOf(WHO)<0) WHO=(list.indexOf(me())>=0?me():(list[0]||''));
+  render();
+  announce('Calendar loaded: '+MONTH_KEYS.length+' months, '+ST.leave.length+' day'+(ST.leave.length===1?'':'s')+' marked across the team.');
+}
+function load(fromRetry){
+  ST.state='loading'; ST.err=''; MARK_ERR=''; render();
+  announce('Loading the team calendar\u2026');
+  A.api('GET','/api/leave').then(function(r){
+    if(r&&r.status===403){ gate('none'); return; }
+    if(!(r&&r.ok&&r.data&&Array.isArray(r.data.dates))){
+      ST.state='error'; ST.err=errMsg(r,'Could not load the calendar'); render(); announce(ST.err);
+      if(fromRetry){ var rb=$('calRetry'); if(rb) rb.focus(); }
+      return;
+    }
+    apply(r.data);
+  },function(){
+    ST.state='error'; ST.err='Could not reach the server.'; render(); announce(ST.err);
+  });
+}
+function applyMark(login,date,on){
+  login=String(login||'').trim().toLowerCase();
+  ST.leave=ST.leave.filter(function(r){ return !(String((r&&r.login)||'').trim().toLowerCase()===login && String((r&&r.date)||'')===date); });
+  if(on) ST.leave.push({login:login,date:date,by:me(),at:new Date().toISOString()});
+  reindex();
+}
+function refocus(date){ var b=$('calD'+date); if(b) try{ b.focus(); }catch(e){} }
+async function toggle(date){
+  if(!WHO||!canMark(WHO)) return;
+  var on=!ON_KEY[WHO+'|'+date], target=WHO;
+  BUSY=target+'|'+date; MARK_ERR=''; render();
+  var r=null; try{ r=await A.api('POST','/api/leave',{login:target,date:date,on:on}); }catch(e){}
+  BUSY='';
+  if(r&&r.status===403){ MARK_ERR=errMsg(r,'You cannot mark leave for '+target); render(); refocus(date); announce(MARK_ERR); return; }
+  if(r&&r.ok&&r.data&&r.data.ok){
+    applyMark(r.data.login,r.data.date,r.data.on===true);
+    render(); refocus(date);
+    announce(target+(r.data.on===true?' marked on leave on ':' no longer on leave on ')+longDate(date)+'.');
+    return;
+  }
+  MARK_ERR=r?errMsg(r,'Could not '+(on?'mark':'remove')+' that day'):'Could not '+(on?'mark':'remove')+' that day \u2014 network error.';
+  render(); refocus(date); announce(MARK_ERR);
+}
+
+// ---- Events ----
+document.addEventListener('click',function(e){
+  var t=e.target; if(!t||!t.closest||!t.closest('#wrap')) return;
+  if(t.closest('#calRetry')){ load(true); return; }
+  var day=t.closest('[data-cal-day]');
+  if(day&&!day.disabled){ toggle(day.getAttribute('data-cal-day')); }
+});
+document.addEventListener('change',function(e){
+  var s=e.target; if(!s||s.id!=='calWho') return;
+  var v=String(s.value||'').toLowerCase();
+  if(markable().indexOf(v)<0) return;
+  WHO=v; MARK_ERR=''; render();
+  var ns=$('calWho'); if(ns) try{ ns.focus(); }catch(err){}
+  announce('Now marking leave for '+WHO+'.');
+});
+
+// ---- Start ----
+(function(){
+  if(!(A&&A.getUser&&A.getUser())){ gate('login'); return; }
+  if(!L||!L.mayAsk()){ gate('none'); return; }
+  load(false);
+})();
+})();
+</script>
+</body>
+</html>

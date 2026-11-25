@@ -1315,6 +1315,8 @@
       + '#tbHomeChrome .home-hdr-asg svg{width:18px;height:18px;color:#b5530a}'
       + '#tbHomeChrome .home-hdr-asg-n{min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#c2570a,#a94a05);color:#fff;font-size:.95em;font-variant-numeric:tabular-nums}'
       + '#tbHomeChrome .home-hdr-asg[hidden]{display:none}'
+      // Team leave calendar: no count pill, so it gets the same 40px icon-only square as .home-hdr-logout.
+      + '#tbHomeChrome .home-hdr-cal{width:40px;padding:0;justify-content:center}'
       // Empty bucket: muted grey "0". Tickets waiting: the count pill pulses + the chip glows.
       + '#tbHomeChrome .home-hdr-asg.is-zero{border-color:#d4dade}'
       + '#tbHomeChrome .home-hdr-asg.is-zero svg{color:#8793a0}'
@@ -2804,7 +2806,8 @@
     'tool-paging': { title: 'Paging', icon: 'map-pin', tone: 'teal' }, 'tool-prompts': { title: 'Prompts', icon: 'message', tone: 'teal' },
     'hashtags': { title: 'Hashtags', icon: 'hash', tone: 'teal' }, 'blurb-log': { title: 'Blurb Log', icon: 'history', tone: 'violet' },
     'hashtag-log': { title: 'Hashtag Log', icon: 'history', tone: 'violet' }, 'paging-log': { title: 'Paging Log', icon: 'history', tone: 'violet' },
-    'important-cases': { title: 'Unique Cases', icon: 'star', tone: 'amber' }
+    'important-cases': { title: 'Unique Cases', icon: 'star', tone: 'amber' },
+    'calendar': { title: 'Calendar', icon: 'calendar', tone: 'blue' }
   };
   function tbhFileOf(href) { try { return (String(href).split('?')[0].split('/').pop() || '').replace(/\.html?$/i, ''); } catch (e) { return ''; } }
   function tbhRelTime(ts) {
@@ -3178,6 +3181,38 @@
   }
   // Shared with errors-in-resolved.html (reuses the top bar's request for the cards).
   window.PHDResErr = { team: TB_RE_TEAM.slice(), mayAsk: tbReErrMayAsk, ready: tbReErrFetch, mine: tbReErrMine };
+
+  // ---- Team leave calendar: calendar button left of the year button ----
+  // The 13 analysts (BLR + AZA + WFH) plus the 2 managers get calendar.html; nobody else sees the chip.
+  // Everyone marks themselves; the owner marks anyone; BLR / AZA mark the two managers. This mirror only
+  // hides controls - GET / POST /api/leave re-check every call and answer 403.
+  // KEEP IN SYNC with server/leave.js (derived there from ASSIGN_GROUPS); the server is the authority.
+  var TB_LEAVE_GROUPS = {
+    harisss: 'BLR', punithsd: 'BLR', arunkzn: 'BLR', flofalgu: 'BLR',
+    mbozied: 'AZA', nobregak: 'AZA', mellanej: 'AZA',
+    tanviroo: 'WFH', urmahala: 'WFH', chousoud: 'WFH', obalasut: 'WFH', shaavhad: 'WFH', dbiswamb: 'WFH',
+    ashamzon: 'MGR', wehnermi: 'MGR'
+  };
+  var TB_LEAVE_MANAGERS = ['ashamzon', 'wehnermi'];        // the only people a group member may mark besides themselves
+  var TB_LEAVE_MAY_MARK_MANAGERS = ['BLR', 'AZA'];         // groups allowed to mark a manager
+  var TB_LEAVE_OWNER = 'harisss';                          // marks anyone (server: isOwner)
+  function tbLeaveGroupOf(login) { return TB_LEAVE_GROUPS[tbSanLower(login)] || ''; }
+  function tbLeaveMe() { return tbSanLower(((A && A.getUser && A.getUser()) || {}).username); }
+  function tbLeaveHasAccess(login) { return !!tbLeaveGroupOf(login); }
+  function tbLeaveMayAsk() { return tbLeaveHasAccess(tbLeaveMe()); }
+  function tbLeaveCanMark(target) {
+    var a = tbLeaveMe(), t = tbSanLower(target);
+    if (!tbLeaveHasAccess(a) || !tbLeaveHasAccess(t)) return false;
+    if (a === t) return true;
+    if (a === TB_LEAVE_OWNER) return true;
+    return TB_LEAVE_MAY_MARK_MANAGERS.indexOf(tbLeaveGroupOf(a)) >= 0 && TB_LEAVE_MANAGERS.indexOf(t) >= 0;
+  }
+  // Shared with calendar.html (same access list and range as the server's leave module).
+  window.PHDLeave = {
+    members: Object.keys(TB_LEAVE_GROUPS).map(function (l) { return { login: l, group: TB_LEAVE_GROUPS[l] }; }),
+    groupOf: tbLeaveGroupOf, mayAsk: tbLeaveMayAsk, canMark: tbLeaveCanMark,
+    RANGE_FROM: '2026-12-01', RANGE_TO: '2027-03-31'
+  };
   function tbhWireChrome() {
     tbhRenderHdrProf(); tbhRenderRecent();
     if (tbMyAsg.data) tbMyAsgPaint(); else tbMyAsgFetch(false);
@@ -3208,11 +3243,9 @@
       + '</div>'
       + '<div class="home-hdr-right">'
       // Dashboard-assigned tickets waiting in my bucket (painted by tbMyAsgPaint; hidden when 0).
-      // Sanitization Tracker link (contractors + the owner only; painted by tbSanPaint, hidden otherwise).
-      + (li && tbSanMayAsk() ? '<a class="home-hdr-asg" id="tbhMySan" hidden href="sanitization-tracker.html"' + (hereFile === 'sanitization-tracker' ? ' aria-current="page"' : '') + '></a>' : '')
       + (li ? '<button type="button" class="home-hdr-asg" id="tbhMyAsg" hidden onclick="if(window.PHDOpenMyAssigned)window.PHDOpenMyAssigned()"></button>' : '')
-      // Errors in Resolved link (the 7 BLR / AZA team members only; painted by tbReErrPaint, hidden otherwise).
-      + (li && tbReErrMayAsk() ? '<a class="home-hdr-asg" id="tbhResErr" hidden href="errors-in-resolved.html"' + (hereFile === 'errors-in-resolved' ? ' aria-current="page"' : '') + '></a>' : '')
+      // Team leave calendar link (the 13 analysts + the 2 managers only). No count, so no paint function.
+      + (li && tbLeaveMayAsk() ? '<a class="home-hdr-asg home-hdr-cal" id="tbhCal" href="calendar.html" title="Calendar" aria-label="Team leave calendar"' + (hereFile === 'calendar' ? ' aria-current="page"' : '') + '>' + ic('calendar', 18) + '</a>' : '')
       + (li ? '<a class="home-hdr-live" href="app.html" title="Open the live dashboard"><span class="hdr-live-dot"></span> ' + new Date().getFullYear() + '</a>' : '')
       + '<span class="home-hdr-prof" id="tbhHdrProf"></span>'
       // Log out: icon-only button right of the profile icon (moved here from the menu's bottom group).
@@ -5753,7 +5786,8 @@
       'station-request.html': 'map-pin',
       'users.html': 'users-gear', 'db-health.html': 'database', 'profile.html': 'users',
       'data-log.html': 'history', 'blurb-log.html': 'history', 'hashtag-log.html': 'history',
-      'paging-log.html': 'history', 'archive.html': 'calendar'
+      'paging-log.html': 'history', 'archive.html': 'calendar',
+      'calendar.html': 'calendar'
     };
     if (file === 'app.html' && view) { key = ({ groups: 'users', 'previous-week': 'clock-rewind' })[view] || 'bolt'; }
     else if (map[file]) { key = map[file]; }
