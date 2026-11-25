@@ -35,7 +35,6 @@ function payload(o) {
 }
 const when = iso => (iso ? String(iso).slice(0, 10) : '');
 const opts = o => Object.assign({ h: { when, ic: () => '', url: t => t.url } }, o || {});
-const badTicket = () => payload().tickets[0];
 
 test("sections() puts an 'error-detected' ticket in ded", () => {
   const s = V.sections(payload());
@@ -53,28 +52,50 @@ test('totalsOf() reports errorDetected and keeps it out of cleared and needsCorr
   assert.equal(T.needBy.missing, 1);   // only the to-sanitize row counts towards a reason
 });
 
-test('viewHtml with review:true lists the failing items, the detected timestamp and both actions', () => {
-  const html = V.viewHtml(payload(), opts({ review: true, open: 'ded' }));
-  assert.match(html, /Error detected/);
-  assert.match(html, /stv-errdet/);
-  FAILURES.forEach(f => assert.ok(html.includes(f.label), 'missing item label: ' + f.label));
-  assert.ok(html.includes(when(DETECTED)), 'the formatted detectedAt is shown');
-  assert.match(html, /data-stvfix="BAD"/);
-  assert.match(html, /data-stvapv="BAD"/);
+test('viewHtml keeps the Error detected count in the KPI strip but has no Error detected section', () => {
+  // The rows moved to the page's own top-level section (errorSectionHtml); the view keeps the tile.
+  const html = V.viewHtml(payload(), opts({ review: true }));
+  assert.match(html, /Errors detected on the last upload<\/span>[\s\S]*?<dd><b>1<\/b>/);
+  assert.equal(html.includes('data-stvsec="ded"'), false);
+  assert.equal(html.includes('data-stvacc'), false);
+  assert.equal(html.includes('data-stvfix'), false);
+  assert.deepEqual(V.sections(payload()).ded.map(t => t.shortId), ['BAD']);   // the bucket itself stays
 });
 
-test('viewHtml with review:false shows the count but no error-detected row', () => {
+test('viewHtml with review:false still shows the count the server sent', () => {
   // A contractor's payload: the server sends the count in totals and withholds the rows.
   const v = payload();
   v.tickets = v.tickets.filter(t => t.status !== 'error-detected');
   v.totals = V.totalsOf(payload());
   const html = V.viewHtml(v, opts({ review: false }));
   assert.match(html, /Errors detected on the last upload<\/span>[\s\S]*?<dd><b>1<\/b>/);
-  assert.equal(html.includes('stv-errdet'), false);
-  assert.equal(html.includes('data-stvapv'), false);
-  assert.equal(html.includes('data-stvfix'), false);
-  // ...and the help text says so, instead of leaving the missing count unexplained.
-  assert.match(html, /you see only the count, not the items/);
+  // ...and the Temporarily cleared help points at the new section instead of the old pop-up.
+  assert.match(html, /Error detected at the top of the page/);
+});
+
+test('needTable has three columns and the three marking buttons, and no closure-code cell', () => {
+  const html = V.viewHtml(payload(), opts({ review: false }));
+  const head = html.match(/<thead><tr>(.*?)<\/tr><\/thead>\s*<tbody class="stv-t/);
+  assert.ok(head, 'the Tickets to sanitize header row is there');
+  assert.equal((head[1].match(/<th /g) || []).length, 3);
+  assert.equal(head[1].includes('Current Closure Code'), false);
+  assert.match(head[1], /Ticket ID[\s\S]*MISSING FIELDS[\s\S]*Status/);
+  ['error', 'successful', 'duplicate'].forEach(s => assert.match(html, new RegExp('data-stvmark="' + s + ':NEED"')));
+  assert.equal(html.includes('data-stvst'), false);
+  assert.equal(html.includes('<select'), false);
+  // The closure-code tag is gone from the to-sanitize row (Temporarily cleared still shows one).
+  const row = html.match(/<tbody class="stv-t[^"]*"><tr class="stv-l1">([\s\S]*?)<\/tr>/);
+  assert.ok(row && !row[1].includes('stv-cc'), 'no closure-code cell on the to-sanitize row');
+  // A read-only viewer gets the mark text instead of the buttons.
+  const ro = V.viewHtml(payload(), opts({ readOnly: true }));
+  assert.equal(ro.includes('data-stvmark'), false);
+  assert.match(ro, /stv-ro/);
+});
+
+test("STATUS_LABEL.successful reads 'Sanitized' and 'immediate' is kept for the legacy marks", () => {
+  assert.equal(V.STATUS_LABEL.successful, 'Sanitized');
+  assert.equal(V.STATUS_LABEL.immediate, 'Immediately Resolved');
+  assert.equal(V.STATUS_LABEL.duplicate, 'Duplicate');
 });
 
 test('the browser copies of the rules still match the engine', () => {
@@ -98,15 +119,69 @@ test('the browser copies of the rules still match the engine', () => {
   assert.ok(V.RULES_TEXT.includes('N/A does not count'), 'RULES_TEXT says N/A does not count for them');
   assert.equal(eng.RCD_FIELDS.length - req.length - 1, 6);   // the optional fields without the Cnt rule
   assert.ok(V.RULES_TEXT.includes('the other six'), 'RULES_TEXT counts the plain optional fields');
-  assert.deepEqual(V.RCD_KEYS, eng.RCD_FIELDS.slice());
 });
 
-test('apvFieldsHtml emits one checkbox per failing item and no select-all', () => {
-  const html = V.apvFieldsHtml(badTicket(), opts());
-  assert.equal((html.match(/type="checkbox"/g) || []).length, FAILURES.length);
-  FAILURES.forEach(f => assert.ok(html.includes('data-stvapvf="' + f.key + '"'), 'checkbox for ' + f.key));
-  assert.equal(html.includes('data-stvall'), false);
-  assert.equal(html.includes('stv-bulk'), false);
-  // The ten stored Sim Root Cause Details values are there for reference.
-  V.RCD_KEYS.forEach(k => assert.ok(html.includes('<dt>' + k + '</dt>'), 'field ' + k));
+// ---- errorSectionHtml: the page's top-level Error detected section ----
+// GET /api/sanitization-errors rows: flat, detectedAt DESC, grouped here by day then agent.
+const ERR_NEW = '2026-11-25T02:37:33.469Z';
+const ERR_OLD = '2026-11-24T21:10:00.000Z';
+function errRow(o) {
+  return Object.assign({ shortId: 'E0', url: 'https://sim/E0', title: 'A ticket', login: 'tanviroo', displayName: 'Tanvir',
+    closureCode: 'Successful', detectedAt: ERR_NEW, missing: [{ key: 'Res', label: 'Sim Root Cause Details: Res', message: 'Res: has no value (it is required).' }] }, o);
+}
+// The page's day formatter: the calendar day in the viewer's timezone.
+const errOpts = o => Object.assign({ h: { when, ic: () => '', url: t => t.url, day: iso => String(iso || '').slice(0, 10) } }, o || {});
+const errPayload = () => ({ owner: true, canReview: true, dataAsOf: ERR_NEW, tickets: [
+  errRow({ shortId: 'E1' }),
+  errRow({ shortId: 'E2', login: 'chousoud', displayName: 'Chou' }),
+  errRow({ shortId: 'E3', detectedAt: ERR_OLD }),
+] });
+
+test('errorSectionHtml groups by upload date, newest first and only the newest open', () => {
+  const html = V.errorSectionHtml(errPayload(), errOpts({ review: true }));
+  const dates = [...html.matchAll(/<details class="st-err-d" data-stvdate="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
+  assert.deepEqual(dates, [['2026-11-25', true], ['2026-11-24', false]]);
+});
+
+test('errorSectionHtml lists one block per agent that has rows, and none for the others', () => {
+  const html = V.errorSectionHtml(errPayload(), errOpts({ review: true }));
+  const d25 = html.slice(html.indexOf('data-stvdate="2026-11-25"'), html.indexOf('data-stvdate="2026-11-24"'));
+  // 25th: both agents, sorted by login; 24th: only tanviroo, who is the single agent with a row there.
+  assert.deepEqual([...d25.matchAll(/class="st-err-agh">([a-z]+)/g)].map(m => m[1]), ['chousoud', 'tanviroo']);
+  const d24 = html.slice(html.indexOf('data-stvdate="2026-11-24"'));
+  assert.deepEqual([...d24.matchAll(/class="st-err-agh">([a-z]+)/g)].map(m => m[1]), ['tanviroo']);
+  assert.equal(d24.includes('chousoud'), false);
+});
+
+test('errorSectionHtml shows Closure Code | Ticket ID | Missing Fields', () => {
+  const html = V.errorSectionHtml({ tickets: [errRow()] }, errOpts({ review: false }));
+  const head = html.match(/<thead><tr>([\s\S]*?)<\/tr><\/thead>/);
+  assert.ok(head);
+  assert.equal((head[1].match(/<th /g) || []).length, 3);
+  assert.match(head[1], /Closure Code[\s\S]*Ticket ID[\s\S]*Missing Fields/);
+  assert.match(html, /Sim Root Cause Details: Res/);
+  assert.match(html, /Successful/);
+});
+
+test('errorSectionHtml puts both actions on each row for the owner and neither for a contractor', () => {
+  const own = V.errorSectionHtml({ tickets: [errRow()] }, errOpts({ review: true }));
+  assert.match(own, /data-stvfix="E0"/);
+  assert.match(own, /data-stvacc="E0"/);
+  assert.match(own, /Accept Sanitized error/);
+  assert.match(own, /Rework/);
+  const con = V.errorSectionHtml({ tickets: [errRow()] }, errOpts({ review: false }));
+  assert.equal(con.includes('data-stvfix'), false);
+  assert.equal(con.includes('data-stvacc'), false);
+  // A busy row disables both of the owner's buttons.
+  const busy = V.errorSectionHtml({ tickets: [errRow()] }, errOpts({ review: true, busy: { E0: true } }));
+  assert.equal((busy.match(/ disabled/g) || []).length, 2);
+});
+
+test('errorSectionHtml renders the empty state and escapes every interpolation', () => {
+  assert.match(V.errorSectionHtml({ tickets: [] }, errOpts({ review: true })), /tb-asg-empty/);
+  assert.match(V.errorSectionHtml(null, errOpts()), /tb-asg-empty/);
+  const html = V.errorSectionHtml({ tickets: [errRow({ shortId: 'X"><s>', login: 'a<s>', closureCode: '<i>x' })] }, errOpts({ review: true }));
+  ['X"><s>', 'a<s>', '<i>x'].forEach(s => assert.equal(html.includes(s), false, 'escaped: ' + s));
+  assert.match(html, /&lt;i&gt;x/);
+  assert.match(html, /data-stvacc="X&quot;&gt;&lt;s&gt;"/);
 });

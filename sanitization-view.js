@@ -1,8 +1,9 @@
 // Sanitization Tracker ticket view (sanitization-tracker.html): one contractor's tickets from
-// GET /api/my-sanitization, split into 0 Error detected (owner only: the items the last data upload
-// found missing, waiting for the owner) / 1 Tickets to sanitize / 2 Temporarily cleared / 3 Error
-// tickets that need approval / 4 Tickets sanitized successfully. Pure string builders (no DOM, no
-// network), so they also run under node for unit tests.
+// GET /api/my-sanitization, split into 1 Tickets to sanitize / 2 Temporarily cleared / 3 Error
+// tickets that need approval / 4 Tickets sanitized successfully, plus errorSectionHtml - the page's
+// own top-level "Error detected" section, fed by GET /api/sanitization-errors and grouped by upload
+// date then agent. Pure string builders (no DOM, no network), so they also run under node for unit
+// tests.
 // The server sets each ticket's status: 'needs-correction' (to sanitize) | 'awaiting' (temporarily
 // cleared) | 'error-detected' | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded'
 // (sanitization-assign.js evalTicket). After every data upload the server validates each ticket on its
@@ -13,13 +14,14 @@
 // itself is the one error raised. A valid issue type in the Sim Root Cause Details Issue field stands
 // in for the title's, so the title's issue type is then never reported. Only a ticket the contractor
 // has already marked is validated. A ticket with anything missing becomes 'error-detected' and
-// carries row.validation = { closureCode, scope, detectedAt, failures, fields }: the owner approves
-// single items (errDetTable + apvFieldsHtml, one ticket at a time) or sends it back for rework. Those
-// tickets count in neither the sanitized nor the to-sanitize total until the owner acts, and the items
-// themselves are owner-only - the contractor sees the count until a Rework brings the ticket back with
-// the owner's note.
+// is listed in the page's top-level Error detected section (errorSectionHtml, above the Sanitization
+// Center), which every viewer sees - the contractor their own tickets, the owner and the view-all
+// logins every agent - but where only the owner gets the two actions: [Accept Sanitized error] clears
+// the WHOLE ticket in one click (it is never validated again) and [Rework] sends it back naming
+// everything still missing. Those tickets count in neither the sanitized nor the to-sanitize total
+// until the owner acts.
 // Error tickets go to the owner for review (owner-only section; contractors get only the count) and
-// stay until approved or sent back (`returned` note on the to-sanitize row). The five sections are a one-open-at-a-time accordion
+// stay until approved or sent back (`returned` note on the to-sanitize row). The four sections are a one-open-at-a-time accordion
 // (nextOpen). Errors in Resolved (and hi-resolved.html) reuse the small helpers (hue, missText,
 // defect / pill / pager / codeTag).
 // Markup reuses the .tb-asg-card / .tb-san-card base styles from topbar-auth.js; .stv-* rules live in
@@ -157,9 +159,10 @@
       + '<div class="stv-leg"><ul class="stv-leg-l" aria-hidden="true">' + leg.map(function (l) { return '<li class="' + l[0][0] + '">' + esc(l[1]) + '</li>'; }).join('') + '</ul>'
       + (o.asOf ? '<small class="stv-asof">Data as of ' + esc(o.asOf) + '</small>' : '') + '</div>';
   }
-  // Status marks (the dropdown) and their labels; old 'completed' marks carry no claim.
-  var STATUS_OPTS = [['successful', 'Successful'], ['immediate', 'Immediately Resolved'], ['duplicate', 'Duplicate'], ['error', 'Error']];
-  var STATUS_LABEL = { successful: 'Successful', immediate: 'Immediately Resolved', duplicate: 'Duplicate', error: 'Error', completed: 'Completed' };
+  // Status marks and their labels. 'successful' reads as 'Sanitized' so "Marked as" matches the button
+  // the contractor pressed; 'immediate' no longer has a button but is kept for the 622 existing marks
+  // that carry it, and old 'completed' marks carry no claim.
+  var STATUS_LABEL = { successful: 'Sanitized', immediate: 'Immediately Resolved', duplicate: 'Duplicate', error: 'Error', completed: 'Completed' };
   var CLAIM = { successful: 1, immediate: 1, duplicate: 1 };
   // Needs correction order: passed / required ascending (dir 'asc', the default) or descending, then
   // fewer passed; ties oldest assigned first, then ticket ID. Returns a new array.
@@ -196,10 +199,11 @@
       errorTickets: s.err.length + hid, notFound: s.nf.length, excluded: s.ex.length, pending: all.filter(function (t) { return !t.verified; }).length,
       legacyCompleted: all.filter(function (t) { return t.legacyCompleted; }).length };
   }
-  // One-open-at-a-time accordion over the sections ('ded' | 'need' | 'wait' | 'err' | 'ok'; null = all
+  // One-open-at-a-time accordion over the sections ('need' | 'wait' | 'err' | 'ok'; null = all
   // closed). Opening a section makes it the open one; closing the open one leaves none open; closing
-  // any other changes nothing.
-  var SECTIONS = ['ded', 'need', 'wait', 'err', 'ok'], DEFAULT_OPEN = 'need';
+  // any other changes nothing. 'ded' is not here any more: the tickets the upload flagged are a
+  // top-level section of the page (errorSectionHtml), not one of this view's sections.
+  var SECTIONS = ['need', 'wait', 'err', 'ok'], DEFAULT_OPEN = 'need';
   function nextOpen(cur, sec, open) {
     if (SECTIONS.indexOf(sec) < 0) return cur;
     return open ? sec : (cur === sec ? null : cur);
@@ -243,11 +247,17 @@
       + '<span class="tb-san-pg">Rows ' + from + '\u2013' + to + ' of ' + total + '</span>'
       + '<button type="button" class="tb-san-btn" data-sanpage="' + sec + ':' + (page + 1) + '"' + (page >= last ? ' disabled' : '') + ' aria-label="Next ' + size + ' ' + esc(label.toLowerCase()) + '">Next<span aria-hidden="true">\u203a</span></button></div>';
   }
-  function statusSelect(t, busy) {
+  // The contractor's three marking buttons, in place of the old status dropdown: Mark error opens the
+  // inline "Why is this an error ticket?" form, Sanitized marks the ticket 'successful' (temporarily
+  // sanitized until the next upload) and Duplicate marks it 'duplicate'. Which checks run is decided
+  // by the UPLOADED closure code, never by the button pressed.
+  var MARK_BTNS = [['error', 'Mark error'], ['successful', 'Sanitized'], ['duplicate', 'Duplicate']];
+  function markBtns(t, busy) {
     var sid = esc(t.shortId);
-    return '<select class="stv-st" data-stvst="' + sid + '" aria-label="Status for ' + sid + '"' + (busy ? ' disabled aria-busy="true"' : '') + '>'
-      + '<option value="" selected>\u2014 Select status \u2014</option>'
-      + STATUS_OPTS.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+    return '<span class="stv-mkb" role="group" aria-label="Mark ' + sid + '">' + MARK_BTNS.map(function (b) {
+      return '<button type="button" class="tb-san-btn' + (b[0] === 'successful' ? ' stv-save' : '') + '" data-stvmark="' + b[0] + ':' + sid + '"'
+        + (busy ? ' disabled aria-busy="true"' : '') + '>' + esc(b[1]) + '<span class="tb-asg-sr"> ' + sid + '</span></button>';
+    }).join('') + '</span>';
   }
   // Inline "Why is this an error ticket?" form (f = { shortId, text, err, busy }).
   function errFormRow(t, f, span) {
@@ -272,28 +282,29 @@
   }
   // Small ClosureCode tag ('(blank)' when empty).
   function codeTag(code) { var c = String(code == null ? '' : code).trim(); return '<span class="stv-cc">' + esc(c || '(blank)') + '</span>'; }
-  // Tickets to sanitize: one line per ticket, FOUR columns:
-  //   Current Closure Code | Ticket ID | MISSING FIELDS | Status
+  // Tickets to sanitize: one line per ticket, THREE columns:
+  //   Ticket ID | MISSING FIELDS | the three marking buttons
   // (the error-reason form opens on a second row under it while editing). A failed verification shows
   // its defect in red first; unmarked rows only list the missing Title / RCD checks.
-  // The Score and Title columns were removed on the owner's instruction, and with the Score column went
-  // the only sort control this table had: the rows keep sortNeed's order (worst ratio first), which is
-  // also the order the server sends them in (sanitization-assign.js contractorView).
+  // The Score, Title and Current Closure Code columns were all removed on the owner's instruction (the
+  // closure code the checks run on comes from the upload, not from this table, so showing the current
+  // one only confused the two), and with the Score column went the only sort control this table had:
+  // the rows keep sortNeed's order (worst ratio first), which is also the order the server sends them
+  // in (sanitization-assign.js contractorView).
   // lbl: the table's region / caption name (default 'Tickets to sanitize').
   function needTable(rows, o, h, lbl) {
-    var f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, span = 4;
+    var f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, span = 3;
     lbl = lbl || 'Tickets to sanitize';
     return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="' + lbl + '" tabindex="0"><table class="stv-tbl is-line">'
       + '<caption class="tb-asg-sr">' + lbl + ', the ones furthest from done first.</caption>'
-      + '<thead><tr><th scope="col" class="stv-fit">Current Closure Code</th>'
-      + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-mc">MISSING FIELDS</th>'
+      + '<thead><tr><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-mc">MISSING FIELDS</th>'
       + '<th scope="col" class="stv-fit">Status</th></tr></thead>'
       + rows.map(function (t) {
         var md = missDef(t.defects, t.missingNow), open = !ro && f && f.shortId === t.shortId;
         return '<tbody class="stv-t' + (open ? ' is-open' : '') + '"><tr class="stv-l1">'
-          + '<td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
+          + idCell(t, h)
           + '<td class="stv-clip stv-mc" title="' + esc(md.text + (t.legacyCompleted ? ' \u00b7 ' + LEGACY_NOTE : '')) + '">' + md.html + legacyNote(t) + '</td>'
-          + '<td class="stv-stc stv-fit">' + (ro ? statusText(t) : statusSelect(t, !!busy[t.shortId] || open)) + '</td></tr>'
+          + '<td class="stv-stc stv-fit">' + (ro ? statusText(t) : markBtns(t, !!busy[t.shortId] || open)) + '</td></tr>'
           + (t.returned ? '<tr class="stv-l3"><td colspan="' + span + '"><p class="stv-ret">Sent back by ' + esc(t.returned.by || 'the owner') + ': ' + esc(t.returned.note || '')
             + (t.returned.at ? ' \u00b7 ' + esc(h.when(t.returned.at)) : '') + '</p></td></tr>' : '')
           + (open ? errFormRow(t, f, span) : '') + '</tbody>';
@@ -373,9 +384,6 @@
         : '<p class="tb-asg-empty">No approved errors for this contractor.</p>')
       + '</details>';
   }
-  // The ten Sim Root Cause Details fields, in rule order. KEEP IN SYNC with
-  // server/sanitization-validate.js RCD_FIELDS (the page cannot require the server module).
-  var RCD_KEYS = ['Issue', 'SID', 'TID', 'Driv', 'Date', 'Cnt', 'Zip', 'CID', 'UPID', 'Res'];
   // The rules in one sentence, for the section help texts. KEEP IN SYNC with
   // server/sanitization-validate.js RULES.
   var RULES_TEXT = 'The uploaded closure code picks the checks: Immediately Resolved \u2014 the 3 title checks '
@@ -384,55 +392,68 @@
     + 'and the other six may be a value or N/A; Duplicate \u2014 nothing is checked; any other closure code is itself '
     + 'the error, named as it was uploaded. A valid issue type in the Sim Root Cause Details Issue field stands in '
     + 'for the title\u2019s, so the title\u2019s issue type is not reported when that field is right.';
-  // The items the last upload found missing and the owner has not approved yet.
-  function failList(t) { return (t && t.validation && t.validation.failures) || []; }
-  // Owner-only Error detected: Ticket ID | Title | Closure code | Missing items | Detected at |
-  // Rework / Approve. No row checkbox, no select-all and no bulk toolbar on purpose (unlike
-  // errReviewHtml): a detected error is reviewed one ticket at a time, item by item.
-  function errDetTable(rows, o, h) {
-    o = o || {}; var busy = o.busy || {}, rb = !!o.revBusy;
-    return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Tickets with errors detected" tabindex="0"><table class="stv-tbl is-flat is-line stv-errdet">'
-      + '<caption class="tb-asg-sr">Tickets whose items the last data upload found missing, waiting for your review</caption>'
-      + '<thead><tr><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-fit">Closure code</th>'
-      + '<th scope="col" class="stv-mc">Missing items</th><th scope="col" class="stv-fit">Detected at</th>'
-      + '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th></tr></thead><tbody>'
-      + rows.map(function (t) {
-        var sid = esc(t.shortId), val = t.validation || {}, fs = failList(t), b = !!busy[t.shortId] || rb;
-        return '<tr>' + idCell(t, h) + clipCell('stv-ttl', t.title || 'No title')
-          + '<td class="stv-fit">' + codeTag(val.closureCode == null ? t.closureCode : val.closureCode) + '</td>'
-          + '<td class="stv-mc">' + (fs.length ? '<ul class="stv-items">' + fs.map(function (f) {
-            return '<li title="' + esc(f.message || '') + '"><b>' + esc(f.label) + '</b></li>';
-          }).join('') + '</ul>' : '\u2014') + '</td>'
-          + '<td class="tb-asg-nw stv-fit">' + esc(h.when(val.detectedAt)) + '</td>'
-          + '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to the contractor</span></button> '
-          + '<button type="button" class="tb-san-btn stv-save" data-stvapv="' + sid + '"' + (b ? ' disabled' : '') + '>Approve\u2026<span class="tb-asg-sr"> items of ' + sid + '</span></button></td></tr>';
-      }).join('') + '</tbody></table></div>';
+  // ---- The page's top-level "Error detected" section (above the Sanitization Center) ----
+  // payload = GET /api/sanitization-errors: { owner, viewer, canReview, dataAsOf, tickets:[{ shortId,
+  // url, title, login, displayName, closureCode, detectedAt, missing:[{key,label,message}] }] }, the
+  // rows already flat and sorted detectedAt DESC. Grouped here, in the viewer's timezone: upload date
+  // (newest first, the newest <details> open, one open at a time) -> agent (by login, listed only when
+  // that date has rows for them) -> a table of Closure Code | Ticket ID | Missing Fields. The owner
+  // (o.review, the server's canReview) also gets the two whole-ticket actions per row: [Rework]
+  // (data-stvfix) sends it back naming everything missing, [Accept Sanitized error] (data-stvacc)
+  // counts it as sanitized for good.
+  // o = { review, busy:{shortId:true}, h:{ ic, when, url, day(iso) -> the calendar day label } }.
+  function errorSectionHtml(payload, o) {
+    o = o || {}; var h = o.h || {}, rev = !!o.review, busy = o.busy || {};
+    var day = h.day || function (iso) { return iso ? String(iso).slice(0, 10) : 'Unknown date'; };
+    var rows = (payload && payload.tickets) || [];
+    if (!rows.length) return '<p class="tb-asg-empty">No errors were detected on the last data upload.</p>';
+    // Group by day, then by agent; each group remembers its newest detectedAt so the dates can be
+    // ordered without parsing the label back.
+    var dates = [], byDate = {};
+    rows.forEach(function (t) {
+      var key = String(day(t.detectedAt) || 'Unknown date'), at = String(t.detectedAt || '');
+      var g = byDate[key];
+      if (!g) { g = byDate[key] = { key: key, at: at, logins: [], by: {}, n: 0 }; dates.push(g); }
+      if (at > g.at) g.at = at;
+      var lg = String(t.login || '');
+      if (!g.by[lg]) { g.by[lg] = { login: lg, name: t.displayName || lg, rows: [] }; g.logins.push(lg); }
+      g.by[lg].rows.push(t); g.n++;
+    });
+    dates.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)) || String(b.key).localeCompare(String(a.key)); });
+    return dates.map(function (g, i) {
+      return '<details class="st-err-d" data-stvdate="' + esc(g.key) + '"' + (i === 0 ? ' open' : '') + '>'
+        + '<summary><span class="st-err-dt">' + esc(g.key) + '</span><b>' + plural(g.n, 'ticket') + '</b>'
+        + '<span class="st-err-da">' + plural(g.logins.length, 'agent') + '</span></summary>'
+        + '<div class="st-err-in">' + g.logins.slice().sort(function (a, b) { return a.localeCompare(b); }).map(function (lg) {
+          var ag = g.by[lg];
+          return '<section class="st-err-ag"><h4 class="st-err-agh">' + esc(ag.login)
+            + (ag.name && ag.name !== ag.login ? ' <span class="st-err-agn">' + esc(ag.name) + '</span>' : '')
+            + ' <b>' + plural(ag.rows.length, 'error') + '</b></h4>'
+            + '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Errors detected for ' + esc(ag.login) + ' on ' + esc(g.key) + '" tabindex="0">'
+            + '<table class="stv-tbl is-flat is-line st-err-t">'
+            + '<caption class="tb-asg-sr">Tickets of ' + esc(ag.login) + ' the upload of ' + esc(g.key) + ' found incomplete</caption>'
+            + '<thead><tr><th scope="col" class="stv-fit">Closure Code</th><th scope="col" class="stv-fit">Ticket ID</th>'
+            + '<th scope="col" class="stv-mc">Missing Fields</th>'
+            + (rev ? '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th>' : '') + '</tr></thead><tbody>'
+            + ag.rows.map(function (t) {
+              var sid = esc(t.shortId), ms = t.missing || [], b = !!busy[t.shortId];
+              return '<tr><td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
+                + '<td class="stv-mc">' + (ms.length ? '<ul class="stv-items">' + ms.map(function (f) {
+                  return '<li title="' + esc(f.message || '') + '"><b>' + esc(f.label) + '</b></li>';
+                }).join('') + '</ul>' : '\u2014') + '</td>'
+                + (rev ? '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to ' + esc(ag.login) + '</span></button> '
+                  + '<button type="button" class="tb-san-btn stv-save" data-stvacc="' + sid + '"' + (b ? ' disabled' : '') + '>Accept Sanitized error<span class="tb-asg-sr"> on ' + sid + '</span></button></td>' : '')
+                + '</tr>';
+            }).join('') + '</tbody></table></div></section>';
+        }).join('') + '</div></details>';
+    }).join('');
   }
-  // Body of the per-ticket Approve pop-up (sanitization-tracker.html #stFldModal): EVERY missing item
-  // with its own checkbox (ticked = approved for good, left for rework otherwise), then the ten stored
-  // Sim Root Cause Details values for reference. No select-all and no bulk approve: one ticket only.
-  function apvFieldsHtml(t, o) {
-    o = o || {}; var h = o.h || {}, val = (t && t.validation) || {}, fs = failList(t), sid = esc(t && t.shortId);
-    var when = h.when || function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
-    var f = val.fields || {};
-    return '<p class="stv-apvf-m">' + sid + ' \u00b7 ' + codeTag(val.closureCode == null ? (t && t.closureCode) : val.closureCode)
-      + (val.detectedAt ? ' \u00b7 <span class="stv-by">detected ' + esc(when(val.detectedAt)) + '</span>' : '') + '</p>'
-      + '<fieldset class="stv-apvf"><legend>Items to approve</legend>'
-      + (fs.length ? '<ul class="stv-apvf-l">' + fs.map(function (x) {
-        var id = 'stvApvF-' + String(x.key).replace(/[^A-Za-z0-9_-]/g, '');
-        return '<li><input type="checkbox" id="' + id + '" data-stvapvf="' + esc(x.key) + '">'
-          + '<label for="' + id + '"><b>' + esc(x.label) + '</b><span class="stv-apvf-msg">' + esc(x.message || '') + '</span></label></li>';
-      }).join('') + '</ul>' : '<p class="tb-asg-empty">Nothing is waiting for approval on this ticket.</p>')
-      + '</fieldset>'
-      + '<details class="stv-apvf-rcd"><summary>Sim Root Cause Details on the last upload</summary>'
-      + '<dl class="stv-apvf-d">' + RCD_KEYS.map(function (k) {
-        return '<div><dt>' + esc(k) + '</dt><dd>' + esc(f[k] == null ? 'N/A' : f[k]) + '</dd></div>';
-      }).join('') + '</dl></details>';
-  }
-  // v = the contractor's view; o = { who, login, pageSize, page:{ded, need, ok}, open ('ded'|'need'|'wait'|'err'|'ok'|null,
-  // default 'need'), errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the
+  // v = the contractor's view; o = { who, login, pageSize, page:{need, ok}, open ('need'|'wait'|'err'|'ok'|null,
+  // default 'need'), errForm, busy:{shortId:true}, readOnly (no marking buttons / Undo: the
   // viewer may not mark this contractor's tickets), review (owner: Error tickets section + review
   // actions), sel {shortId:true}, revBusy, apprOpen, h }.
+  // The tickets the last upload flagged are NOT a section here: they live in the page's own top-level
+  // Error detected section (errorSectionHtml). Only their count stays, in the KPI strip.
   function viewHtml(v, o) {
     o = o || {}; var h = o.h || {};
     if (v && v.maxScore != null) setMax(v.maxScore);
@@ -448,8 +469,6 @@
     // control any more: it lived in the Score column header, which the owner had removed.
     var need = sortNeed(S.need), needPg = clampPg(pg.need, need.length), okPg = clampPg(pg.ok, S.ok.length);
     var needRows = size ? need.slice(needPg * size, (needPg + 1) * size) : need;
-    var ded = sortNeed(S.ded), dedPg = clampPg(pg.ded, ded.length);
-    var dedRows = size ? ded.slice(dedPg * size, (dedPg + 1) * size) : ded;
     var okRows = size ? S.ok.slice(okPg * size, (okPg + 1) * size) : S.ok;
     var asOf = v.dataAsOf ? h.when(v.dataAsOf) : '';
     var rev = !!o.review, errN = T.errorTickets || 0;
@@ -461,25 +480,17 @@
     // (readOnly = someone else's tickets); Sanitized includes owner-approved errors.
     var html = '<div class="tb-san-sum stv-sum">' + sumStatsHtml(T, { showErr: rev || !o.readOnly, asOf: asOf })
       + (!rev && errN ? '<p class="tb-san-muted stv-sent">' + plural(errN, 'ticket') + ' sent to the owner for error review</p>' : '') + '</div>';
-    // First, for the owner only: the tickets whose items the last data upload found missing. The count
-    // is in the KPI strip for everyone; the rows and the two actions are the owner's.
-    var dedLbl = 'Error detected';
-    if (rev) {
-      html += sec('ded', 'is-ded', dedLbl, ded.length)
-        + (ded.length ? '<p class="stv-help">The last data upload found these items missing on tickets the contractor had marked. ' + RULES_TEXT
-          + ' Approve lists the ticket\u2019s items one by one: an approved item is never raised again. Rework sends the ticket back to the contractor, naming the items still missing. Until you do one of the two, the ticket counts as neither sanitized nor to sanitize. The items are yours only: the contractor sees the count and gets the list when you send the ticket back.</p>'
-          + errDetTable(dedRows, o, h) + pager('ded', dedPg, size, ded.length, dedLbl)
-          : '<p class="tb-asg-empty">No errors detected on the last data upload.</p>')
-        + '</div></details>';
-    }
+    // The tickets the last upload flagged have their own section at the top of the page (above the
+    // Sanitization Center); here only their count is left, in the KPI strip.
+    var dedLbl = 'Error detected', dedN = T.errorDetected || 0;
     html += sec('need', 'is-bad', 'Tickets to sanitize', need.length)
-      + (need.length ? '<p class="stv-help">Fix the title and Sim Root Cause Details, close the ticket in SIM, then set the status you closed it with. The checks run on the next data upload, on the closure code the upload carries. ' + RULES_TEXT + '</p>'
+      + (need.length ? '<p class="stv-help">Fix the title and Sim Root Cause Details, close the ticket in SIM, then press Sanitized (or Duplicate, or Mark error with a reason). The checks run on the next data upload, on the closure code the upload carries. ' + RULES_TEXT + '</p>'
         + needTable(needRows, o, h) + pager('need', needPg, size, need.length, 'Tickets to sanitize')
-        : '<p class="tb-asg-empty">' + (ded.length ? 'No other tickets to sanitize. The tickets in ' + dedLbl + ' are waiting for the owner.' : (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89')) + '</p>')
+        : '<p class="tb-asg-empty">' + (dedN ? 'No other tickets to sanitize. The tickets in ' + dedLbl + ', at the top of the page, are waiting for the owner.' : (S.wait.length || errN ? 'Nothing left to sanitize. Temporarily cleared tickets are checked after the next data upload.' : 'Everything is sanitized \ud83c\udf89')) + '</p>')
       + '</div></details>';
     html += sec('wait', 'is-temp', 'Temporarily cleared', S.wait.length)
       + '<p class="stv-help">Checked on the next data upload, on the closure code the upload carries. ' + RULES_TEXT
-      + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: the owner sees it under ' + dedLbl + ' and either approves the items or sends the ticket back to you with what is missing \u2014 until then you see only the count, not the items.</p>'
+      + ' Nothing missing: the ticket moves to Tickets sanitized successfully. Something missing: it is listed in ' + dedLbl + ' at the top of the page, with everything it is missing, until the owner accepts it as a sanitized error or sends it back to you for rework.</p>'
       + (S.wait.length ? waitTable(S.wait, o, h) : '<p class="tb-asg-empty">No tickets waiting for the next upload.</p>') + '</div></details>';
     if (rev) {
       html += sec('err', 'is-err', 'Error tickets that need approval', S.err.length) + errOpenHtml(S.err, o)
@@ -527,8 +538,8 @@
     sortNeed: sortNeed, sections: sections, totalsOf: totalsOf, statusAfter: statusAfter, viewHtml: viewHtml, plural: plural,
     nextOpen: nextOpen, DEFAULT_OPEN: DEFAULT_OPEN, selState: selState, rangeIds: rangeIds,
     hueRatio: hueRatio, ratioHtml: ratioHtml, cardStatsHtml: cardStatsHtml, sumStatsHtml: sumStatsHtml, pillHtml: pillHtml, codeTag: codeTag,
-    errDetTable: errDetTable, apvFieldsHtml: apvFieldsHtml, RCD_KEYS: RCD_KEYS, RULES_TEXT: RULES_TEXT,
-    STATUS_OPTS: STATUS_OPTS, STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
+    errorSectionHtml: errorSectionHtml, RULES_TEXT: RULES_TEXT,
+    STATUS_LABEL: STATUS_LABEL, NEED_REASONS: NEED_REASONS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PHDSanView = api;
 })(typeof window !== 'undefined' ? window : this);
