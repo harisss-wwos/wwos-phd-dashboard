@@ -1413,23 +1413,25 @@
       // Menu column = ONE dark navy panel in the Errors-in-Resolved hero's gradient family (a faint
       // orange glow top-left + a very faint 28px grid), 12px radius, soft navy shadow. It scrolls
       // (thin light bar) on short viewports so the bottom Data group stays reachable.
-      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(180px,16vw,240px);width:clamp(180px,16vw,240px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:flex-start;gap:18px;height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:14px 8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);color:#e9edf3;'
+      + '#tbHomeChrome .home-recent-col{flex:0 0 clamp(180px,16vw,240px);width:clamp(180px,16vw,240px);position:sticky;top:82px;align-self:flex-start;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:10px 8px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.06);color:#e9edf3;'
       +   'background:radial-gradient(160% 55% at 0% 0%,rgba(236,114,17,.2),transparent 60%),linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(180deg,#131a2a,#1f2a40);'
       +   'box-shadow:0 18px 40px -26px rgba(20,30,50,.75);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent!important}'
       + '#tbHomeChrome .home-recent-col::-webkit-scrollbar{width:4px}'
       + '#tbHomeChrome .home-recent-col::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22)!important;border-radius:4px}'
-      + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;margin:0;padding:0}'
+      + '#tbHomeChrome .home-navgrp{display:flex;flex-direction:column;gap:1px;flex:0 0 auto;margin:0;padding:0}'
       // Group label = the hero eyebrow: tiny uppercase orange micro-label.
-      + '#tbHomeChrome .home-navgrp-h{display:block;margin:0 0 6px;padding:0 10px;font-size:.6em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
-      // Nav item: transparent row, muted light text, rounded lighter-navy hover.
-      + '#tbHomeChrome .home-nav-btn{position:relative;display:flex;align-items:center;gap:9px;width:100%;min-height:38px;box-sizing:border-box;padding:6px 8px;border:none;border-radius:10px;background:transparent;color:rgba(233,237,243,.8);text-decoration:none;font-family:inherit;font-size:.82em;font-weight:600;cursor:pointer;text-align:left;box-shadow:none;transition:background-color .15s,color .15s}'
+      + '#tbHomeChrome .home-navgrp-h{display:block;margin:0 0 3px;padding:0 10px;font-size:.58em;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#ffb26b;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      // Nav item: transparent row, muted light text, rounded lighter-navy hover. The height is FIXED
+      // (not min-height) so twenty-odd items + the Data group fit the rail without scrolling at 100%.
+      + '#tbHomeChrome .home-nav-btn{position:relative;display:flex;align-items:center;gap:9px;width:100%;height:30px;box-sizing:border-box;padding:4px 8px;border:none;border-radius:10px;background:transparent;color:rgba(233,237,243,.8);text-decoration:none;font-family:inherit;font-size:.76em;font-weight:600;cursor:pointer;text-align:left;box-shadow:none;transition:background-color .15s,color .15s}'
       + '#tbHomeChrome .home-nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}'
       + '#tbHomeChrome .home-nav-btn:focus-visible,#tbHomeChrome .home-upload-btn:focus-visible,#tbHomeChrome .home-viewlog-btn:focus-visible{outline:3px solid #f0a35a;outline-offset:1px}'
-      + '#tbHomeChrome .home-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;flex:0 0 auto;background:rgba(255,255,255,.06);color:rgba(233,237,243,.75);transition:background-color .15s,color .15s,box-shadow .15s}'
-      + '#tbHomeChrome .home-nav-ic svg{width:15px;height:15px}'
+      + '#tbHomeChrome .home-nav-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;flex:0 0 auto;background:rgba(255,255,255,.06);color:rgba(233,237,243,.75);transition:background-color .15s,color .15s,box-shadow .15s}'
+      + '#tbHomeChrome .home-nav-ic svg{width:13px;height:13px}'
       + '#tbHomeChrome .home-nav-btn:hover .home-nav-ic{background:rgba(255,255,255,.1);color:#ffb26b}'
-      // Labels wrap (never truncate) if the column is too narrow for a long name.
-      + '#tbHomeChrome .home-nav-lbl{min-width:0;line-height:1.25;overflow-wrap:anywhere}'
+      // One line, ellipsised if the column is too narrow: the row height is fixed, so a wrapped
+      // second line would be clipped instead. Every item carries its full name in title="..".
+      + '#tbHomeChrome .home-nav-lbl{min-width:0;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       // My Tickets keeps its "primary" identity: an orange-tinted icon.
       + '#tbHomeChrome .home-nav-mytickets .home-nav-ic{color:#ffb26b}'
       // ACTIVE item (aria-current="page"): lighter navy, white text, orange left accent bar + orange icon chip.
@@ -1437,11 +1439,11 @@
       + '#tbHomeChrome .home-nav-btn.is-current::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#ff9f2e,#ec7211)}'
       + '#tbHomeChrome .home-nav-btn.is-current .home-nav-ic{background:rgba(236,114,17,.18);color:#ffb26b;box-shadow:inset 0 0 0 1px rgba(236,114,17,.42)}'
       // Group 3 (Data): Upload = solid orange (dark enough for white text, AA), View log = glassy chip.
-      + '#tbHomeChrome .home-navgrp-action{gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}'
+      + '#tbHomeChrome .home-navgrp-action{gap:4px;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)}'
       + '#tbHomeChrome .home-navgrp-action:empty{display:none}'
-      + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;min-height:38px;box-sizing:border-box;padding:6px 8px;border-radius:10px;border:1px solid transparent;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.82em;font-weight:700;color:#fff;text-align:left;transition:filter .15s,background-color .15s,border-color .15s}'
-      + '#tbHomeChrome .home-act-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;flex:0 0 auto;background:rgba(255,255,255,.16)}'
-      + '#tbHomeChrome .home-act-ic svg{width:15px;height:15px}'
+      + '#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;height:30px;box-sizing:border-box;padding:4px 8px;border-radius:10px;border:1px solid transparent;cursor:pointer;text-decoration:none;font-family:inherit;font-size:.76em;font-weight:700;color:#fff;text-align:left;transition:filter .15s,background-color .15s,border-color .15s}'
+      + '#tbHomeChrome .home-act-ic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;flex:0 0 auto;background:rgba(255,255,255,.16)}'
+      + '#tbHomeChrome .home-act-ic svg{width:13px;height:13px}'
       + '#tbHomeChrome .home-upload-btn{background:linear-gradient(180deg,#c25500,#a94a00);border-color:rgba(255,178,107,.35);box-shadow:0 10px 22px -14px rgba(236,114,17,.9)}'
       + '#tbHomeChrome .home-upload-btn:hover{filter:brightness(1.1)}'
       + '#tbHomeChrome .home-viewlog-btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}'
@@ -1452,13 +1454,41 @@
       + '#tbHomeChrome .home-unassigned-btn.is-current .home-act-ic{background:rgba(236,114,17,.18);box-shadow:inset 0 0 0 1px rgba(236,114,17,.42)}'
       // View Log | Extract share one row, equal width; they stack below 720px (and in the icon rail).
       + '#tbHomeChrome .home-act-row{display:flex;gap:6px;width:100%}'
-      + '#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:1 1 0;min-width:0;width:auto;gap:5px;padding:6px;justify-content:center}'
-      + '#tbHomeChrome .home-act-row .home-act-ic{width:22px;height:22px;border-radius:7px}'
-      + '#tbHomeChrome .home-act-row .home-act-ic svg{width:14px;height:14px}'
+      + '#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:1 1 0;min-width:0;width:auto;gap:5px;padding:4px;justify-content:center}'
+      + '#tbHomeChrome .home-act-row .home-act-ic{width:19px;height:19px;border-radius:6px}'
+      + '#tbHomeChrome .home-act-row .home-act-ic svg{width:12px;height:12px}'
       + '#tbHomeChrome .home-act-row .home-act-lbl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       // Narrow (but still labelled) column: drop the row's icon chips so both labels fit in full.
       + '@media(min-width:1176px) and (max-width:1279px){#tbHomeChrome .home-act-row .home-act-ic{display:none}}'
       + '@media(max-width:720px){#tbHomeChrome .home-act-row{flex-direction:column}#tbHomeChrome .home-act-row>.home-viewlog-btn{flex:0 0 auto;width:100%}}'
+      // Short viewport (a 1366x768 screen, or 1080p zoomed past 100%): one step tighter on the SAME
+      // declarations, so the twenty items + the Data group still fit without a rail scrollbar.
+      + '@media(max-height:800px){'
+      +   '#tbHomeChrome .home-recent-col{gap:6px;padding:7px 7px 6px}'
+      +   '#tbHomeChrome .home-navgrp-h{margin:0 0 2px;font-size:.55em;letter-spacing:1.2px}'
+      +   '#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{height:26px;padding:3px 7px;font-size:.72em;gap:7px}'
+      +   '#tbHomeChrome .home-nav-ic,#tbHomeChrome .home-act-ic{width:19px;height:19px;border-radius:6px}'
+      +   '#tbHomeChrome .home-nav-ic svg,#tbHomeChrome .home-act-ic svg{width:12px;height:12px}'
+      +   '#tbHomeChrome .home-act-row .home-act-ic{width:17px;height:17px;border-radius:5px}'
+      +   '#tbHomeChrome .home-act-row .home-act-ic svg{width:11px;height:11px}'
+      +   '#tbHomeChrome .home-navgrp-action{gap:3px;padding-top:6px}'
+      +   '#tbHomeChrome .home-nav-btn.is-current::before{top:4px;bottom:4px}'
+      + '}'
+      // Very short viewport (1366x768, or 1080p at 150% zoom): the last step. The rail cannot fall
+      // back to scrolling here - the collapse-tab rule below sets overflow:visible on the column -
+      // so everything down to Assignment Center has to FIT. Labels stay one ellipsised line + title.
+      + '@media(max-height:700px){'
+      +   '#tbHomeChrome .home-recent-col{gap:4px;padding:5px 7px 4px}'
+      +   '#tbHomeChrome .home-navgrp{gap:0}'
+      +   '#tbHomeChrome .home-navgrp-h{margin:0 0 1px;font-size:.52em;letter-spacing:1px}'
+      +   '#tbHomeChrome .home-nav-btn,#tbHomeChrome .home-upload-btn,#tbHomeChrome .home-viewlog-btn,#tbHomeChrome .home-logout-btn{height:22px;padding:2px 7px;font-size:.7em;gap:6px}'
+      +   '#tbHomeChrome .home-nav-ic,#tbHomeChrome .home-act-ic{width:17px;height:17px;border-radius:5px}'
+      +   '#tbHomeChrome .home-nav-ic svg,#tbHomeChrome .home-act-ic svg{width:11px;height:11px}'
+      +   '#tbHomeChrome .home-act-row .home-act-ic{width:15px;height:15px;border-radius:5px}'
+      +   '#tbHomeChrome .home-act-row .home-act-ic svg{width:10px;height:10px}'
+      +   '#tbHomeChrome .home-navgrp-action{gap:2px;padding-top:4px}'
+      +   '#tbHomeChrome .home-nav-btn.is-current::before{top:3px;bottom:3px}'
+      + '}'
       + '#tbHomeChrome .home-logout-btn{background:#b42318}'
       // Logged-out: the whole menu column renders but is DISABLED — greyed, desaturated, not clickable.
       + '#tbHomeChrome .home-navcol-disabled{opacity:.55;filter:grayscale(.35)}'
