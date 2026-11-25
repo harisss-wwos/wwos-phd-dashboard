@@ -7,18 +7,32 @@
 // COLLECTIONS.sanitizationFieldApprovals.
 // The checks are selected by the UPLOADED ClosureCode only (closureKey: trimmed, inner whitespace
 // collapsed, lower-cased), never by the contractor's mark in the app:
-//   Immediately Resolved -> scope 'title'      the 3 SIM Title checks only; Sim Root Cause Details is
-//                                              NOT looked at (a re-upload as Immediately Resolved
-//                                              settles the ticket on its title alone).
+//   Immediately Resolved -> scope 'title'      the 3 SIM Title checks only; the Sim Root Cause Details
+//                                              FIELDS are NOT validated (a re-upload as Immediately
+//                                              Resolved settles the ticket on its title alone). Its
+//                                              Issue line is still read, for the issue-type override
+//                                              below only - that raises no RCD failure.
 //   Successful           -> scope 'title+rcd'  the 3 SIM Title checks + the 10 Sim Root Cause Details
 //                                              fields.
 //   Duplicate            -> scope 'none'       no checks.
-//   anything else        -> scope 'none'       no checks: the rules define only the three codes, so
-//                                              Automatically Closed, Successful with Problems, No
-//                                              Issue, a blank code and the rest are left alone.
+//   anything else        -> scope 'code'       the CODE ITSELF is the error (one 'closureCode' failure
+//                                              naming it): the owner's rule is that a sanitized ticket
+//                                              may only end as Successful, Immediately Resolved or
+//                                              Duplicate, so Automatically Closed, Automatically
+//                                              Resolved, No Issue, Successful with Problems, a blank
+//                                              code and the rest are reported under Error detected.
+//                                              Nothing else is checked on such a ticket: the closure
+//                                              code has to be fixed first. (This REPLACES the earlier
+//                                              behaviour, where any other code produced no record.)
 // SIM Title (3): country = a known country code at the start (titleCountry), severity = Sev / Severity
 // 1-5 (titleSeverity), issue type = a valid issue type anywhere in the title (findInText + prepList).
 // All three reuse server/sanitization-score.js, so the tracker and the scores page read one definition.
+// Issue-type override: the Sim Root Cause Details Issue line is the authoritative issue type, so when
+// it holds a valid catalogue type (matchExact against the same issue-types-data.js list) the TITLE's
+// issue type is not reported at all, whatever the title says. The owner's rule is "if the SIM root
+// cause details have a proper Issue and the title has something else then ignore the title and use the
+// issue type in Sim root cause details", stated for all pages, so it applies to Immediately Resolved
+// as well as Successful. sanitization-score.js requiredChecks already does the same for Successful.
 // Sim Root Cause Details (RCD_FIELDS, 10 fields; any line order, labels case-insensitive, the long
 // label forms of the real data accepted through the same alias sets and the same RCD_NEXT_KEYS
 // terminator as the score parser):
@@ -37,11 +51,14 @@
 // is checked — an assigned ticket nobody has marked yet stays in their "Tickets to sanitize" queue and
 // gets no result at all. A ticket the contractor marked 'error' in the app and a ticket the owner
 // approved as an error (COLLECTIONS.sanitizationExcluded) get no result either — no checks, no flags.
+// These three skips come FIRST and are unconditional: the closure-code error above is raised only for
+// a ticket that got through them, so an unmarked or Error-marked ticket is never pulled into the
+// owner-only Error detected section by its closure code.
 // opts.approvedFields (a Set of approvalKey(shortId, key) strings) suppresses those single checks
 // permanently, while every un-approved check keeps being validated on each upload.
 'use strict';
 const { RCD_ISSUE_RE, RCD_RESOLUTION_RE, RCD_NEXT_KEYS, rcdPlain } = require('./pulse-check');
-const { titleCountry, titleSeverity, prepList, findInText, closureKey } = require('./sanitization-score');
+const { titleCountry, titleSeverity, prepList, findInText, matchExact, closureKey } = require('./sanitization-score');
 
 // The ten Sim Root Cause Details fields, in rule order.
 const RCD_FIELDS = Object.freeze(['Issue', 'SID', 'TID', 'Driv', 'Date', 'Cnt', 'Zip', 'CID', 'UPID', 'Res']);
@@ -50,7 +67,13 @@ const NA = 'N/A';
 // N/A spellings (NA, n/a, N.A.) — the same test the score's Cnt check uses.
 const NA_RE = /^\s*n\.?\s*\/?\s*a\.?\s*$/i;
 const NUM_RE = /^\d+(?:\.\d+)?$/;
-const SCOPE_TITLE = 'title', SCOPE_RCD = 'title+rcd', SCOPE_NONE = 'none';
+const SCOPE_TITLE = 'title', SCOPE_RCD = 'title+rcd', SCOPE_NONE = 'none', SCOPE_CODE = 'code';
+// The only closure codes a sanitized ticket may end with; anything else is reported as an error.
+const ALLOWED_CODES = Object.freeze(['Successful', 'Immediately Resolved', 'Duplicate']);
+const ALLOWED_TEXT = ALLOWED_CODES.slice(0, -1).join(', ') + ' or ' + ALLOWED_CODES[ALLOWED_CODES.length - 1];
+// The closure-code failure's item key / label (the owner can approve it like any other item).
+const CODE_KEY = 'closureCode', CODE_LABEL = 'Closure code';
+const BLANK_CODE = '(blank)';   // how a missing code reads, as on the scores page (sanitization-score.js)
 // The contractor's closure-claim mark statuses (the keys of sanitization-assign.js CLAIMS): a ticket is
 // validated only once the contractor has claimed it and an upload has seen that claim.
 const CLAIM_STATUSES = Object.freeze(['successful', 'immediate', 'duplicate']);
@@ -64,8 +87,12 @@ const clean = v => str(v).replace(/\s+/g, ' ').trim();
 const TITLE_CHECKS = Object.freeze([
   Object.freeze({ key: 'country', label: 'Title: country code', message: 'The title does not start with a known country code.',
     ok: (title) => !!titleCountry(title) }),
-  Object.freeze({ key: 'type', label: 'Title: issue type', message: 'The title has no valid issue type.',
-    ok: (title, types) => !!findInText(title, types) }),
+  // The Sim Root Cause Details Issue line overrides the title: a valid catalogue type there (an exact,
+  // normalised match, the same test sanitization-score.js uses for its RCD 'issue' check) settles the
+  // issue type, so the title's is never reported. rcdIssue is '' / null when the line is absent, and
+  // an N/A spelling never matches a catalogue type.
+  Object.freeze({ key: 'type', label: 'Title: issue type', message: 'The title has no valid issue type, and the Sim Root Cause Details Issue field does not hold one either.',
+    ok: (title, types, rcdIssue) => !!findInText(title, types) || !!matchExact(rcdIssue, types) }),
   Object.freeze({ key: 'severity', label: 'Title: severity', message: 'The title has no severity (Sev 1-5).',
     ok: (title) => !!titleSeverity(title) }),
 ]);
@@ -125,11 +152,17 @@ function validateTicket(ticket, ctx, opts) {
   const raw = rawFields(t.RootCauseDetails);
   const fields = {};
   RCD_FIELDS.forEach(k => { fields[k] = raw[k] ? raw[k] : NA; });
-  const scope = SCOPE_BY_CODE[closureKey(closureCode)] || SCOPE_NONE;
+  const scope = SCOPE_BY_CODE[closureKey(closureCode)] || SCOPE_CODE;
   const failures = [];
-  if (scope !== SCOPE_NONE) {
+  // A code outside the three allowed ones IS the error, and the only one raised: the title and the
+  // Sim Root Cause Details are not judged until the ticket is closed with an allowed code.
+  if (scope === SCOPE_CODE) {
+    failures.push(fail(CODE_KEY, 'code', CODE_LABEL,
+      'Closure code ' + (closureCode || BLANK_CODE) + ' is not allowed: it must be ' + ALLOWED_TEXT + '.'));
+  }
+  if (scope === SCOPE_TITLE || scope === SCOPE_RCD) {
     const types = typeList(ctx);
-    TITLE_CHECKS.forEach(c => { if (!c.ok(title, types)) failures.push(fail(c.key, 'title', c.label, c.message)); });
+    TITLE_CHECKS.forEach(c => { if (!c.ok(title, types, raw.Issue)) failures.push(fail(c.key, 'title', c.label, c.message)); });
   }
   if (scope === SCOPE_RCD) {
     RCD_FIELDS.forEach(k => {
@@ -189,13 +222,13 @@ function validateRows(rows, ctx, opts) {
 const RULES = Object.freeze([
   Object.freeze({ key: 'immediate', code: 'Immediately Resolved', title: 'Closure code "Immediately Resolved"', lines: Object.freeze([
     'SIM Title: a known country code at the start.',
-    'SIM Title: a valid issue type.',
+    'SIM Title: a valid issue type \u2014 unless the Sim Root Cause Details Issue field holds a valid one, which then stands in for it.',
     'SIM Title: a severity (Sev 1-5).',
     'Sim Root Cause Details is not checked for this closure code.',
   ]) }),
   Object.freeze({ key: 'successful', code: 'Successful', title: 'Closure code "Successful"', lines: Object.freeze([
     'SIM Title: a known country code at the start.',
-    'SIM Title: a valid issue type.',
+    'SIM Title: a valid issue type \u2014 unless the Sim Root Cause Details Issue field holds a valid one, which then stands in for it.',
     'SIM Title: a severity (Sev 1-5).',
     'Sim Root Cause Details: Issue, Date and Res must have a real value (N/A does not count).',
     'Sim Root Cause Details: SID, TID, Driv, Zip, CID and UPID may have a value or N/A.',
@@ -205,7 +238,9 @@ const RULES = Object.freeze([
     'Nothing is checked.',
   ]) }),
   Object.freeze({ key: 'other', code: '', title: 'Any other closure code', lines: Object.freeze([
-    'Nothing is checked: the rules cover only Immediately Resolved, Successful and Duplicate.',
+    'The closure code itself is the error: a sanitized ticket may only end as ' + ALLOWED_TEXT + '.',
+    'It is listed under Error detected, naming the code the upload carried (Automatically Closed, No Issue, a blank code, ...).',
+    'Nothing else on the ticket is checked until it is closed with an allowed code.',
   ]) }),
   Object.freeze({ key: 'skipped', code: '', title: 'Tickets left out of validation', lines: Object.freeze([
     'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
@@ -217,5 +252,6 @@ const RULES = Object.freeze([
 
 module.exports = {
   RCD_FIELDS, REQUIRED_FIELDS, NA, TITLE_CHECKS, SCOPE_BY_CODE, CLAIM_STATUSES, RCD_RE, RULES,
+  ALLOWED_CODES, ALLOWED_TEXT, CODE_KEY, CODE_LABEL, BLANK_CODE,
   parseRcdFields, validateTicket, validateRows, approvalKey,
 };

@@ -9,7 +9,9 @@
 // UPLOADED closure code (server/sanitization-validate.js): Immediately Resolved -> the 3 title checks
 // (country code, issue type, severity) and nothing else; Successful -> those 3 plus the ten Sim Root
 // Cause Details fields (Issue, Date and Res need a real value - N/A does not count -, Cnt a number or
-// N/A, the other six a value or N/A); Duplicate -> nothing is checked. Only a ticket the contractor
+// N/A, the other six a value or N/A); Duplicate -> nothing is checked; ANY OTHER CODE -> the code
+// itself is the one error raised. A valid issue type in the Sim Root Cause Details Issue field stands
+// in for the title's, so the title's issue type is then never reported. Only a ticket the contractor
 // has already marked is validated. A ticket with anything missing becomes 'error-detected' and
 // carries row.validation = { closureCode, scope, detectedAt, failures, fields }: the owner approves
 // single items (errDetTable + apvFieldsHtml, one ticket at a time) or sends it back for rework. Those
@@ -161,6 +163,8 @@
   var CLAIM = { successful: 1, immediate: 1, duplicate: 1 };
   // Needs correction order: passed / required ascending (dir 'asc', the default) or descending, then
   // fewer passed; ties oldest assigned first, then ticket ID. Returns a new array.
+  // viewHtml calls it without a dir since the Tickets to sanitize table lost its sort control with the
+  // Score column; the dir argument is kept for callers of the exported helper.
   function sortNeed(list, dir) {
     var d = dir === 'desc' ? -1 : 1;
     return (list || []).slice().sort(function (a, b) {
@@ -268,27 +272,26 @@
   }
   // Small ClosureCode tag ('(blank)' when empty).
   function codeTag(code) { var c = String(code == null ? '' : code).trim(); return '<span class="stv-cc">' + esc(c || '(blank)') + '</span>'; }
-  // Tickets to sanitize: one line per ticket: Score | Ticket ID | Title | Closure code | Missing / Defect |
-  // Status (the error-reason form opens on a second row under it while editing). A failed verification
-  // shows its defect in red first; unmarked rows only list the missing Title / RCD checks.
+  // Tickets to sanitize: one line per ticket, FOUR columns:
+  //   Current Closure Code | Ticket ID | MISSING FIELDS | Status
+  // (the error-reason form opens on a second row under it while editing). A failed verification shows
+  // its defect in red first; unmarked rows only list the missing Title / RCD checks.
+  // The Score and Title columns were removed on the owner's instruction, and with the Score column went
+  // the only sort control this table had: the rows keep sortNeed's order (worst ratio first), which is
+  // also the order the server sends them in (sanitization-assign.js contractorView).
   // lbl: the table's region / caption name (default 'Tickets to sanitize').
   function needTable(rows, o, h, lbl) {
-    var dir = o.sortDir === 'desc' ? 'desc' : 'asc', f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, span = 6;
-    var sortLbl = dir === 'asc' ? 'lowest first' : 'highest first';
+    var f = o.errForm || null, busy = o.busy || {}, ro = !!o.readOnly, span = 4;
     lbl = lbl || 'Tickets to sanitize';
     return '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="' + lbl + '" tabindex="0"><table class="stv-tbl is-line">'
-      + '<caption class="tb-asg-sr">' + lbl + ', score ' + sortLbl + '.</caption>'
-      + '<thead><tr><th scope="col" class="stv-fit" aria-sort="' + (dir === 'asc' ? 'ascending' : 'descending') + '"><button type="button" class="stv-sort" data-stvsort="1">Score'
-      + '<span class="stv-sort-ic" aria-hidden="true">' + (dir === 'asc' ? '\u25b2' : '\u25bc') + '</span>'
-      + '<span class="tb-asg-sr">, required checks passed, sorted ' + sortLbl + '. Activate to sort ' + (dir === 'asc' ? 'highest' : 'lowest') + ' first.</span></button></th>'
-      + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-fit">Closure code</th><th scope="col" class="stv-mc">Missing / Defect</th>'
+      + '<caption class="tb-asg-sr">' + lbl + ', the ones furthest from done first.</caption>'
+      + '<thead><tr><th scope="col" class="stv-fit">Current Closure Code</th>'
+      + '<th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-mc">MISSING FIELDS</th>'
       + '<th scope="col" class="stv-fit">Status</th></tr></thead>'
       + rows.map(function (t) {
         var md = missDef(t.defects, t.missingNow), open = !ro && f && f.shortId === t.shortId;
         return '<tbody class="stv-t' + (open ? ' is-open' : '') + '"><tr class="stv-l1">'
-          + '<td class="stv-sc stv-fit">' + pillHtml(t) + '</td>' + idCell(t, h)
-          + clipCell('stv-ttl', t.title || 'No title')
-          + '<td class="stv-fit">' + codeTag(t.closureCode) + '</td>'
+          + '<td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
           + '<td class="stv-clip stv-mc" title="' + esc(md.text + (t.legacyCompleted ? ' \u00b7 ' + LEGACY_NOTE : '')) + '">' + md.html + legacyNote(t) + '</td>'
           + '<td class="stv-stc stv-fit">' + (ro ? statusText(t) : statusSelect(t, !!busy[t.shortId] || open)) + '</td></tr>'
           + (t.returned ? '<tr class="stv-l3"><td colspan="' + span + '"><p class="stv-ret">Sent back by ' + esc(t.returned.by || 'the owner') + ': ' + esc(t.returned.note || '')
@@ -378,7 +381,9 @@
   var RULES_TEXT = 'The uploaded closure code picks the checks: Immediately Resolved \u2014 the 3 title checks '
     + '(country code, issue type, severity) and nothing else; Successful \u2014 those 3 plus the ten Sim Root Cause Details '
     + 'fields, where Issue, Date and Res must have a real value (N/A does not count), Cnt must be a number or N/A, '
-    + 'and the other six may be a value or N/A; Duplicate \u2014 nothing is checked.';
+    + 'and the other six may be a value or N/A; Duplicate \u2014 nothing is checked; any other closure code is itself '
+    + 'the error, named as it was uploaded. A valid issue type in the Sim Root Cause Details Issue field stands in '
+    + 'for the title\u2019s, so the title\u2019s issue type is not reported when that field is right.';
   // The items the last upload found missing and the owner has not approved yet.
   function failList(t) { return (t && t.validation && t.validation.failures) || []; }
   // Owner-only Error detected: Ticket ID | Title | Closure code | Missing items | Detected at |
@@ -425,7 +430,7 @@
       }).join('') + '</dl></details>';
   }
   // v = the contractor's view; o = { who, login, pageSize, page:{ded, need, ok}, open ('ded'|'need'|'wait'|'err'|'ok'|null,
-  // default 'need'), sortDir, errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the
+  // default 'need'), errForm, busy:{shortId:true}, readOnly (no status dropdown / Undo: the
   // viewer may not mark this contractor's tickets), review (owner: Error tickets section + review
   // actions), sel {shortId:true}, revBusy, apprOpen, h }.
   function viewHtml(v, o) {
@@ -439,9 +444,11 @@
     if (!T.assigned) return '<p class="tb-asg-empty">' + (o.who ? ('No sanitization tickets assigned to ' + esc(o.who)) : 'No sanitization tickets assigned to you') + '</p>';
     var size = o.pageSize || 0, pg = o.page || {};
     var clampPg = function (p, n) { return size ? Math.max(0, Math.min(Number(p) || 0, Math.ceil(n / size) - 1)) : 0; };
-    var need = sortNeed(S.need, o.sortDir), needPg = clampPg(pg.need, need.length), okPg = clampPg(pg.ok, S.ok.length);
+    // Both lists keep sortNeed's default order (worst passed/required ratio first). There is no sort
+    // control any more: it lived in the Score column header, which the owner had removed.
+    var need = sortNeed(S.need), needPg = clampPg(pg.need, need.length), okPg = clampPg(pg.ok, S.ok.length);
     var needRows = size ? need.slice(needPg * size, (needPg + 1) * size) : need;
-    var ded = sortNeed(S.ded, o.sortDir), dedPg = clampPg(pg.ded, ded.length);
+    var ded = sortNeed(S.ded), dedPg = clampPg(pg.ded, ded.length);
     var dedRows = size ? ded.slice(dedPg * size, (dedPg + 1) * size) : ded;
     var okRows = size ? S.ok.slice(okPg * size, (okPg + 1) * size) : S.ok;
     var asOf = v.dataAsOf ? h.when(v.dataAsOf) : '';

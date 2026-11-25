@@ -28,7 +28,8 @@ test('Immediately Resolved checks the title only, whatever the Root Cause Detail
 });
 
 test('Immediately Resolved with no country, no severity and no issue type fails all three title checks', () => {
-  const r = eng.validateTicket(ticket({ ClosureCode: 'Immediately Resolved', Title: 'Escalation about a parcel' }), CTX);
+  // No Root Cause Details, so its Issue line cannot stand in for the title's issue type.
+  const r = eng.validateTicket(ticket({ ClosureCode: 'Immediately Resolved', Title: 'Escalation about a parcel', RootCauseDetails: '' }), CTX);
   assert.equal(r.scope, 'title');
   assert.deepEqual(keys(r), ['country', 'severity', 'type']);
   assert.equal(r.failures.every(f => f.group === 'title' && f.label && f.message), true);
@@ -103,14 +104,97 @@ test('Duplicate is not checked at all', () => {
   assert.deepEqual(r.failures, []);
 });
 
-test('a closure code outside the three documented values is left alone', () => {
-  ['Automatically Closed', '', 'Successful with Problems', 'No Issue'].forEach(code => {
-    const r = eng.validateTicket(ticket({ ClosureCode: code, Title: 'nothing valid here', RootCauseDetails: '' }), CTX);
-    assert.equal(r.scope, 'none', code);
-    assert.equal(r.ok, true, code);
-    assert.deepEqual(r.failures, [], code);
+// ---- Engine: a closure code outside the three is itself the error (owner rule, Nov 2026) ----
+test('a closure code outside the three is an error naming that code, and nothing else is checked', () => {
+  // The real spellings from the owner's data, plus the other codes the uploads carry.
+  ['Automatically Closed', 'Automatically Resolved', 'No Issue', 'Successful with Problems', 'Unsuccessful'].forEach(code => {
+    // A perfectly clean title and Root Cause Details: the code alone must still fail.
+    const r = eng.validateTicket(ticket({ ClosureCode: code }), CTX);
+    assert.equal(r.scope, 'code', code);
+    assert.equal(r.ok, false, code);
+    assert.deepEqual(keys(r), [eng.CODE_KEY], code);
+    assert.equal(r.closureCode, code, code);
+    assert.ok(r.failures[0].message.includes(code), 'the reason names ' + code);
+    assert.ok(r.failures[0].message.includes(eng.ALLOWED_TEXT), 'the reason names the three allowed codes');
+    assert.equal(r.failures[0].label, eng.CODE_LABEL, code);
+  });
+  // A bad title and empty Root Cause Details add nothing: the code has to be fixed first.
+  const bad = eng.validateTicket(ticket({ ClosureCode: 'No Issue', Title: 'nothing valid here', RootCauseDetails: '' }), CTX);
+  assert.deepEqual(keys(bad), [eng.CODE_KEY]);
+});
+
+test('a blank closure code is an error too, reported as (blank)', () => {
+  ['', '   ', null].forEach(code => {
+    const r = eng.validateTicket(ticket({ ClosureCode: code }), CTX);
+    assert.equal(r.scope, 'code', String(code));
+    assert.deepEqual(keys(r), [eng.CODE_KEY], String(code));
+    assert.ok(r.failures[0].message.includes(eng.BLANK_CODE), 'the reason says ' + eng.BLANK_CODE);
   });
 });
+
+test('the three allowed codes are never reported as a closure-code error', () => {
+  eng.ALLOWED_CODES.forEach(code => {
+    const r = eng.validateTicket(ticket({ ClosureCode: code }), CTX);
+    assert.notEqual(r.scope, 'code', code);
+    assert.equal(r.failures.some(f => f.key === eng.CODE_KEY), false, code);
+  });
+  // Case and spacing do not matter (closureKey): still not a code error.
+  assert.notEqual(eng.validateTicket(ticket({ ClosureCode: '  immediately   RESOLVED ' }), CTX).scope, 'code');
+});
+
+test('the closure-code error does not reach an unmarked or Error-marked ticket', () => {
+  const rows = [ticket({ ShortId: 'OPEN', ClosureCode: 'No Issue' }), ticket({ ShortId: 'ERR', ClosureCode: 'No Issue' }),
+    ticket({ ShortId: 'DONE', ClosureCode: 'No Issue' })];
+  // OPEN was never marked, ERR was marked Error in the app: both stay out of Error detected entirely.
+  const out = eng.validateRows(rows, CTX, { claimed: ['ERR', 'DONE'], markStatus: { ERR: 'error' } });
+  assert.deepEqual(Array.from(out.keys()), ['DONE']);
+  assert.deepEqual(keys(out.get('DONE')), [eng.CODE_KEY]);
+  // ...and neither does an owner-approved error ticket.
+  assert.equal(eng.validateRows(rows, CTX, { approvedError: ['OPEN', 'ERR', 'DONE'] }).size, 0);
+});
+
+// ---- Engine: the Sim Root Cause Details Issue field overrides the title's issue type ----
+const NO_TYPE_TITLE = 'US Customer Incident Escalation - Sev 5 - something unrecognisable';
+
+test('Successful: a valid Issue field means the title issue type is not reported', () => {
+  const r = eng.validateTicket(ticket({ Title: NO_TYPE_TITLE }), CTX);   // FULL_RCD has Issue: Verbal abuse
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.failures, []);
+  // The country and severity checks still apply on their own.
+  const bare = eng.validateTicket(ticket({ Title: 'something unrecognisable' }), CTX);
+  assert.deepEqual(keys(bare), ['country', 'severity']);
+});
+
+test('Successful: an invalid or N/A Issue field leaves the title issue type reported', () => {
+  ['Issue: not a real issue type', 'Issue: N/A', 'Issue:'].forEach(line => {
+    const rcd = FULL_RCD.replace('Issue: Verbal abuse', line);
+    const r = eng.validateTicket(ticket({ Title: NO_TYPE_TITLE, RootCauseDetails: rcd }), CTX);
+    assert.ok(keys(r).indexOf('type') >= 0, 'title issue type reported for ' + line);
+  });
+  // No Root Cause Details at all: the title's issue type is reported (with the required fields).
+  const none = eng.validateTicket(ticket({ Title: NO_TYPE_TITLE, RootCauseDetails: '' }), CTX);
+  assert.deepEqual(keys(none), ['Date', 'Issue', 'Res', 'type']);
+});
+
+test('the Issue field override matches the catalogue exactly, not by substring', () => {
+  const of = (issue) => eng.validateTicket(ticket({ Title: NO_TYPE_TITLE,
+    RootCauseDetails: FULL_RCD.replace('Issue: Verbal abuse', 'Issue: ' + issue) }), CTX);
+  assert.equal(of('attack  w/pet').ok, true);                            // normalised exact match
+  assert.ok(keys(of('Theft of a parcel')).indexOf('type') >= 0);         // a type INSIDE a longer value does not count
+});
+
+test('Immediately Resolved: a valid Issue field also stands in for the title issue type', () => {
+  // The owner's rule is stated for all pages, so it applies here too - and it raises no RCD failure,
+  // because the Sim Root Cause Details fields themselves are still not checked for this code.
+  const rcd = ['Issue: Theft', 'Cnt: abc'].join('\n');   // Cnt is nonsense: still not reported
+  const r = eng.validateTicket(ticket({ ClosureCode: 'Immediately Resolved', Title: NO_TYPE_TITLE, RootCauseDetails: rcd }), CTX);
+  assert.equal(r.scope, 'title');
+  assert.equal(r.ok, true);
+  // Without a valid Issue field the title issue type is reported, and still nothing from the RCD.
+  const bad = eng.validateTicket(ticket({ ClosureCode: 'Immediately Resolved', Title: NO_TYPE_TITLE, RootCauseDetails: 'Issue: N/A\nCnt: abc' }), CTX);
+  assert.deepEqual(keys(bad), ['type']);
+});
+
 
 // ---- Engine: skips and approvals ----
 test('a ticket the contractor marked Error gets no result', () => {

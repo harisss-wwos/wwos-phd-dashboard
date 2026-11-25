@@ -342,9 +342,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view.tb-asg-card .tb-asg-scroll{max-height:70vh}
 .st-view.tb-san-card .tb-san-sum p{font-size:.92em}
 .st-view[aria-busy="true"]{opacity:.6}
-/* Ticket view (sanitization-view.js): one line per ticket. Score / Ticket ID / Status (and Marked at /
-   Undo) fit their content; Title and Missing (Reason) share the rest, single line with ellipsis (full
-   text in the title tooltip). Missing may wrap below 900px. */
+/* Ticket view (sanitization-view.js): one line per ticket. Current Closure Code / Ticket ID / Score /
+   Status (and Marked at / Undo) fit their content; Title (where a table still has one) and MISSING
+   FIELDS (Reason) share the rest, single line with ellipsis (full text in the title tooltip). MISSING
+   FIELDS may wrap below 900px. Tickets to sanitize has no Score or Title column and no sort control. */
 .st-view .tb-san-sec.is-temp>summary b{background:#e9f0fb;color:#1f4f99}
 .st-view .tb-san-sec.is-err>summary b{background:#fff3e8;color:#8a3a00}
 /* Error detected: the tickets the last upload flagged, waiting for the owner (first section): light red. */
@@ -367,10 +368,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view select.stv-st{width:auto;min-width:150px;height:34px;padding:0 8px;border:1px solid #cdd4db;border-radius:8px;background:#fff;color:#1b2026;font:inherit;font-size:.92em;font-weight:700;cursor:pointer}
 .st-view select.stv-st:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
 .st-view select.stv-st:disabled{opacity:.6;cursor:default}
-.st-view .stv-sort{display:inline-flex;align-items:center;gap:6px;margin:0;padding:2px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
-.st-view .stv-sort:hover{border-color:#d4dade;background:#fff}
-.st-view .stv-sort:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
-.st-view .stv-sort-ic{font-size:.8em;color:#b5530a}
 .st-view .stv-why{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:start;padding:10px 12px;border:1px solid #f6c89b;border-radius:10px;background:#fff8f1}
 .st-view .stv-why-l{grid-column:1/-1;font-size:.9em;font-weight:800;color:#2a3340}
 .st-view .stv-req{color:#b42318}
@@ -581,10 +578,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <!-- Issue Types list (window.IZ_CATS) + the searchable-select enhancer, used by the Generate pop-up. -->
 <script src="issue-types-data.js?v=4"></script>
 <script src="topbar-auth.js?v=241"></script>
-<script src="sanitization-view.js?v=23"></script>
+<script src="sanitization-view.js?v=24"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=10"></script>
+<script src="sanitization-checklist.js?v=11"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -609,7 +606,6 @@ var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'ded'|'
 var SELR={}, LASTI=-1;     // owner's Error tickets selection (shortId -> true) + last clicked row index (Shift+click range)
 var REVBUSY=false;         // an error-review request is running
 var APPR_OPEN=false;       // owner's "Approved errors" list open
-var SORT='asc';            // Needs correction score order ('asc' = lowest first)
 var ERRF=null;             // open "Why is this an error ticket?" form: {shortId, text, err, busy}
 var BUSY={};               // shortId -> true while its status is being saved
 var NOTE='';               // last save error (shown above the view)
@@ -732,7 +728,7 @@ function viewBody(){
   var ro=!canMark(SEL);
   return '<p class="stv-note" id="stvNote" role="alert">'+esc(NOTE)+'</p>'+
     (ro?'<p class="stv-help">You are viewing '+esc(who)+'\u2019s tickets. Only '+esc(who)+' and the owner can change their status.</p>':'')+
-    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,sortDir:SORT,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
+    V.viewHtml(v.data,{who:who||null,login:SEL,pageSize:PAGE_SIZE,page:PG,open:OPEN,errForm:ro?null:ERRF,busy:BUSY,readOnly:ro,
       review:canReview(SEL),sel:SELR,revBusy:REVBUSY,apprOpen:APPR_OPEN,h:{ic:ic,when:S.when,url:S.url}});
 }
 // Error tickets are owner-only (the server sends contractors no error rows and enforces the review too).
@@ -834,8 +830,8 @@ function loadView(login,force,after){
     announce(x.error?('Could not load '+name+'\u2019s tickets.'):('Loaded '+name+'\u2019s tickets: '+needOf(x.data)+' to sanitize, '+((x.data.totals&&x.data.totals.cleared)||0)+' sanitized.'));
   });
 }
-// Switching contractor resets paging / sort / forms / selection; the open section (OPEN) is kept.
-function resetViewState(){ PG={ded:0,need:0,ok:0}; SORT='asc'; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
+// Switching contractor resets paging / forms / selection; the open section (OPEN) is kept.
+function resetViewState(){ PG={ded:0,need:0,ok:0}; ERRF=null; BUSY={}; NOTE=''; SELR={}; LASTI=-1; REVBUSY=false; APPR_OPEN=false; }
 function select(login,focusCard){
   if(!findC(login)) return;
   var same=login===SEL;
@@ -1154,16 +1150,12 @@ document.addEventListener('click',function(e){
   var card=t.closest('.st-card[data-login]');
   // The expanded panel now lives INSIDE the card, so a click on its sections, tables or buttons
   // bubbles up to this row handler and used to toggle the agent shut. Such a click must not select
-  // the row - but it MUST still reach the actions below (Save / Cancel on the error note, Undo,
-  // sorting, the pagers and the owner's review buttons all live in that panel), so only the row
-  // toggle is skipped here, never the rest of the handler.
+  // the row - but it MUST still reach the actions below (Save / Cancel on the error note, Undo, the
+  // pagers and the owner's review buttons all live in that panel), so only the row toggle is skipped
+  // here, never the rest of the handler.
   if(card&&!t.closest('.st-card-exp')){ select(card.getAttribute('data-login'),true); return; }
   if(t.closest('#stRetry')){ loadList(true); return; }
   if(t.closest('#stViewRetry')){ if(SEL) loadView(SEL,true); return; }
-  if(t.closest('[data-stvsort]')){
-    SORT=SORT==='asc'?'desc':'asc'; PG.need=0; PG.ded=0; renderView('details[open] [data-stvsort]');
-    announce('Tickets to sanitize sorted by score, '+(SORT==='asc'?'lowest':'highest')+' first.'); return;
-  }
   var sv=t.closest('[data-stvsave]'); if(sv&&!sv.disabled){ saveWhy(sv.getAttribute('data-stvsave')); return; }
   var cn=t.closest('[data-stvcancel]'); if(cn&&!cn.disabled){ var sid=cn.getAttribute('data-stvcancel'); ERRF=null; renderView('[data-stvst="'+sid+'"]'); return; }
   var un=t.closest('[data-stvundo]'); if(un&&!un.disabled){ saveMark(un.getAttribute('data-stvundo'),'',''); return; }

@@ -59,12 +59,12 @@ var TS_OTHER={key:'other',label:'Other',icon:'info'};
 var TS_RULES=[
   {key:'r-immediate',label:'Closure code "Immediately Resolved"',icon:'check-circle',lines:[
     'SIM Title: a known country code at the start.',
-    'SIM Title: a valid issue type.',
+    'SIM Title: a valid issue type \u2014 unless the Sim Root Cause Details Issue field holds a valid one, which then stands in for it.',
     'SIM Title: a severity (Sev 1-5).',
     'Sim Root Cause Details is not checked for this closure code.']},
   {key:'r-successful',label:'Closure code "Successful"',icon:'clipboard',lines:[
     'SIM Title: a known country code at the start.',
-    'SIM Title: a valid issue type.',
+    'SIM Title: a valid issue type \u2014 unless the Sim Root Cause Details Issue field holds a valid one, which then stands in for it.',
     'SIM Title: a severity (Sev 1-5).',
     'Sim Root Cause Details: Issue, Date and Res must have a real value (N/A does not count).',
     'Sim Root Cause Details: SID, TID, Driv, Zip, CID and UPID may have a value or N/A.',
@@ -72,7 +72,9 @@ var TS_RULES=[
   {key:'r-duplicate',label:'Closure code "Duplicate"',icon:'ticket',lines:[
     'Nothing is checked.']},
   {key:'r-other',label:'Any other closure code',icon:'info',lines:[
-    'Nothing is checked: the rules cover only Immediately Resolved, Successful and Duplicate.']},
+    'The closure code itself is the error: a sanitized ticket may only end as Successful, Immediately Resolved or Duplicate.',
+    'It is listed under Error detected, naming the code the upload carried (Automatically Closed, No Issue, a blank code, ...).',
+    'Nothing else on the ticket is checked until it is closed with an allowed code.']},
   {key:'r-skipped',label:'Tickets left out of validation',icon:'flag',lines:[
     'A ticket is checked only after the contractor marks it: an unmarked ticket stays in Tickets to sanitize.',
     'A ticket marked Error in the app waits for harisss to approve it and is not validated.',
