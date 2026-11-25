@@ -18,11 +18,12 @@
 <style>
 /* =====================================================================================
    Incident Explorer — same visual language as page-zero.html / errors-in-resolved.html:
-   dark navy hero (grid texture + orange glow + orange left rule), the fixed full-width 'All regions'
-   card (KPIs + region cards), then two collapsible drill-down sections (collapsed by default):
-   A  Region > Country > State > City > SID > Issue type > Root cause > Resolution > Driver type > tickets
-   B  Driver type > Region > Country > State > City > SID > Issue type > Root cause > Resolution > tickets
-   each with its own path bar and one full-width section per level stacked one below the other.
+   dark navy hero (grid texture + orange glow + orange left rule), then in DOM order: 'All regions' (KPIs),
+   'Successfully resolved by region' (region cards), 'Driver type' (4 checkboxes, all ticked by default),
+   'Successfully resolved by country' (world map / state maps), then ONE collapsible drill-down, hidden until a
+   country is picked on the map: it starts at that country's States > City > SID > Issue type > Root cause >
+   Resolution > tickets, with its path bar and one full-width section per level stacked one below the other.
+   Everything on the page follows the Driver type filter and covers tickets created since 1 Jan 2026 only.
    Scoped under .iex (a size container).
    (theme.css / app-light.css are intentionally not loaded, as on page-zero.html.)
    ===================================================================================== */
@@ -64,12 +65,24 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
   font-size:.8em;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .iex-chip svg{flex-shrink:0;color:#ffb26b}
 .iex-chip>span,.iex-chip>label{color:rgba(233,237,243,.62);font-weight:800;font-size:.86em;letter-spacing:1px;text-transform:uppercase}
-.iex-chip select{appearance:none;-webkit-appearance:none;border:none;border-radius:6px;background:rgba(255,255,255,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23ffb26b' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;
-  color:#fff;font-weight:800;padding:2px 24px 2px 8px;cursor:pointer}
-.iex-chip select option{color:var(--ink)}
 .iex-sk-d{display:inline-block;width:140px;height:12px;border-radius:5px;background:linear-gradient(90deg,rgba(255,255,255,.10) 25%,rgba(255,255,255,.24) 40%,rgba(255,255,255,.10) 60%);background-size:400% 100%;animation:iexShim 1.4s ease infinite}
 
-/* ---- Fixed 'All regions' card (full width, directly under the hero) ---- */
+/* ---- Driver type filter (directly under the hero; drives every part of the page) ---- */
+#iexDrv{margin-top:16px}
+#iexDrv[hidden]{display:none}
+.iex-drv-fs{border:0;min-width:0}
+.iex-drv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+@container (max-width:760px){.iex-drv{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:400px){.iex-drv{grid-template-columns:minmax(0,1fr)}}
+.iex-drv-it{display:flex;align-items:center;gap:8px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;
+  transition:background .15s,border-color .15s,box-shadow .15s}
+.iex-drv-it:hover{background:#fafbfc;border-color:#c4ccd4;box-shadow:0 8px 18px -14px rgba(20,30,50,.6)}
+.iex-drv-it.is-on{border-color:var(--acc);background:var(--acc-bg)}
+.iex-drv-it input{flex-shrink:0;width:16px;height:16px;accent-color:var(--acc);cursor:pointer}
+.iex-drv-it .iex-it-nm{flex:1 1 auto;max-width:none}
+.iex-drv-it .iex-it-n,.iex-drv-it .iex-it-p{flex-shrink:0}
+
+/* ---- Fixed 'All regions' card (full width, under the Driver type filter) ---- */
 .iex-fixed{margin:16px 0}
 .iex-fixed:empty{display:none}
 .iex-fixed>.iex-card{padding:18px 20px}
@@ -164,7 +177,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-its:is(.is-grid,.is-eq) .iex-it{display:flex;width:100%;max-width:none;min-width:0}
 .iex-its:is(.is-grid,.is-eq) .iex-it-nm{flex:1 1 auto;max-width:none}
 .iex-its:is(.is-grid,.is-eq) .iex-it-n,.iex-its:is(.is-grid,.is-eq) .iex-it-p{flex-shrink:0}
-/* Unpaged levels (Regions / Countries / Driver types): one equal column per item (--n, set from JS; 5 when there
+/* Unpaged levels (Regions / Countries): one equal column per item (--n, set from JS; 5 when there
    are more than 8), filling the row; at most 3 / 2 / 1 per row as the section narrows (--n3 / --n2 = min(n,3|2)). */
 .iex-its.is-eq{display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr))}
 @container (max-width:1000px){.iex-its.is-eq{grid-template-columns:repeat(var(--n3,1),minmax(0,1fr))}}
@@ -192,7 +205,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-grp-nm{min-width:0;overflow-wrap:anywhere}
 .iex-grp-n{margin-left:auto;font-size:.84em;font-weight:800;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
 
-/* Export buttons (Issue types / Root causes / Resolutions / Driver types / ticket section): soft accent fill,
+/* Export buttons (Issue types / Root causes / Resolutions / ticket section): soft accent fill,
    download icon, ticket count in the label, 'CSV' caption; sits beside the Successfully Resolved count. */
 .iex-sec-end{flex:0 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px 18px}
 @container (max-width:620px){.iex-sec-end{flex:1 1 100%;justify-content:space-between}}
@@ -268,43 +281,44 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex.is-anim .iex-fixed{animation:iexUp .5s ease .06s both}
 .iex.is-anim .iex-xsecs{animation:iexUp .5s ease .12s both}
 
-/* ---- Fixed card: region cards (click -> Section A at that region) ---- */
-.iex-regs-h{margin:18px 0 10px;font-size:.7em;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut)}
-.iex-regs-h span{font-weight:700;letter-spacing:.2px;text-transform:none;color:var(--mut2)}
+/* ---- 'Successfully resolved by region': region cards (display only; the map navigates) ---- */
 /* One equal column per region (--n from JS), filling the row; at most 3 / 2 / 1 per row on narrower layouts. */
 .iex-regs{list-style:none;display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));gap:10px}
 .iex-regs>li{min-width:0}
 @container (max-width:1000px){.iex-regs{grid-template-columns:repeat(var(--n3,1),minmax(0,1fr))}}
 @container (max-width:600px){.iex-regs{grid-template-columns:repeat(var(--n2,1),minmax(0,1fr))}}
 @container (max-width:400px){.iex-regs{grid-template-columns:minmax(0,1fr)}}
-.iex-reg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-align:left;cursor:pointer;
-  --k:var(--acc);transition:background .15s,border-color .15s,box-shadow .15s}
-.iex-reg:hover{background:#fafbfc;border-color:#c4ccd4;box-shadow:0 8px 18px -14px rgba(20,30,50,.6)}
+.iex-reg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-align:left;
+  --k:var(--acc)}
 .iex-reg.is-on{border-color:#f7c99c;background:var(--acc-bg)}
 .iex-reg-nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86em;font-weight:800}
 .iex-reg-n{font-size:1.45em;font-weight:800;letter-spacing:-.6px;line-height:1.1;font-variant-numeric:tabular-nums}
 .iex-reg-p{font-size:.74em;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
 .iex-reg .iex-kpi-bar{align-self:stretch;margin-top:6px}
 
-/* ---- World map (world-map.svg, one <path> per country; click -> Section A at that country) ----
-   The svg scales with the card (viewBox only, no pixel size here). Fill steps reuse the page accent:
-   muted = no successfully resolved tickets, q1..q4 = share of the busiest country, is-on = the country
-   currently selected in Section A. The hover highlight is pure CSS :hover, so a multi-part country
-   (one path with several subpaths, e.g. United States with Alaska) lights up in full. */
+/* ---- World map (world-map.svg, one <path> per country; click -> the explorer at that country) ----
+   The svg scales with the card (viewBox only, no pixel size here). Fill = the country's ticket-count bucket
+   (MAP_BUCKETS in the script): b4 red (most), b3 orange, b2 blue, b1 green (fewest, non-zero) — light
+   normally, dark on hover; grey = no cases (black on hover); is-on = the country currently selected in the
+   explorer (its bucket's dark fill + a dark outline). The hover highlight is pure CSS :hover, so a
+   multi-part country (one path with several subpaths, e.g. United States with Alaska) lights up in full. */
 #iexMap{margin-top:16px}
 #iexMap[hidden]{display:none}
 .iex-map-box{position:relative;margin-top:12px}
 .iex-map-in{border:1px solid var(--line);border-radius:10px;background:#fbfcfd;padding:6px}
 .iex-map-in svg{display:block;width:100%;height:auto}
 .iex-map-in path{fill:#e4e7ea;stroke:#fff;stroke-width:.4;vector-effect:non-scaling-stroke;transition:fill .12s}
-.iex-map-in path.q1{fill:#fde3c8}
-.iex-map-in path.q2{fill:#f8c089}
-.iex-map-in path.q3{fill:#f0943f}
-.iex-map-in path.q4{fill:#c84f0c}
-.iex-map-in path.is-on{fill:var(--acc);stroke:#7a3205;stroke-width:1}
+.iex-map-in path.b1{fill:#b5e3c6}
+.iex-map-in path.b2{fill:#b3d1f2}
+.iex-map-in path.b3{fill:#fdc896}
+.iex-map-in path.b4{fill:#f6b3ac}
 .iex-map-in path.has{cursor:pointer}
 .iex-map-in path:hover{fill:#161d2d;stroke:#161d2d}
-.iex-map-in path.has:hover{fill:var(--acc);stroke:#7a3205;stroke-width:1}
+.iex-map-in path.b1:hover,.iex-map-in path.b1.is-on{fill:#1a7a43;stroke:#1a7a43}
+.iex-map-in path.b2:hover,.iex-map-in path.b2.is-on{fill:#1d4ed8;stroke:#1d4ed8}
+.iex-map-in path.b3:hover,.iex-map-in path.b3.is-on{fill:#c2410c;stroke:#c2410c}
+.iex-map-in path.b4:hover,.iex-map-in path.b4.is-on{fill:#b42318;stroke:#b42318}
+.iex-map-in path.has.is-on{stroke:#161d2d;stroke-width:1.6}
 .iex-map-tip{position:absolute;z-index:3;left:0;top:0;min-width:min(150px,100%);max-width:min(260px,100%);padding:9px 11px;border-radius:9px;
   background:#161d2d;color:#fff;font-size:.8em;line-height:1.45;font-variant-numeric:tabular-nums;pointer-events:none;
   box-shadow:0 16px 32px -16px rgba(20,30,50,.7)}
@@ -318,9 +332,27 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-map-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;list-style:none;font-size:.74em;font-weight:700;color:var(--mut)}
 .iex-map-key li{display:inline-flex;align-items:center;gap:6px}
 .iex-map-key i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(20,30,50,.12)}
+/* ---- State / province map (maps/<ISO2>.svg, loaded on demand into #iexStIn; same fills as the world map).
+   Paths are focusable buttons: keyboard focus gets the hover fill plus a dark outline. ---- */
+.iex-st-in path{fill-rule:evenodd}
+.iex-map-in path:focus{outline:none}
+.iex-map-in path:focus-visible{fill:#161d2d;stroke:#161d2d;stroke-width:1.6}
+.iex-map-in path.b1:focus-visible{fill:#1a7a43}
+.iex-map-in path.b2:focus-visible{fill:#1d4ed8}
+.iex-map-in path.b3:focus-visible{fill:#c2410c}
+.iex-map-in path.b4:focus-visible{fill:#b42318}
+.iex-map-back[hidden]{display:none}
+.iex-st-note{margin-top:8px}
+.iex-st-note:empty{display:none}
+.iex-st-note .iex-reset{margin-left:8px;padding:4px 10px;vertical-align:middle}
+/* Countries with tickets but no shape on the world map ('Unknown', or the map failed to load): chips that open the explorer. */
+.iex-off{margin-top:12px}
+.iex-off:empty,.iex-off[hidden]{display:none}
+.iex-off .iex-head-sub{margin:0 0 8px}
 
-/* ---- Collapsible drill-down sections A / B (chevron header, as on errors-in-resolved.html) ---- */
+/* ---- Collapsible drill-down section (chevron header, as on errors-in-resolved.html) ---- */
 .iex-xsecs{display:flex;flex-direction:column;gap:16px;margin-top:16px}
+.iex-xsecs[hidden],.iex-xsec[hidden]{display:none}
 .iex-xsec{overflow:hidden}
 .iex-xhead{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:14px 18px}
 .iex-xsec.is-open .iex-xhead{border-bottom:1px solid var(--line);background:#fbfbfa}
@@ -331,8 +363,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--page);color:v
 .iex-chev svg{transition:transform .15s}
 .iex-xbtn:hover .iex-chev{background:var(--blue-bg);color:var(--blue)}
 .iex-xbtn[aria-expanded="true"] .iex-chev svg{transform:rotate(90deg)}
-.iex-xno{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:var(--acc-bg);
-  border:1px solid #f7c99c;color:var(--acc-ink);font-size:.72em;font-weight:800}
 .iex-xt{min-width:0;overflow-wrap:anywhere}
 .iex-xsum{flex:0 1 auto;min-width:0;margin:0;font-size:.82em;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
 .iex-xsum b{color:var(--ink);font-weight:800}
@@ -384,37 +414,64 @@ function fmtUtc(iso){
   var d=new Date(iso); if(!iso||isNaN(d.getTime())) return '\u2014';
   try{ return new Intl.DateTimeFormat('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d); }catch(e){ return d.toISOString().slice(0,16).replace('T',' '); }
 }
-function fmtIst(iso){
-  var d=new Date(iso); if(!iso||isNaN(d.getTime())) return '\u2014';
-  try{ return d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' IST'; }catch(e){ return d.toISOString(); }
-}
 var EXT='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
-var YEARS=[2026,2025];
+var YEAR=2026;   // the page covers ONLY tickets created from 1 Jan 2026 to now (the server builds 2026 only)
 var PAGE_SIZE=20;
-// Two drill-downs over the SAME ticket set (server ?hierarchy=geo|driver), each a makeExplorer() instance with
-// its own state (selection, searches, grid pages, ticket page, export). Inside an instance the drill-down is a
+// One drill-down (makeExplorer() instance EXP) with its own state (selection, searches, grid pages, ticket
+// page, export). The Driver type filter (G.drv) picks which per-driver trees of the /tree payload are summed
+// into the tree shown (applyFilter); /tickets and /export get the same &drv=. The drill-down is a
 // stack of full-width level sections: section d lists the children of the node at sel.slice(0,d), with sel[d]
-// highlighted; it shows once its parent level has a selection (the first level always shows). When the
+// highlighted; it shows once its parent level has a selection. Sections start at d = CFG.startDepth (the
+// country's States): Regions and Countries are picked on the map, never listed here. When the
 // selection is a leaf a final ticket section follows (20 per page, newest first, Export all).
-// Per-level behaviour is keyed by the LEVEL NAME of the listed items, so it follows the level in either order:
+// Per-level behaviour is keyed by the LEVEL NAME of the listed items:
 //   search boxes   States / Cities / SIDs
-//   export buttons Issue types / Root causes / Resolutions / Driver types (scope = the section's parent node;
+//   export buttons Issue types / Root causes / Resolutions (scope = the section's parent node;
 //                  never on the first level, whose scope would be the whole tree) + the final ticket section
 //   paged grids    States 25 (5x5), Cities 25, SIDs 10 (5x2), Root causes / Resolutions 40 (10 rows of 4)
 var SEARCH_LV={'State':1,'City':1,'SID':1};
-var EXPORT_LV={'Issue type':1,'Root cause':1,'Resolution':1,'Driver type':1};
+var EXPORT_LV={'Issue type':1,'Root cause':1,'Resolution':1};
 var PAGED_LV={'State':25,'City':25,'SID':10,'Root cause':40,'Resolution':40};
 var GRID4_LV={'Root cause':1,'Resolution':1};
-var DEFAULT_REGION='NA';
-var HIER={
-  geo:{ key:'geo', no:'A', tag:'Geo', rootLabel:'All regions', defaultPath:[DEFAULT_REGION],
-    levels:['Region','Country','State','City','SID','Issue type','Root cause','Resolution','Driver type'] },
-  driver:{ key:'driver', no:'B', tag:'Driver', rootLabel:'All driver types', defaultPath:[],
-    levels:['Driver type','Region','Country','State','City','SID','Issue type','Root cause','Resolution'] }
-};
-var HKEYS=['geo','driver'];
-var G={ year:2026, first:true };
+// Map-first: Region and Country are picked on the world map, so the drill-down lists levels from startDepth
+// (2 = the selected country's States) and is hidden while no country is selected (default selection []).
+var CFG={ key:'geo', no:'A', rootLabel:'All regions', defaultPath:[], startDepth:2,
+  levels:['Region','Country','State','City','SID','Issue type','Root cause','Resolution'] };
+// Driver type filter: the ticked types (in DRV order). All four are ticked by default (load / Start over).
+// None ticked = all four = every ticket.
+var DRV=['Others','Flex DP','DSP DA','Hub DA'];
+var G={ first:true, drv:DRV.slice() };
+function drvFiltered(){ return G.drv.length>0&&G.drv.length<DRV.length; }
+function activeDrv(){ return drvFiltered()?G.drv.slice():DRV.slice(); }
+function drvLabel(){ return drvFiltered()?G.drv.join(' + '):'All driver types'; }
+// &drv= for /tickets and /export: only when 1-3 types are ticked (none / all four = no filter).
+function drvParam(){ return drvFiltered()?'&drv='+encodeURIComponent(G.drv.join(',')):''; }
+// Sum per-driver trees (same node shape) into a NEW tree: n / t / a add up, City zips are unioned.
+function mergeTrees(list){
+  list=list.filter(Boolean);
+  if(!list.length) return { k:CFG.rootLabel, n:0, t:0, a:0 };
+  return (function m(nodes){
+    var o={ k:nodes[0].k, n:0, t:0, a:0 }, z=null, kids=Object.create(null), order=[];
+    nodes.forEach(function(x){
+      o.n+=x.n||0; o.t+=x.t||0; o.a+=x.a||0;
+      if(x.z){ z=z||Object.create(null); x.z.forEach(function(v){ z[v]=1; }); }
+      (x.c||[]).forEach(function(c){ if(!kids[c.k]){ kids[c.k]=[]; order.push(c.k); } kids[c.k].push(c); });
+    });
+    if(z) o.z=Object.keys(z).sort();
+    if(order.length) o.c=order.map(function(k){ return m(kids[k]); }).sort(byTickets);
+    return o;
+  })(list);
+}
+// Sum per-driver 'All regions' summaries (every count adds up; the window is the same for all).
+function sumSummary(list){
+  var o={ created:0, resolved:0, agent:0, autosim:0, rule:0, other:0, immediateMinutes:15 };
+  list.filter(Boolean).forEach(function(s){
+    ['created','resolved','agent','autosim','rule','other'].forEach(function(k){ o[k]+=s[k]||0; });
+    if(s.immediateMinutes!=null) o.immediateMinutes=s.immediateMinutes;
+  });
+  return o;
+}
 var CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var DL_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
 function keyOf(path){ return JSON.stringify(path); }
@@ -472,13 +529,17 @@ function sectionsSkeleton(){
 }
 
 // =====================================================================================================
-// One drill-down (Section A = geo, Section B = driver). Element ids are prefixed 'iexA' / 'iexB'; events are
-// delegated from the page and routed by the section's [data-ex] attribute.
+// The drill-down. Element ids are prefixed 'iexA'; events are delegated from the page and routed by the
+// section's [data-ex] attribute. X.RAW = the /tree payload (loaded once); X.D = X.RAW with `tree` / `summary`
+// summed over the ticked driver types (applyFilter, re-run on every filter change without a new request).
 // =====================================================================================================
 function makeExplorer(cfg){
   var P='iex'+cfg.no;
-  var X={ cfg:cfg, open:false, D:null, loading:false, err:'', sel:[], q:{}, pg:{}, dl:false, seq:0, NODES:[], BYKEY:{} };
+  var X={ cfg:cfg, open:false, RAW:null, D:null, loading:false, err:'', sel:[], q:{}, pg:{}, dl:false, seq:0, NODES:[], BYKEY:{} };
   var T={ key:'', page:1, data:null, loading:false, err:'' };
+  var START=cfg.startDepth||0;
+  // The section is shown only once the selection reaches startDepth (a country picked on the map).
+  function shown(){ return X.sel.length>=START; }
   function el(s){ return $(P+s); }
   function box(){ return document.querySelector('[data-ex="'+cfg.key+'"]'); }
 
@@ -494,7 +555,6 @@ function makeExplorer(cfg){
   }
   function rootN(){ return X.NODES[0]; }
   function selId(){ var id=X.BYKEY[keyOf(X.sel)]; return id==null?0:id; }
-  function defaultPath(){ return X.BYKEY[keyOf(cfg.defaultPath)]!=null?cfg.defaultPath.slice():[]; }
   // Level name of a node at `depth` (path length).
   function levelName(depth){
     if(depth===0) return cfg.rootLabel;
@@ -511,22 +571,23 @@ function makeExplorer(cfg){
   function pathHtml(){
     if(!X.D) return '<span class="iex-path-k">Path</span><ol class="iex-crumbs"><li><span class="iex-skel" style="width:260px;height:26px"></span></li></ol>'+
       '<button type="button" class="iex-reset" disabled>'+ic('refresh',14)+'Start over</button>';
-    var items=[{path:[],label:cfg.rootLabel,val:num(rootN().node.n)+' tickets'}];
-    for(var i=1;i<=X.sel.length;i++){ var p=X.sel.slice(0,i); items.push({path:p,label:levelName(i),val:p[i-1]}); }
+    // Crumbs start at startDepth (the country): the levels above it are picked on the map.
+    var items=START?[]:[{path:[],label:cfg.rootLabel,val:num(rootN().node.n)+' tickets'}];
+    for(var i=Math.max(1,START);i<=X.sel.length;i++){ var p=X.sel.slice(0,i); items.push({path:p,label:levelName(i),val:p[i-1]}); }
     var h=items.map(function(it,i){
-      var last=i===items.length-1, id=X.BYKEY[keyOf(it.path)];
+      var last=i===items.length-1, id=X.BYKEY[keyOf(it.path)], top=!it.path.length;
       return '<li><button type="button" class="iex-crumb" data-go="'+id+'"'+(last?' aria-current="page"':'')+' title="'+esc(it.label+': '+it.val)+'">'+
-        '<small>'+esc(i===0?'Start':it.label)+'</small><b>'+esc(i===0?cfg.rootLabel:it.val)+'</b></button></li>';
+        '<small>'+esc(top?'Start':it.label)+'</small><b>'+esc(top?cfg.rootLabel:it.val)+'</b></button></li>';
     }).join('');
     return '<span class="iex-path-k" id="'+P+'PathK">Path</span><ol class="iex-crumbs" aria-labelledby="'+P+'PathK">'+h+'</ol>'+
-      '<button type="button" class="iex-reset" data-reset'+(keyOf(X.sel)!==keyOf(defaultPath())?'':' disabled')+'>'+ic('refresh',14)+'Start over</button>';
+      '<button type="button" class="iex-reset" data-reset'+(canReset()?'':' disabled')+'>'+ic('refresh',14)+'Start over</button>';
   }
 
   // ---- Level sections ----
   // The sections to show for the current selection: [{ d, pid, on:<selected child id or -1> }].
   function sectionLevels(){
     var out=[];
-    for(var d=0;d<=X.sel.length;d++){
+    for(var d=START;d<=X.sel.length;d++){
       var pid=X.BYKEY[keyOf(X.sel.slice(0,d))]; if(pid==null) break;
       if(!hasKids(X.NODES[pid].node)) break;
       var on=d<X.sel.length?X.BYKEY[keyOf(X.sel.slice(0,d+1))]:null;
@@ -592,7 +653,7 @@ function makeExplorer(cfg){
       return '<li>'+b(x,noun+' page '+x+' of '+pages,x,false,x===p)+'</li>';
     }).join('');
     return '<div class="iex-pager"><p class="iex-showing">Showing '+num((p-1)*per+1)+'\u2013'+num(Math.min(total,p*per))+' of '+num(total)+'</p>'+
-      '<nav aria-label="'+esc(noun)+' pages, section '+cfg.no+'"><ul class="iex-pages">'+
+      '<nav aria-label="'+esc(noun)+' pages"><ul class="iex-pages">'+
         '<li>'+b(p-1,'Previous page of '+lc,'\u2039 Prev',p<=1,false)+'</li>'+nums+
         '<li>'+b(p+1,'Next page of '+lc,'Next \u203a',p>=pages,false)+'</li></ul></nav></div>';
   }
@@ -681,17 +742,17 @@ function makeExplorer(cfg){
       if(x==='gap') return '<li class="iex-gap" aria-hidden="true">\u2026</li>';
       return '<li><button type="button" class="iex-pg" data-page="'+x+'"'+(x===d.page?' aria-current="page"':'')+' aria-label="Page '+x+'">'+x+'</button></li>';
     }).join('');
-    return '<div class="iex-scroll" tabindex="0" role="region" aria-label="Section '+cfg.no+' tickets, page '+d.page+' of '+d.pages+'"'+(T.loading?' aria-busy="true" style="opacity:.6"':'')+'><table class="iex-tbl"><thead><tr>'+
+    return '<div class="iex-scroll" tabindex="0" role="region" aria-label="Tickets, page '+d.page+' of '+d.pages+'"'+(T.loading?' aria-busy="true" style="opacity:.6"':'')+'><table class="iex-tbl"><thead><tr>'+
         '<th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">State</th><th scope="col">City</th><th scope="col">Zip</th><th scope="col" aria-sort="descending">Created <small>UTC \u00b7 newest first</small></th><th scope="col">Resolved <small>UTC</small></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="iex-pager"><p class="iex-showing">Showing '+num(from)+'\u2013'+num(to)+' of '+num(d.total)+'</p>'+
-      (d.pages>1?'<nav aria-label="Ticket pages, section '+cfg.no+'"><ul class="iex-pages">'+
+      (d.pages>1?'<nav aria-label="Ticket pages"><ul class="iex-pages">'+
         '<li><button type="button" class="iex-pg" data-page="'+(d.page-1)+'"'+(d.page<=1?' disabled':'')+' aria-label="Previous page">\u2039 Prev</button></li>'+pg+
         '<li><button type="button" class="iex-pg" data-page="'+(d.page+1)+'"'+(d.page>=d.pages?' disabled':'')+' aria-label="Next page">Next \u203a</button></li></ul></nav>':'')+
       '</div>';
   }
   function errorHtml(){
     return '<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load this drill-down</h3>'+
-      '<p>The server didn\u2019t send the '+G.year+' '+esc(chainText(cfg))+' tree. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
+      '<p>The server didn\u2019t send the '+esc(chainText(cfg))+' tree. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
       '<button type="button" class="iex-btn" data-retry>'+ic('refresh',14)+'Retry</button></div></section>';
   }
   function renderSections(){
@@ -699,7 +760,7 @@ function makeExplorer(cfg){
     if(X.loading||(!X.D&&!X.err)){ m.setAttribute('aria-busy','true'); m.innerHTML=sectionsSkeleton(); return; }
     m.removeAttribute('aria-busy');
     if(!X.D){ m.innerHTML=errorHtml(); return; }
-    if(!rootN().node.n){ m.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+X.D.year+'</h3><p>No ticket in the uploaded data was created in '+X.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
+    if(!rootN().node.n){ m.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets</h3><p>No ticket created since 1 January 2026 matches the selected driver types.</p></div></section>'; return; }
     var e=X.NODES[selId()], secs=sectionLevels();
     secs.forEach(function(s){ if(perPage(s)) openSelPage(s); });
     m.innerHTML=secs.map(sectionHtml).join('')+(e.depth&&!hasKids(e.node)?finalHtml(e):'');
@@ -725,16 +786,25 @@ function makeExplorer(cfg){
       s.innerHTML='<b>'+num(n)+'</b> successfully resolved'+(e.depth?' \u00b7 <span class="iex-xsum-p">'+esc(X.sel.join(' \u203a '))+'</span> <b>'+num(e.node.n)+'</b>':'');
     } else if(X.loading) s.textContent='Loading\u2026';
     else if(X.err) s.textContent='Couldn\u2019t load \u00b7 open to retry';
-    else { var gn=EX.geo&&EX.geo.total(); s.innerHTML=gn!=null?'<b>'+num(gn)+'</b> successfully resolved':''; }
+    else s.textContent='';
   }
   // Expanded / collapsed state: the toggle's aria-expanded + the body's hidden flag (the toggle keeps focus).
   function renderOpen(){
     var b=el('Btn'), body=el('Body'), sec=box();
     if(b) b.setAttribute('aria-expanded',X.open?'true':'false');
     if(body) body.hidden=!X.open;
-    if(sec) sec.classList.toggle('is-open',X.open);
+    if(sec){
+      sec.classList.toggle('is-open',X.open);
+      // Truly hidden (hidden attribute on the section and its wrapper) until a country is selected.
+      sec.hidden=!shown();
+      var w=sec.parentNode; if(w&&w.classList&&w.classList.contains('iex-xsecs')) w.hidden=sec.hidden;
+    }
   }
-  function render(){ renderOpen(); renderSum(); if(X.open){ renderPath(); renderSections(); } }
+  function render(){
+    renderOpen(); renderSum();
+    if(!shown()){ var m=el('Secs'); if(m) m.innerHTML=''; return; }   // hidden: drop the stale level sections
+    if(X.open){ renderPath(); renderSections(); }
+  }
 
   // ---- Selection ----
   // Select a path. Sections whose parent changed are rebuilt from scratch (their search is cleared).
@@ -746,7 +816,7 @@ function makeExplorer(cfg){
   }
   function ensureTickets(){
     var e=X.NODES[selId()]; if(!e) return;
-    if(X.open&&e.depth&&!hasKids(e.node)&&(T.key!==keyOf(X.sel)+'|'+G.year||(!T.data&&!T.loading))) loadTickets(1);
+    if(X.open&&e.depth&&!hasKids(e.node)&&(T.key!==ticketKey()||(!T.data&&!T.loading))) loadTickets(1);
   }
   function select(id){
     var e=X.NODES[id]; if(!e) return;
@@ -755,33 +825,45 @@ function makeExplorer(cfg){
     writeHash();
     render(); onChange();
     ensureTickets();
-    if(!same) announce('Section '+cfg.no+': '+(e.depth?levelName(e.depth)+' '+dispName(e):cfg.rootLabel)+' selected: '+num(e.node.n)+' tickets.'+
+    if(!same) announce('Explorer: '+(e.depth?levelName(e.depth)+' '+dispName(e):cfg.rootLabel)+' selected: '+num(e.node.n)+' tickets.'+
       (hasKids(e.node)?' '+levelPlural(e.depth+1)+' listed below.':' Tickets listed below.'));
   }
+  // Start over: back to the top of the drill-down (the selected country) with all four driver types ticked.
+  function canReset(){ return X.sel.length>START||G.drv.length!==DRV.length; }
   function startOver(){
-    setSel(defaultPath()); X.q={}; X.pg={}; writeHash(); render(); onChange();
-    announce('Section '+cfg.no+' start over: '+(X.sel.length?levelName(1)+' '+X.sel[0]:cfg.rootLabel)+' selected.');
+    setSel(X.sel.slice(0,START)); X.q={}; X.pg={};
+    G.drv=DRV.slice(); applyFilter();
+    announce('Explorer start over: '+(X.sel.length?levelName(X.sel.length)+' '+X.sel[X.sel.length-1]:cfg.rootLabel)+' selected, all driver types.');
+  }
+  // Clear the selection (Back to world map): the section hides again.
+  function clear(){
+    setSel([]); X.q={}; X.pg={}; X.open=false;
+    T.key=''; T.data=null; T.err=''; T.loading=false;
+    writeHash(); render(); onChange();
   }
 
   // ---- Tickets ----
+  // Ticket list identity: the selected path + the driver filter (a filter change reloads the list).
+  function ticketKey(){ return keyOf(X.sel)+'|'+(drvFiltered()?G.drv.join(','):''); }
   async function loadTickets(page){
-    var key=keyOf(X.sel)+'|'+G.year;
+    var key=ticketKey();
     if(T.key!==key) T.data=null;
     T.key=key; T.page=page; T.loading=true; T.err='';
     var b=el('TBody');
     if(b) b.innerHTML=ticketsInner();
     var r=null;
-    try{ r=await A.api('GET','/api/incident-explorer/tickets?year='+G.year+'&hierarchy='+cfg.key+'&path='+apiPath(X.sel)+'&page='+page+'&pageSize='+PAGE_SIZE); }catch(err){ r=null; }
+    try{ r=await A.api('GET','/api/incident-explorer/tickets?path='+apiPath(X.sel)+drvParam()+'&page='+page+'&pageSize='+PAGE_SIZE); }catch(err){ r=null; }
     if(T.key!==key||T.page!==page) return;   // a newer request superseded this one
     T.loading=false;
     if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){ T.data=r.data; T.page=r.data.page; }
     else { T.data=null; T.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the tickets.'); }
     b=el('TBody'); if(b) b.innerHTML=ticketsInner();
-    if(T.data) announce('Section '+cfg.no+' tickets page '+T.data.page+' of '+T.data.pages+': showing '+T.data.rows.length+' of '+num(T.data.total)+'.');
+    if(T.data) announce('Tickets page '+T.data.page+' of '+T.data.pages+': showing '+T.data.rows.length+' of '+num(T.data.total)+'.');
   }
   function fallbackName(path){
     var tags=path.length?path.map(function(s){ return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'x'; }):['All'];
-    return 'Incident_Explorer_'+cfg.tag+'_'+tags.join('_')+'_'+G.year+'.csv';
+    var dt=drvFiltered()?G.drv.map(function(s){ return String(s).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'x'; }).join('-'):'AllDrivers';
+    return 'Incident_Explorer_'+dt+'_'+tags.join('_')+'_'+YEAR+'.csv';
   }
   // Re-draw this section's Export buttons from X.dl (one export at a time; the busy one shows a spinner).
   function syncExportBtns(){
@@ -798,7 +880,7 @@ function makeExplorer(cfg){
     announce('Preparing the CSV\u2026');
     try{
       var tok=(A.getToken&&A.getToken())||'';
-      var r=await fetch(window.PHD_API_BASE+'/api/incident-explorer/export?year='+G.year+'&hierarchy='+cfg.key+'&path='+apiPath(path),{headers:tok?{Authorization:'Bearer '+tok}:{}});
+      var r=await fetch(window.PHD_API_BASE+'/api/incident-explorer/export?path='+apiPath(path)+drvParam(),{headers:tok?{Authorization:'Bearer '+tok}:{}});
       if(!r.ok){
         var msg='HTTP '+r.status; try{ var j=await r.json(); if(j&&j.error) msg=j.error; }catch(_){}
         if(r.status===401) msg='Your session has expired. Please log in again.';
@@ -818,32 +900,51 @@ function makeExplorer(cfg){
     }
   }
 
-  // ---- Load (this hierarchy's tree) ----
+  // ---- Driver type filter: sum the ticked per-driver trees / summaries of X.RAW into X.D (no request) ----
+  // The selection is cut back to its longest prefix that still exists under the filter (no selection, so the
+  // section hides, when its country is gone); the ticket list reloads for the new filter.
+  function applyFilter(first){
+    if(!X.RAW) return;
+    var ds=activeDrv();
+    X.D=Object.assign({},X.RAW,{
+      tree:mergeTrees(ds.map(function(d){ return X.RAW.trees[d]; })),
+      summary:sumSummary(ds.map(function(d){ return X.RAW.summaryByDrv[d]; })),
+    });
+    indexTree(X.D.tree);
+    var keep=X.sel.slice();
+    while(keep.length&&X.BYKEY[keyOf(keep)]==null) keep.pop();
+    if(keep.length<START) keep=[];      // no country left under the filter: nothing selected (section hidden)
+    Object.keys(X.q).forEach(function(d){ if(Number(d)>keep.length) delete X.q[d]; });
+    X.sel=keep; X.pg={};
+    T.key=''; T.data=null; T.err='';
+    render(); onChange(); writeHash();
+    ensureTickets();
+  }
+  // ---- Load (the /tree payload: one tree per driver type, loaded once) ----
   async function load(){
     var seq=++X.seq;
-    X.loading=true; X.err=''; X.D=null; X.NODES=[]; X.BYKEY={}; T.key=''; T.data=null; T.err='';
+    X.loading=true; X.err=''; X.RAW=null; X.D=null; X.NODES=[]; X.BYKEY={}; T.key=''; T.data=null; T.err='';
     render(); onChange();
     var r=null;
-    try{ r=await A.api('GET','/api/incident-explorer/tree?year='+G.year+'&hierarchy='+cfg.key); }catch(e){ r=null; }
-    if(seq!==X.seq) return;   // a newer load (year change) superseded this one
+    try{ r=await A.api('GET','/api/incident-explorer/tree'); }catch(e){ r=null; }
+    if(seq!==X.seq) return;   // a newer load (retry) superseded this one
     X.loading=false;
-    // An API process started before this build sends no `hierarchy` (and older ones no context counts /
-    // summary / geo chain): refuse it instead of showing the geo tree under the driver header.
-    if(r&&r.ok&&r.data&&r.data.tree&&(r.data.hierarchy!==cfg.key||typeof r.data.created!=='number'||typeof r.data.tree.t!=='number'||!r.data.summary||typeof r.data.summary.autosim!=='number'||
-        !r.data.geo||!Array.isArray(r.data.levels)||r.data.levels.indexOf('City')<0)){
+    // An API process started before this build sends one `tree` (no per-driver trees / summaries / country
+    // context): refuse it instead of showing unfiltered numbers under the filter.
+    var dd=r&&r.ok&&r.data;
+    if(dd&&(dd.tree||dd.trees)&&(!Array.isArray(dd.drivers)||!dd.trees||!dd.summaryByDrv||!dd.countryCtx||typeof dd.created!=='number'||!dd.summary||
+        typeof dd.summary.autosim!=='number'||!dd.geo||!Array.isArray(dd.levels)||dd.levels.indexOf('City')<0||
+        DRV.some(function(d){ return !dd.trees[d]||typeof dd.trees[d].t!=='number'||!dd.summaryByDrv[d]||!dd.countryCtx[d]; }))){
       X.err='The API server is running an older build of the Incident Explorer. Restart the API server (node server.js), then retry.';
-      render(); onChange(); if(X.open) announce('Could not load section '+cfg.no+'.'); return;
+      render(); onChange(); if(X.open) announce('Could not load the explorer.'); return;
     }
-    if(r&&r.ok&&r.data&&r.data.tree){
-      X.D=r.data; indexTree(r.data.tree);
-      // No (valid) path: the default selection (geo: NA, driver: none).
-      if(!X.sel.length||X.BYKEY[keyOf(X.sel)]==null){ X.sel=defaultPath(); X.q={}; }
-      render(); onChange(); writeHash();
-      ensureTickets();
-      if(X.open) announce('Section '+cfg.no+' loaded: '+num(r.data.total)+' tickets.');
+    if(dd&&dd.trees){
+      X.RAW=dd;
+      applyFilter(true);
+      if(X.open) announce('Explorer loaded: '+num(rootN().node.n)+' tickets.');
     } else {
       X.err=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the Incident Explorer.');
-      render(); onChange(); if(X.open) announce('Could not load section '+cfg.no+'.');
+      render(); onChange(); if(X.open) announce('Could not load the explorer.');
     }
   }
   // Expand / collapse. The tree loads on the first expand (skeleton meanwhile).
@@ -884,132 +985,152 @@ function makeExplorer(cfg){
     if(s&&perPage(s)) setSecPage(d,1);
     renderSectionList(d);
   }
-  // Open this section at a node (the fixed 'All regions' cards -> Section A at that region).
+  // Open this section at a node (the world / state map and the off-map country chips -> the explorer there).
   function openAt(path){
     if(!X.D) return;
     var id=X.BYKEY[keyOf(path)]; if(id==null) return;
     X.open=true; select(id);
   }
-  // Year change: forget the per-year state; reload now if the tree is needed (open, or geo for the fixed cards).
-  function resetYear(){ X.q={}; X.pg={}; T.key=''; X.D=null; X.err=''; X.seq++; X.loading=false; }
 
   // Section card (header toggle + body). Rendered once by the page shell.
   function shellHtml(){
-    return '<section class="iex-card iex-xsec" data-ex="'+cfg.key+'" aria-labelledby="'+P+'H">'+
+    return '<section class="iex-card iex-xsec" data-ex="'+cfg.key+'" aria-labelledby="'+P+'H" hidden>'+
       '<div class="iex-xhead"><h2 class="iex-xh" id="'+P+'H"><button type="button" class="iex-xbtn" id="'+P+'Btn" data-xtoggle="'+cfg.key+'" aria-expanded="false" aria-controls="'+P+'Body">'+
-        '<span class="iex-chev">'+CHEV+'</span><span class="iex-xno" aria-hidden="true">'+cfg.no+'</span><span class="iex-sr">Section '+cfg.no+': </span>'+
-        '<span class="iex-xt">'+esc(chainText(cfg))+'</span></button></h2>'+
+        '<span class="iex-chev">'+CHEV+'</span>'+
+        '<span class="iex-xt">Explorer: '+esc(chainText(cfg))+'</span></button></h2>'+
         '<p class="iex-xsum" id="'+P+'Sum"></p></div>'+
       '<div class="iex-xbody" id="'+P+'Body" hidden>'+
-        '<nav class="iex-path" id="'+P+'Path" aria-label="Section '+cfg.no+' drill-down path"></nav>'+
+        '<nav class="iex-path" id="'+P+'Path" aria-label="Drill-down path"></nav>'+
         '<div class="iex-secs" id="'+P+'Secs"></div></div></section>';
   }
 
   return {
-    cfg:cfg, X:X, shellHtml:shellHtml, render:render, renderSum:renderSum, load:load, setOpen:setOpen, click:click, input:input, openAt:openAt, resetYear:resetYear,
-    isOpen:function(){ return X.open; }, focusToggle:function(){ var b=el('Btn'); if(b) b.focus({preventScroll:true}); },
-    total:function(){ return X.D&&X.NODES.length?X.NODES[0].node.n:null; },
-    sel:function(){ return X.sel.slice(); }, setSelRaw:function(p){ X.sel=p.slice(0,9); },
+    cfg:cfg, X:X, shellHtml:shellHtml, render:render, renderSum:renderSum, load:load, setOpen:setOpen, click:click, input:input, openAt:openAt, applyFilter:applyFilter, clear:clear,
+    isOpen:function(){ return X.open&&shown(); }, shown:shown, focusToggle:function(){ var b=el('Btn'); if(b) b.focus({preventScroll:true}); },
+    sel:function(){ return X.sel.slice(); }, setSelRaw:function(p){ X.sel=p.slice(0,cfg.levels.length); },
     isDefaultSel:function(){ return !X.sel.length||keyOf(X.sel)===keyOf(cfg.defaultPath); },
     box:box,
   };
 }
-var EX={};
-EX.geo=makeExplorer(HIER.geo);
-EX.driver=makeExplorer(HIER.driver);
-// Page parts that read an instance's data: the fixed 'All regions' card + hero (geo tree payload) and the
-// other section's collapsed summary (shows the shared root total before its own tree loads).
-function onChange(){ renderFixed(); renderMap(); setHero(); renderAttr(); HKEYS.forEach(function(k){ EX[k].renderSum(); }); }
+var EXP=makeExplorer(CFG);
+// Page parts that read the explorer's (filtered) data: the Driver type filter, the 'All regions' card, the
+// map and the collapsed summary.
+function onChange(){ renderDrv(); renderFixed(); renderMap(); renderAttr(); EXP.renderSum(); }
 
 // ---- Hero ----
 function heroHtml(){
-  var opts=YEARS.map(function(y){ return '<option value="'+y+'"'+(y===G.year?' selected':'')+'>'+y+'</option>'; }).join('');
   return '<header class="iex-hero"><div class="iex-hero-in"><span class="iex-hero-ic" aria-hidden="true">'+ic('globe',24)+'</span><div style="min-width:0">'+
     '<p class="iex-eyebrow">Regions \u00b7 Driver types \u00b7 Drill-down</p><h1>Incident Explorer</h1>'+
-    '<p class="iex-hero-sub">A \u00b7 '+esc(chainText(HIER.geo))+'<br>B \u00b7 '+esc(chainText(HIER.driver))+'</p>'+
     '<ul class="iex-chips">'+
-      '<li class="iex-chip">'+ic('database',14)+'<span>Data source</span><b>SIM uploads \u00b7 tickets created in the year, resolved successfully by an agent</b></li>'+
-      '<li class="iex-chip">'+ic('clock',14)+'<span>As of</span><b id="iexAsOf"><span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span></b></li>'+
-      '<li class="iex-chip">'+ic('calendar',14)+'<label for="iexYear">Year</label><select id="iexYear">'+opts+'</select></li>'+
+      '<li class="iex-chip">'+ic('database',14)+'<span>Data source</span><b>SIM uploads \u00b7 tickets created since 1 Jan 2026, resolved successfully by an agent</b></li>'+
+      '<li class="iex-chip">'+ic('calendar',14)+'<span>Period</span><b>1 Jan 2026 \u2013 now</b></li>'+
     '</ul></div></div></header>';
 }
-function setHero(){
-  var a=$('iexAsOf'); if(!a) return;
-  var X=EX.geo.X, D=X.D, at=D&&D.source&&D.source.latestUploadAt;
-  if(X.loading){ a.innerHTML='<span class="iex-sk-d" aria-hidden="true"></span><span class="iex-sr">Loading</span>'; return; }
-  a.textContent=D?(at?fmtIst(at):fmtIst(D.generatedAt)):'\u2014';
+
+// ---- Driver type filter (under the region cards; built once per payload, then only re-synced) ----
+// Counts / % are the unfiltered successful agent resolves per type (X.RAW.drivers, % of X.RAW.total) and
+// do not change with the selection. Changing a box re-renders the page from the loaded payload.
+function renderDrv(){
+  var c=$('iexDrv'); if(!c) return;
+  var R=EXP.X.RAW;
+  c.hidden=!R||!EXP.X.D;
+  if(c.hidden) return;
+  if(c.getAttribute('data-built')!==R.generatedAt){
+    var by={}; (R.drivers||[]).forEach(function(d){ by[d.k]=d.n||0; });
+    c.innerHTML='<h2 class="iex-sec-h" id="iexDrvH">Driver type</h2><fieldset class="iex-drv-fs" aria-labelledby="iexDrvH">'+
+      '<p class="iex-head-sub">Tick one or more to show only their incidents across the whole page; none ticked shows every ticket.</p>'+
+      '<div class="iex-drv">'+DRV.map(function(d){
+        var n=by[d]||0;
+        return '<label class="iex-drv-it"><input type="checkbox" data-drv="'+esc(d)+'">'+
+          '<span class="iex-it-nm">'+esc(d)+'</span><span class="iex-it-n">'+num(n)+'</span><span class="iex-it-p">'+pct(n,R.total)+'</span></label>';
+      }).join('')+'</div>'+
+      '<p class="iex-head-sub" id="iexDrvSt" style="margin-top:10px"></p></fieldset>';
+    c.setAttribute('data-built',R.generatedAt);
+  }
+  Array.prototype.forEach.call(c.querySelectorAll('[data-drv]'),function(i){
+    var on=G.drv.indexOf(i.getAttribute('data-drv'))>=0;
+    i.checked=on; i.parentNode.classList.toggle('is-on',on);
+  });
+  var st=$('iexDrvSt'); if(st) st.innerHTML='Showing: <b>'+esc(drvLabel())+'</b> \u00b7 '+num(EXP.X.NODES[0].node.n)+' successfully resolved';
 }
 
-// ---- FIXED 'All regions' section (always shown, not collapsible) ----
-// KPI cards: ONLY D.summary (server incident-explorer.js `summary`, built over every ticket created in the
-// year, never filtered by a path). Successfully Resolved / AUTO-SIM / Rule are mutually exclusive; % of Total.
-// Region cards: the geo tree's root children (successful agent resolves per region, add up to the root);
-// a click expands Section A with that region selected.
+// ---- 'All regions' section (always shown, not collapsible; follows the Driver type filter) ----
+// KPI cards: ONLY D.summary (the server's per-driver `summaryByDrv` summed over the ticked types, built over
+// every ticket created since 1 Jan 2026, never filtered by a path). Successfully Resolved / AUTO-SIM / Rule
+// are mutually exclusive; % of the filtered Total.
+// Region cards (regsHtml, own section): the filtered tree's root children (successful agent resolves per
+// region, add up to the root); display only.
 function kpi(cls,icon,label,val,sub,ratio){
   return '<div class="iex-kpi '+cls+'"><p class="iex-kpi-l"><span class="iex-kpi-ic">'+ic(icon,14)+'</span>'+label+'</p>'+
     '<p class="iex-kpi-n">'+val+'</p><p class="iex-kpi-s">'+sub+'</p>'+
     (ratio==null?'':'<div class="iex-kpi-bar" aria-hidden="true"><i style="width:'+Math.max(0,Math.min(100,ratio*100)).toFixed(1)+'%"></i></div>')+'</div>';
 }
-function fixedHtml(){
-  var X=EX.geo.X, D=X.D, s=D.summary, tk=s.created||0, mins=s.immediateMinutes, root=X.NODES[0].node;
-  var win='resolved within '+mins+' min of creation';
-  var cur=EX.geo.isOpen()?X.sel[0]:null;
-  var regs=(root.c||[]).slice().sort(byTickets).map(function(c){
+// 'Successfully resolved by region': its own section under 'All regions'. The cards are display only
+// (Region / Country are picked on the map); the region of the selected country is highlighted.
+function regsHtml(){
+  var X=EXP.X, root=X.NODES[0].node, kids=root.c||[];
+  if(!kids.length) return '';
+  var cur=EXP.isOpen()?X.sel[0]:null;
+  var regs=kids.slice().sort(byTickets).map(function(c){
     var on=c.k===cur;
-    return '<li><button type="button" class="iex-reg'+(on?' is-on':'')+'" data-region="'+c.id+'"'+(on?' aria-current="true"':'')+' title="'+esc(c.k)+'"'+
-        ' aria-label="'+esc(c.k+', '+num(c.n)+' tickets, '+pct(c.n,root.n)+' of all regions. Opens section A at this region.')+'">'+
+    return '<li><div class="iex-reg'+(on?' is-on':'')+'" title="'+esc(c.k)+'">'+
       '<span class="iex-reg-nm">'+esc(c.k)+'</span><span class="iex-reg-n">'+num(c.n)+'</span><span class="iex-reg-p">'+pct(c.n,root.n)+' of '+num(root.n)+'</span>'+
-      '<span class="iex-kpi-bar" aria-hidden="true"><i style="width:'+(root.n?(c.n/root.n*100).toFixed(1):0)+'%"></i></span></button></li>';
+      '<span class="iex-kpi-bar" aria-hidden="true"><i style="width:'+(root.n?(c.n/root.n*100).toFixed(1):0)+'%"></i></span></div></li>';
   }).join('');
-  var nRegs=(root.c||[]).length;
+  return '<section class="iex-card" aria-labelledby="iexRegsH"><div class="iex-head"><div style="min-width:0">'+
+      '<p class="iex-kick">'+YEAR+' \u00b7 '+esc(drvLabel())+'</p><h2 id="iexRegsH">Successfully resolved by region</h2></div></div>'+
+    '<ul class="iex-regs" style="'+eqCols(kids.length)+'" aria-labelledby="iexRegsH">'+regs+'</ul></section>';
+}
+function fixedHtml(){
+  var X=EXP.X, D=X.D, s=D.summary, tk=s.created||0;
   return '<section class="iex-card" aria-labelledby="iexFixH"><div class="iex-head"><div style="min-width:0">'+
-      '<p class="iex-kick">Fixed \u00b7 whole '+D.year+' data set</p><h2 id="iexFixH">All regions</h2>'+
-      '<p class="iex-head-sub">Every ticket created in '+D.year+'. Does not change with the selections below.</p></div></div>'+
+      '<p class="iex-kick">'+YEAR+' \u00b7 '+esc(drvLabel())+'</p><h2 id="iexFixH">All regions</h2>'+
+      '<p class="iex-head-sub">Every ticket created since 1 January 2026 for the selected driver types. Does not change with the drill-down selections below.'+
+        (D.approvedErrors&&D.approvedErrors.created?' '+num(D.approvedErrors.created)+' ticket'+(D.approvedErrors.created===1?'':'s')+' approved as errors on the Ticket Sanitization page '+(D.approvedErrors.created===1?'is':'are')+' left out of this page.':'')+'</p></div></div>'+
     '<div class="iex-kpis">'+
-      kpi('k-base','inbox','Total Tickets',num(tk),'Created in '+D.year,null)+
+      kpi('k-base','inbox','Total Tickets',num(tk),'Created since 1 Jan 2026',null)+
       kpi('k-good','check-circle','Successfully Resolved',num(s.agent),'<b>'+pct(s.agent,tk)+'</b> of the selection',tk?s.agent/tk:0)+
       kpi('k-blue','bolt','Imm. Resolved By AUTO-SIM',num(s.autosim),'<b>'+pct(s.autosim,tk)+'</b> of the selection',tk?s.autosim/tk:0)+
       kpi('k-warn','book','Imm. Resolved By Rule',num(s.rule),'<b>'+pct(s.rule,tk)+'</b> of the selection',tk?s.rule/tk:0)+
-    '</div>'+
-    '<p class="iex-head-sub" style="margin-top:10px">Successfully Resolved = resolved by an agent. AUTO-SIM = closed by AutoSIM as \u201cImmediately Resolved\u201d; '+
-      'Rule = closed through the auto-resolve rule as \u201cAutomatically Closed\u201d; both '+esc(win)+'.</p>'+
-    (regs?'<h3 class="iex-regs-h" id="iexRegsH">Successfully resolved by region <span>\u00b7 select one to open section A there</span></h3>'+
-      '<ul class="iex-regs" style="'+eqCols(nRegs)+'" aria-labelledby="iexRegsH">'+regs+'</ul>':'')+
-    '</section>';
+    '</div></section>';
 }
 function fixedSkeleton(){
   var k='<div class="iex-kpi" aria-hidden="true"><span class="iex-skel" style="width:55%;height:10px"></span><span class="iex-skel" style="width:45%;height:26px;margin-top:12px"></span><span class="iex-skel" style="width:70%;height:9px;margin-top:9px"></span></div>';
   return '<section class="iex-card" aria-hidden="true"><span class="iex-skel" style="width:160px;height:10px"></span><span class="iex-skel" style="width:260px;height:20px;margin:8px 0 16px"></span><div class="iex-kpis">'+k+k+k+k+'</div></section>';
 }
 function renderFixed(){
-  var f=$('iexFixed'); if(!f) return;
-  var X=EX.geo.X;
+  var f=$('iexFixed'), rg=$('iexRegs'); if(!f) return;
+  var X=EXP.X;
+  if(rg) rg.innerHTML=X.D&&!X.loading&&X.NODES[0].node.n?regsHtml():'';
   if(X.loading||(!X.D&&!X.err)){ f.setAttribute('aria-busy','true'); f.innerHTML=fixedSkeleton(); return; }
   f.removeAttribute('aria-busy');
   if(!X.D){
     f.innerHTML='<section class="iex-card"><div class="iex-empty" role="alert"><span class="iex-empty-ic is-err">'+ic('alert',26)+'</span><h3>We couldn\u2019t load the Incident Explorer</h3>'+
-      '<p>The server didn\u2019t send the '+G.year+' overview. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
+      '<p>The server didn\u2019t send the overview. Check your connection, then try again.</p>'+(X.err?'<code>'+esc(X.err)+'</code>':'')+
       '<button type="button" class="iex-btn" data-gretry>'+ic('refresh',14)+'Retry</button></div></section>';
     return;
   }
-  if(!X.NODES[0].node.n){ f.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets for '+X.D.year+'</h3><p>No ticket in the uploaded data was created in '+X.D.year+' and resolved successfully by an agent. Pick another year above.</p></div></section>'; return; }
+  if(!X.NODES[0].node.n){ f.innerHTML='<section class="iex-card"><div class="iex-empty"><span class="iex-empty-ic">'+ic('inbox',26)+'</span><h3>No tickets</h3><p>No ticket created since 1 January 2026 for the selected driver types was resolved successfully by an agent.</p></div></section>'; return; }
   f.innerHTML=fixedHtml();
 }
 // GeoNames postal-code data is CC BY 4.0: credit it wherever the derived State / City are shown.
 function renderAttr(){
   var a=$('iexAttr'); if(!a) return;
-  var D=EX.geo.X.D||EX.driver.X.D, g=D&&D.geo; if(!g){ a.innerHTML=''; return; }
+  var D=EXP.X.D, g=D&&D.geo; if(!g){ a.innerHTML=''; return; }
   a.innerHTML='State and city are derived from zip codes using GeoNames postal code data (<a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">geonames.org</a>), '+
     'licensed under <a href="'+esc(safeUrl(g.licenseUrl)||'https://creativecommons.org/licenses/by/4.0/')+'" target="_blank" rel="noopener noreferrer">'+esc(g.license||'CC BY 4.0')+'</a>'+
-    (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown.';
+    (g.downloaded?', downloaded '+esc(g.downloaded):'')+'. Zips that cannot be matched show as Unknown. '+
+    'State maps: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a> (naturalearthdata.com), public domain.';
 }
 
 // ---- WORLD MAP (world-map.svg) ----------------------------------------------------------------------
-// A second, visual way into the SAME geo tree the drill-down uses: every country node under the tree root
+// A second, visual way into the SAME (filtered) tree the drill-down uses: every country node under the tree root
 // (root > Region > Country) is matched to the svg path whose id is its ISO alpha-2 code, so the hover
 // numbers are literally the node the Countries chip and the ticket list read (node.n = successfully
-// resolved, node.t / node.a = created / resolved context). Hover highlights (CSS :hover) and shows the
-// summary; a click on a country that has tickets opens Section A at [region, country] through the same
+// resolved). Created / resolved (any way) come from the payload's countryCtx summed over the ticked driver
+// types (summing per-driver tree nodes would miss created tickets of a type with no successful resolve
+// there). Fill = MAP_BUCKETS by node.n. Hover highlights (CSS :hover) and shows the
+// summary; a click on a country that has tickets opens the explorer at [region, country] through the same
 // openAt() the region cards use. Countries with no tickets stay visible but muted and are not clickable
 // (the filter would be empty); hovering one still names it and says so.
 // The ticket data carries UK / UAE where ISO (and the svg) use GB / AE — the only two codes in the data
@@ -1022,7 +1143,7 @@ var MAP={ loaded:false, loading:false, err:'', by:{}, max:0, names:{} };
 function mapId(code){ var c=String(code||'').toUpperCase(); return MAP_ALIAS[c]||c; }
 // Every country node of the geo tree, keyed by svg path id: { code, region, path, n, t, a }.
 function mapCountries(){
-  var X=EX.geo.X, out={}, max=0;
+  var X=EXP.X, out={}, max=0;
   if(!X.D||!X.NODES.length) return { by:out, max:0 };
   (X.NODES[0].node.c||[]).forEach(function(reg){
     (reg.c||[]).forEach(function(c){
@@ -1034,17 +1155,36 @@ function mapCountries(){
   });
   return { by:out, max:max };
 }
-// Fill step of a country: share of the busiest country's successful resolves.
-function mapStep(n,max){ if(!n||!max) return ''; var s=n/max; return s>=.25?'q4':s>=.05?'q3':s>=.01?'q2':'q1'; }
+// Colour buckets by successfully resolved tickets per country. FIXED ranges (not quantiles), so a colour
+// means the same size under every Driver type filter. Live 2026 data, all types: red US UK; orange CA IN AU;
+// blue DE JP MX IT FR EG BR; green the other 10. 0 = grey (no class).
+var MAP_BUCKETS=[
+  { c:'b4', min:1001, lab:'1,001+', name:'Red', fill:'#f6b3ac' },
+  { c:'b3', min:201, max:1000, lab:'201\u20131,000', name:'Orange', fill:'#fdc896' },
+  { c:'b2', min:51, max:200, lab:'51\u2013200', name:'Blue', fill:'#b3d1f2' },
+  { c:'b1', min:1, max:50, lab:'1\u201350', name:'Green', fill:'#b5e3c6' }
+];
+function mapBucket(n){
+  for(var i=0;i<MAP_BUCKETS.length;i++){ var b=MAP_BUCKETS[i]; if(n>=b.min&&(b.max==null||n<=b.max)) return b; }
+  return null;
+}
+// Created / resolved (any way) for a data country code over the ticked driver types.
+function mapCtx(code){
+  var R=EXP.X.RAW, o={ t:0, a:0 };
+  if(R&&R.countryCtx) activeDrv().forEach(function(dv){ var x=(R.countryCtx[dv]||{})[code]; if(x){ o.t+=x.t||0; o.a+=x.a||0; } });
+  return o;
+}
 function mapTipHtml(id){
-  var d=MAP.by[id], name=MAP.names[id]||id, root=EX.geo.X.NODES.length?EX.geo.X.NODES[0].node:null;
+  var d=MAP.by[id], name=MAP.names[id]||id, root=EXP.X.NODES.length?EXP.X.NODES[0].node:null;
   var head='<b>'+esc(name)+'</b><span class="iex-map-cc">'+esc(d?d.code:id)+(d?' \u00b7 '+esc(d.region):'')+'</span>';
-  if(!d) return head+'<p class="iex-map-hint">No successfully resolved tickets in '+G.year+'.</p>';
+  if(!d) return head+'<p class="iex-map-hint">No successfully resolved tickets since 1 Jan 2026 for '+esc(drvLabel())+'.</p>';
+  var cx=mapCtx(d.code), b=mapBucket(d.n);
   return head+'<dl><dt>Successfully Resolved</dt><dd>'+num(d.n)+'</dd>'+
     '<dt>Of all regions</dt><dd>'+(root?pct(d.n,root.n):'\u2014')+'</dd>'+
-    '<dt>Created in '+G.year+'</dt><dd>'+num(d.t)+'</dd>'+
-    '<dt>Resolved (any way)</dt><dd>'+num(d.a)+'</dd></dl>'+
-    '<p class="iex-map-hint">Click to list these tickets in section A.</p>';
+    '<dt>Created since 1 Jan 2026</dt><dd>'+num(cx.t)+'</dd>'+
+    '<dt>Resolved (any way)</dt><dd>'+num(cx.a)+'</dd>'+
+    (b?'<dt>Colour range</dt><dd>'+esc(b.lab)+'</dd>':'')+'</dl>'+
+    '<p class="iex-map-hint">Click to list these tickets in the explorer.</p>';
 }
 function mapHideTip(){ var t=$('iexMapTip'); if(t){ t.hidden=true; t.removeAttribute('data-id'); } }
 // Anchor the tooltip to the cursor inside the map box, clamped to the box on all four sides so it is
@@ -1065,39 +1205,89 @@ function mapMoveTip(ev){
 function mapShowTip(ev,p){
   var t=$('iexMapTip'); if(!t) return;
   var id=p.getAttribute('id')||'';
-  if(t.getAttribute('data-id')!==id){ t.setAttribute('data-id',id); t.innerHTML=mapTipHtml(id); }
+  if(t.getAttribute('data-id')!==id){ t.setAttribute('data-id',id); t.innerHTML=id.indexOf('sm-')===0?smTipHtml(id):mapTipHtml(id); }
   t.hidden=false; mapMoveTip(ev);
 }
 // Repaint the shapes from the current tree + selection (never re-injects the svg).
 function paintMap(){
   var box=$('iexMapIn'); if(!box||!MAP.loaded) return;
   var m=mapCountries(); MAP.by=m.by; MAP.max=m.max;
-  var sel=EX.geo.isOpen()&&EX.geo.X.sel.length>1?mapId(EX.geo.X.sel[1]):'';
+  var sel=EXP.isOpen()&&EXP.X.sel.length>1?mapId(EXP.X.sel[1]):'';
+  var cnt={}; MAP_BUCKETS.forEach(function(b){ cnt[b.c]=0; });
   Array.prototype.forEach.call(box.querySelectorAll('path'),function(p){
-    var id=p.getAttribute('id'), d=m.by[id], cls=d?('has '+mapStep(d.n,m.max)):'';
-    if(d&&id===sel) cls+=' is-on';
+    var id=p.getAttribute('id'), d=m.by[id], b=d?mapBucket(d.n):null, cls=b?('has '+b.c):'';
+    if(b) cnt[b.c]++;
+    if(b&&id===sel) cls+=' is-on';
     if(p.getAttribute('class')!==cls) p.setAttribute('class',cls);
   });
+  if(SM.iso) return;                      // a state map is open: it owns the heading, legend and tooltip
   var t=$('iexMapTip');
   if(t&&!t.hidden&&t.getAttribute('data-id')) t.innerHTML=mapTipHtml(t.getAttribute('data-id'));
   var n=Object.keys(m.by).length, tot=box.querySelectorAll('path').length;
-  box.setAttribute('aria-label','World map: '+n+' of '+tot+' countries have successfully resolved tickets in '+G.year+
-    '. The Countries list in section A below carries the same countries and counts.');
-  var k=$('iexMapKick'); if(k) k.textContent='World map \u00b7 '+G.year;
+  box.setAttribute('aria-label','World map, '+drvLabel()+': '+n+' of '+tot+' countries have successfully resolved tickets since 1 Jan 2026. '+
+    MAP_BUCKETS.map(function(b){ return b.name+' '+b.lab+' tickets: '+cnt[b.c]+' countries'; }).join('; ')+
+    '. Click a country to open the explorer below for it.');
+  var k=$('iexMapKick'); if(k) k.textContent='World map \u00b7 '+YEAR+' \u00b7 '+drvLabel();
   var s=$('iexMapSub');
-  if(s) s.textContent=n+' countr'+(n===1?'y':'ies')+' with tickets \u00b7 the rest stay muted \u00b7 hover for the numbers, click to open section A there \u00b7 the same counts as the Countries list in section A';
+  if(s) s.textContent=n+' countr'+(n===1?'y':'ies')+' with tickets \u00b7 coloured by ticket range \u00b7 hover for the numbers, click to open the explorer there';
+  var key=$('iexMapKey');
+  if(key) key.innerHTML=MAP_BUCKETS.map(function(b){
+      return '<li><i style="background:'+b.fill+'"></i>'+esc(b.lab)+' tickets \u00b7 '+cnt[b.c]+' countr'+(cnt[b.c]===1?'y':'ies')+'</li>';
+    }).join('')+
+    '<li><i style="background:#e4e7ea"></i>No cases (0)</li>'+
+    '<li><i style="background:#fff;border:2px solid #161d2d"></i>Selected (outlined)</li>';
 }
 function mapHtml(){
-  return '<div class="iex-sec-head"><div class="iex-sec-tl"><p class="iex-kick" id="iexMapKick">World map \u00b7 '+G.year+'</p>'+
-      '<h2 class="iex-sec-h" id="iexMapH">Successfully resolved by country</h2>'+
-      '<p class="iex-head-sub" id="iexMapSub">Loading the map\u2026</p></div></div>'+
+  return '<div class="iex-sec-head"><div class="iex-sec-tl"><p class="iex-kick" id="iexMapKick">World map \u00b7 '+YEAR+'</p>'+
+      '<h2 class="iex-sec-h" id="iexMapH" tabindex="-1">Successfully resolved by country</h2>'+
+      '<p class="iex-head-sub" id="iexMapSub">Loading the map\u2026</p></div>'+
+      '<button type="button" class="iex-reset iex-map-back" id="iexMapBack" data-map-back hidden>\u2190 Back to world map</button></div>'+
     '<div class="iex-map-box" id="iexMapBox">'+
       '<div class="iex-map-in" id="iexMapIn" role="img" aria-label="World map of successfully resolved tickets by country."></div>'+
+      '<div class="iex-map-in iex-st-in" id="iexStIn" role="group" hidden></div>'+
       '<div class="iex-map-tip" id="iexMapTip" aria-hidden="true" hidden></div></div>'+
-    '<ul class="iex-map-key" aria-hidden="true"><li><i style="background:#e4e7ea"></i>No tickets</li>'+
-      '<li><i style="background:#fde3c8"></i>Few</li><li><i style="background:#f8c089"></i></li>'+
-      '<li><i style="background:#f0943f"></i></li><li><i style="background:#c84f0c"></i>Most</li>'+
-      '<li><i style="background:#ec7211"></i>Selected in section A</li></ul>';
+    '<p class="iex-head-sub iex-st-note" id="iexStNote"></p>'+
+    '<ul class="iex-map-key" id="iexMapKey" aria-hidden="true"></ul>'+
+    '<div class="iex-off" id="iexOff"></div>';
+}
+// Countries with tickets that have no shape on the world map: 'Unknown' (no country code) and any code that
+// world-map.svg lacks; every country while the map failed to load. Listed under the map as chips that open the
+// explorer there (offClick), so no ticket is unreachable. Hidden while a state map is open.
+function offMapList(){
+  var X=EXP.X, out=[], has=Object.prototype.hasOwnProperty;
+  if(!X.D||!X.NODES.length) return out;
+  (X.NODES[0].node.c||[]).forEach(function(reg){
+    (reg.c||[]).forEach(function(c){
+      if(!c.n) return;
+      var id=mapId(c.k), onMap=MAP.loaded?has.call(MAP.names,id):!MAP.err;
+      if(id==='UNKNOWN'||!onMap) out.push({ node:c, region:reg.k });
+    });
+  });
+  return out.sort(function(a,b){ return byTickets(a.node,b.node); });
+}
+function renderOff(){
+  var o=$('iexOff'); if(!o) return;
+  var list=SM.iso?[]:offMapList();
+  if(!list.length){ o.innerHTML=''; return; }
+  var X=EXP.X, root=X.NODES[0].node, cur=EXP.isOpen()?keyOf(X.sel.slice(0,2)):'';
+  o.innerHTML='<p class="iex-head-sub" id="iexOffH">'+(MAP.loaded?'Not on the map':'Countries')+' \u00b7 select one to open the explorer there</p>'+
+    '<ul class="iex-its" aria-labelledby="iexOffH">'+list.map(function(x){
+      var c=x.node, on=keyOf([x.region,c.k])===cur, nm=c.k+' \u00b7 '+x.region;
+      return '<li><button type="button" class="iex-it" data-offmap="'+c.id+'" aria-pressed="'+on+'"'+(on?' aria-current="true"':'')+' title="'+esc('Country: '+nm)+'"'+
+          ' aria-label="'+esc(nm+', '+num(c.n)+' tickets, '+pct(c.n,root.n)+' of all regions')+'">'+
+        '<span class="iex-it-nm">'+esc(nm)+'</span><span class="iex-it-n">'+num(c.n)+'</span><span class="iex-it-p">'+pct(c.n,root.n)+'</span></button></li>';
+    }).join('')+'</ul>';
+}
+function offClick(id){
+  var e=EXP.X.NODES[id]; if(!e||e.depth!==2||!e.node.n) return;
+  EXP.openAt(e.path);
+  var iso=mapId(e.node.k);
+  if(STATE_MAP_ISO.indexOf(iso)>=0){ openStateMap(iso); var back=$('iexMapBack'); if(back) back.focus({preventScroll:true}); }
+  else {
+    var bx=EXP.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
+    EXP.focusToggle();
+  }
+  announce(e.node.k+' selected: '+num(e.node.n)+' successfully resolved tickets in the explorer.');
 }
 // Fetch the shapes once (own cacheable file, not inlined) and paint them.
 async function loadMap(){
@@ -1113,72 +1303,324 @@ async function loadMap(){
     box.innerHTML=svg.replace(/^[\s\S]*?(?=<svg)/,'');
     MAP.loaded=true; MAP.names={};
     Array.prototype.forEach.call(box.querySelectorAll('path'),function(p){ MAP.names[p.getAttribute('id')]=p.getAttribute('title')||p.getAttribute('id'); });
-    paintMap();
+    paintMap(); renderOff();
   }catch(e){
     MAP.err=(e&&e.message)||'network error';
-    var s=$('iexMapSub'); if(s) s.textContent='The map could not be loaded ('+MAP.err+'). The Countries list in section A below has the same countries and counts.';
+    var s=$('iexMapSub'); if(s&&!SM.iso) s.textContent='The map could not be loaded ('+MAP.err+'). Every country is listed below the map instead.';
+    renderOff();
   }
   finally{ MAP.loading=false; }
 }
 function renderMap(){
   var c=$('iexMap'); if(!c) return;
-  var X=EX.geo.X;
+  var X=EXP.X;
   c.hidden=!X.D||!X.NODES.length||!X.NODES[0].node.n;
   if(c.hidden){ mapHideTip(); return; }
-  if(MAP.loaded) paintMap(); else loadMap();
+  if(MAP.loaded) paintMap(); else loadMap();   // the world map stays loaded and painted, so Back is instant
+  // A link with &map=<ISO2>: open that state map once the tree is there (selection and focus unchanged).
+  if(SM.want){ var w=SM.want; SM.want=null; openStateMap(w); }
+  else if(SM.iso) paintStateMap();
+  renderOff();
 }
-// Click a country: open Section A at [region, country] — the same openAt() path as the region cards.
+// Click a country: open the explorer at [region, country] (it shows from that country's States down).
 function mapClick(p){
   var id=p.getAttribute('id'), d=MAP.by[id];
   if(!d||!d.n) return;                    // muted country: the filter would be empty
-  EX.geo.openAt(d.path);
-  var bx=EX.geo.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
+  EXP.openAt(d.path);
+  if(STATE_MAP_ISO.indexOf(id)>=0){
+    // Countries with a state map: open it in place (no scroll); the explorer below is at that country.
+    openStateMap(id);
+    var back=$('iexMapBack'); if(back) back.focus({preventScroll:true});
+    announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets. Its state map is open; use Back to world map to return.');
+    return;
+  }
+  var bx=EXP.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
+  EXP.focusToggle();
+  announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets in the explorer.');
+}
+
+// ---- STATE MAPS (maps/<ISO2>.svg, built by tools/build-country-maps.js from Natural Earth Admin 1) ----------
+// A click on one of these countries on the world map swaps the map card to that country's state map. Each
+// <path> carries data-states = the explorer State names (GeoNames admin1) it covers, so a region's count is the
+// sum of the explorer's Country > State nodes (node.n = successfully resolved) of the FILTERED tree — the same
+// numbers as the States list below. 'Unknown' (no usable zip) and names with no shape are listed under the map.
+// Colour ranges are per country (smBuckets): scaled to that country's largest region with ALL driver types, so
+// the ranges stay put while the filter changes. Files load on first open and are kept in SM.cache.
+var STATE_MAP_ISO=['US','GB','CA','IN','AU','DE','JP','MX','IT','FR','EG','BR','ES','SA','AE','BE','NL','AT','IE','NO','PT','TR'];
+var STATE_MAP_V='1';                      // bump after rebuilding maps/*.svg
+var SM_COLOURS=[                         // assigned bottom-up: 1 range = green, 2 = green + blue, ...
+  { c:'b1', name:'Green', fill:'#b5e3c6' },
+  { c:'b2', name:'Blue', fill:'#b3d1f2' },
+  { c:'b3', name:'Orange', fill:'#fdc896' },
+  { c:'b4', name:'Red', fill:'#f6b3ac' }
+];
+var SM={ iso:null, want:null, cache:{}, seq:0, loaded:'', err:'', regions:[], idx:{}, paths:[], meta:null, data:null, cs:null, maxRaw:null, max:{}, allTree:null };
+// SM-PURE-BEGIN (pure helpers; verification extracts this block)
+function bucketOf(list,n){
+  for(var i=0;i<list.length;i++){ var b=list[i]; if(n>=b.min&&(b.max==null||n<=b.max)) return b; }
+  return null;
+}
+// Round to the 1-2-5 series (x < 1 -> 1).
+function smNice(x){
+  if(!(x>=1)) return 1;
+  var p=Math.pow(10,Math.floor(Math.log10(x))), m=x/p;
+  m=m<1.5?1:m<3.5?2:m<7.5?5:10;
+  return Math.round(m*p);
+}
+// Ranges for a country whose largest region has M tickets: thresholds nice(5% / 20% / 50% of M), kept when
+// 1 <= t < M, deduplicated. Highest range first (like MAP_BUCKETS). M = 0 -> no ranges.
+function smBuckets(M){
+  if(!(M>0)) return [];
+  var th=[];
+  [smNice(M*0.05),smNice(M*0.2),smNice(M*0.5)].forEach(function(t){ if(t>=1&&t<M&&th.indexOf(t)<0) th.push(t); });
+  th.sort(function(a,b){ return a-b; });
+  var out=[], lo=1;
+  th.forEach(function(t){ out.push({ min:lo, max:t }); lo=t+1; });
+  out.push({ min:lo, max:null });
+  out.forEach(function(b,i){
+    var c=SM_COLOURS[i];
+    b.c=c.c; b.name=c.name; b.fill=c.fill;
+    b.lab=b.max==null?num(b.min)+'+':b.min===b.max?num(b.min):num(b.min)+'\u2013'+num(b.max);
+  });
+  return out.reverse();
+}
+// Every country node of `tree` whose code is `iso` (UK -> GB, UAE -> AE): total + State name -> tickets.
+function smCountryStates(tree,iso){
+  var out={ total:0, byName:{}, nodes:[] };
+  ((tree&&tree.c)||[]).forEach(function(reg){
+    (reg.c||[]).forEach(function(c){
+      if(mapId(c.k)!==iso) return;
+      out.total+=c.n||0; out.nodes.push({ region:reg.k, country:c.k, node:c });
+      (c.c||[]).forEach(function(s){ out.byName[s.k]=(out.byName[s.k]||0)+(s.n||0); });
+    });
+  });
+  return out;
+}
+// byName + the map's regions [{id, iso, name, names[]}] -> per region n / names with tickets / bucket, plus
+// Unknown and the names no region carries. Every name lands in exactly one of the three, so
+// sum(regions) + unknown + unmatched = sum(byName).
+function smPaintData(byName,regions,buckets){
+  var where={}, regs=regions.map(function(r,i){ r.names.forEach(function(n){ where[n]=i; }); return { id:r.id, iso:r.iso, name:r.name, n:0, names:[], b:null }; });
+  var unknown=0, unmatched=[], unmatchedN=0;
+  Object.keys(byName).forEach(function(k){
+    var n=byName[k]||0;
+    if(k==='Unknown'){ unknown+=n; return; }
+    var i=where[k];
+    if(i==null){ if(n){ unmatched.push({ k:k, n:n }); unmatchedN+=n; } return; }
+    regs[i].n+=n; if(n>0) regs[i].names.push({ k:k, n:n });
+  });
+  var byN=function(a,b){ return (b.n-a.n)||(a.k<b.k?-1:a.k>b.k?1:0); };
+  regs.forEach(function(r){ r.names.sort(byN); r.b=r.n?bucketOf(buckets||[],r.n):null; });
+  unmatched.sort(byN);
+  return { regions:regs, unknown:unknown, unmatched:unmatched, unmatchedN:unmatchedN };
+}
+// SM-PURE-END
+// Largest region of the country with all four driver types (cached per /tree payload).
+function smMax(iso){
+  var R=EXP.X.RAW; if(!R) return 0;
+  if(SM.maxRaw!==R){ SM.maxRaw=R; SM.max={}; SM.allTree=null; }
+  if(SM.max[iso]==null){
+    if(!SM.allTree) SM.allTree=mergeTrees(DRV.map(function(d){ return R.trees[d]; }));
+    var pd=smPaintData(smCountryStates(SM.allTree,iso).byName,SM.regions,[]), m=0;
+    pd.regions.forEach(function(r){ if(r.n>m) m=r.n; });
+    SM.max[iso]=m;
+  }
+  return SM.max[iso];
+}
+function smName(){ return (SM.meta&&SM.meta.name)||MAP.names[SM.iso]||SM.iso||''; }
+function smUnit(){ return (SM.meta&&SM.meta.unit)||'states'; }
+function smSel(){
+  var X=EXP.X;
+  return EXP.isOpen()&&X.sel.length>=3&&mapId(X.sel[1])===SM.iso?X.sel[2]:null;
+}
+function smTipHtml(id){
+  var i=SM.idx[id], r=SM.data&&SM.data.regions[i], nm=smName(); if(!r) return '';
+  var head='<b>'+esc(r.name)+'</b><span class="iex-map-cc">'+esc(r.iso)+' \u00b7 '+esc(nm)+'</span>';
+  if(!r.n) return head+'<p class="iex-map-hint">No successfully resolved tickets since 1 Jan 2026 for '+esc(drvLabel())+'.</p>';
+  var multi=r.names.length>1;
+  return head+'<dl><dt>Successfully Resolved</dt><dd>'+num(r.n)+'</dd>'+
+    '<dt>Of '+esc(nm)+'</dt><dd>'+pct(r.n,SM.cs?SM.cs.total:0)+'</dd>'+
+    (r.b?'<dt>Colour range</dt><dd>'+esc(r.b.lab)+'</dd>':'')+'</dl>'+
+    (multi?'<p class="iex-map-hint">Includes: '+r.names.map(function(x){ return esc(x.k)+' '+num(x.n); }).join(', ')+'</p>':'')+
+    '<p class="iex-map-hint">'+(multi?'Click to open '+esc(nm)+' in the explorer and pick a state there.':'Click to list these tickets in the explorer.')+'</p>';
+}
+function smSetHead(sub){
+  var k=$('iexMapKick'); if(k) k.textContent='State map \u00b7 '+YEAR+' \u00b7 '+drvLabel();
+  var h=$('iexMapH'); if(h) h.textContent=smName()+': successfully resolved by '+smUnit();
+  var s=$('iexMapSub'); if(s) s.textContent=sub;
+}
+// Show the state map of `iso` in the map card (world map hidden, not destroyed) and load / paint it.
+function openStateMap(iso){
+  if(STATE_MAP_ISO.indexOf(iso)<0) return;
+  SM.iso=iso; SM.err='';
+  writeHash(); mapHideTip(); renderOff();
+  var w=$('iexMapIn'), st=$('iexStIn'), b=$('iexMapBack');
+  if(w) w.hidden=true;
+  if(st) st.hidden=false;
+  if(b) b.hidden=false;
+  if(SM.loaded===iso){ paintStateMap(); return; }   // reopened after Back: the shapes are still in #iexStIn
+  SM.meta=null;
+  if(st) st.innerHTML='';
+  SM.loaded=''; SM.regions=[]; SM.idx={}; SM.paths=[]; SM.data=null;
+  smSetHead('Loading the '+smName()+' map\u2026');
+  var key=$('iexMapKey'); if(key) key.innerHTML='';
+  var note=$('iexStNote'); if(note) note.innerHTML='';
+  loadStateMap(iso);
+}
+function smReadMeta(st){ var s=st&&st.querySelector('svg'); return s?{ name:s.getAttribute('data-name')||'', unit:s.getAttribute('data-unit')||'' }:null; }
+async function loadStateMap(iso){
+  var seq=++SM.seq, txt=SM.cache[iso];
+  if(txt==null){
+    try{
+      var r=await fetch('maps/'+iso+'.svg?v='+STATE_MAP_V,{cache:'force-cache'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      txt=await r.text();
+    }catch(e){
+      if(seq!==SM.seq||SM.iso!==iso) return;
+      SM.err=(e&&e.message)||'network error'; paintStateMap();
+      announce('The '+smName()+' map could not be loaded.');
+      return;
+    }
+  }
+  if(seq!==SM.seq||SM.iso!==iso) return;   // the user went back or opened another country meanwhile
+  var st=$('iexStIn'); if(!st) return;
+  // Shapes only: a generated asset (tools/build-country-maps.js) with <path> elements, no script / handlers.
+  st.innerHTML=/<svg[\s>]/.test(txt)?txt.replace(/^[\s\S]*?(?=<svg)/,''):'';
+  var ps=st.querySelectorAll('path[data-iso]');
+  if(!ps.length){ st.innerHTML=''; SM.err='invalid map file'; paintStateMap(); announce('The '+smName()+' map could not be loaded.'); return; }
+  SM.cache[iso]=txt; SM.loaded=iso; SM.meta=smReadMeta(st); SM.regions=[]; SM.idx={}; SM.paths=[];
+  Array.prototype.forEach.call(ps,function(p,i){
+    var id=p.getAttribute('id')||('sm-'+p.getAttribute('data-iso')), ns=p.getAttribute('data-states')||'';
+    p.setAttribute('id',id); p.setAttribute('tabindex','0'); p.setAttribute('role','button');
+    SM.regions.push({ id:id, iso:p.getAttribute('data-iso'), name:p.getAttribute('data-name')||id, names:ns?ns.split('|'):[] });
+    SM.idx[id]=i; SM.paths.push(p);
+  });
+  paintStateMap();
+}
+// Repaint the open state map from the current (filtered) tree + selection. Runs on every onChange().
+function paintStateMap(){
+  var st=$('iexStIn'), X=EXP.X; if(!st||!SM.iso) return;
+  var nm=smName(), unit=smUnit(), key=$('iexMapKey'), note=$('iexStNote');
+  if(SM.err){
+    smSetHead('The '+nm+' map could not be loaded ('+SM.err+'). The States list in the explorer has the same counts.');
+    if(key) key.innerHTML='';
+    if(note) note.innerHTML='<button type="button" class="iex-reset" data-sm-retry>'+ic('refresh',14)+'Retry</button>';
+    return;
+  }
+  if(SM.loaded!==SM.iso||!X.D) return;
+  var cs=smCountryStates(X.D.tree,SM.iso), buckets=smBuckets(smMax(SM.iso)), pd=smPaintData(cs.byName,SM.regions,buckets);
+  SM.cs=cs; SM.data=pd;
+  var sel=smSel(), cnt={}, withN=0;
+  buckets.forEach(function(b){ cnt[b.c]=0; });
+  pd.regions.forEach(function(r,i){
+    var p=SM.paths[i], on=!!(sel&&r.b&&SM.regions[i].names.indexOf(sel)>=0), cls=r.b?'has '+r.b.c+(on?' is-on':''):'';
+    if(r.b){ cnt[r.b.c]++; withN++; }
+    if(p.getAttribute('class')!==cls) p.setAttribute('class',cls);
+    p.setAttribute('aria-label',r.name+': '+num(r.n)+' successfully resolved tickets, '+pct(r.n,cs.total)+' of '+nm+(on?'. Selected in the explorer':'')+
+      (r.names.length>1?'. Includes '+r.names.map(function(x){ return x.k+' '+x.n; }).join(', '):''));
+    if(r.n) p.removeAttribute('aria-disabled'); else p.setAttribute('aria-disabled','true');
+  });
+  smSetHead(withN+' of '+pd.regions.length+' '+unit+' with tickets \u00b7 coloured by '+nm+'\u2019s own ranges \u00b7 hover or focus for the numbers, click to open that state in the explorer');
+  st.setAttribute('aria-label',nm+' state map, '+drvLabel()+': '+withN+' of '+pd.regions.length+' '+unit+' have successfully resolved tickets since 1 Jan 2026. '+
+    (buckets.length?buckets.map(function(b){ return b.name+' '+b.lab+' tickets: '+cnt[b.c]+' '+unit; }).join('; ')+'. ':'')+
+    'Each region is a button; the States list in the explorer below has the same counts.');
+  if(key) key.innerHTML=(buckets.length?buckets.map(function(b){
+      return '<li><i style="background:'+b.fill+'"></i>'+esc(b.lab)+' tickets \u00b7 '+cnt[b.c]+' '+esc(unit)+'</li>';
+    }).join(''):'<li>No state-level data for '+esc(nm)+'</li>')+
+    '<li><i style="background:#e4e7ea"></i>No cases (0)</li>'+
+    '<li><i style="background:#fff;border:2px solid #161d2d"></i>Selected (outlined)</li>';
+  if(note){
+    var geoCs=(X.D.geo&&X.D.geo.countries)||[], txt;
+    if(!cs.total) txt='No successfully resolved tickets in '+esc(nm)+' for '+esc(drvLabel())+'.';
+    else if(pd.unknown===cs.total&&geoCs.indexOf(SM.iso)<0) txt='No zip-code data for '+esc(nm)+': all '+num(cs.total)+' tickets are Unknown state, so no state is coloured.';
+    else txt='<b>Unknown state: '+num(pd.unknown)+'</b> of '+num(cs.total)+' tickets (no usable zip code) are not on the map.'+
+      (pd.unmatched.length?' \u00b7 Not on this map: '+pd.unmatched.map(function(x){ return esc(x.k)+' '+num(x.n); }).join(', ')+'.':'');
+    note.innerHTML=txt;
+  }
+  var t=$('iexMapTip');
+  if(t&&!t.hidden&&String(t.getAttribute('data-id')||'').indexOf('sm-')===0) t.innerHTML=smTipHtml(t.getAttribute('data-id'));
+}
+// Back to the world map: clears the country selection, so the explorer hides again.
+function smBack(){
+  SM.iso=null; SM.seq++; SM.err=''; mapHideTip();
+  EXP.clear();
+  var w=$('iexMapIn'), st=$('iexStIn'), b=$('iexMapBack'), note=$('iexStNote'), h=$('iexMapH');
+  if(st) st.hidden=true;
+  if(w) w.hidden=false;
+  if(b) b.hidden=true;
+  if(note) note.innerHTML='';
+  if(h) h.textContent='Successfully resolved by country';
+  if(MAP.loaded) paintMap();
+  else { var s=$('iexMapSub'); if(s) s.textContent=MAP.err?'The map could not be loaded ('+MAP.err+'). Every country is listed below the map instead.':'Loading the map\u2026'; var k=$('iexMapKey'); if(k) k.innerHTML=''; }
+  writeHash();
+  if(h) h.focus({preventScroll:true});
+  announce('World map shown. Pick a country to open the explorer.');
+}
+// Click / Enter / Space on a region: select Country > State in the explorer (the ticket list and exports
+// follow). A region carrying several explorer States with tickets (US-PR) opens the country instead.
+function smClick(p){
+  var i=SM.idx[p.getAttribute('id')], r=SM.data&&SM.data.regions[i], cs=SM.cs; if(!r||!r.n||!cs) return;
+  var path=null, best=-1;
+  if(r.names.length===1){
+    var sk=r.names[0].k;
+    cs.nodes.forEach(function(x){ (x.node.c||[]).forEach(function(s){ if(s.k===sk&&s.n>best){ best=s.n; path=[x.region,x.country,sk]; } }); });
+  } else cs.nodes.forEach(function(x){ if(x.node.n>best){ best=x.node.n; path=[x.region,x.country]; } });
+  if(!path) return;
+  EXP.openAt(path);
+  var bx=EXP.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
   var chip=bx&&bx.querySelector('.iex-it[aria-pressed="true"]'); if(chip) chip.focus({preventScroll:true});
-  announce((MAP.names[id]||d.code)+' selected from the map: '+num(d.n)+' successfully resolved tickets in section A.');
+  announce(r.names.length===1?r.name+' selected from the map: '+num(r.n)+' successfully resolved tickets in the explorer.':
+    r.name+' covers '+r.names.length+' explorer states; pick one in the States list.');
 }
 
 function shell(){
   wrap.innerHTML='<div class="iex'+(G.first?' is-anim':'')+'"><div id="iexLive" class="iex-sr" role="status" aria-live="polite" aria-atomic="true"></div>'+
     heroHtml()+
+    // DOM order = reading / tab order: All regions, Successfully resolved by region, Driver type,
+    // Successfully resolved by country (map), Explorer (hidden until a country is picked).
     '<div class="iex-fixed" id="iexFixed"></div>'+
+    '<div class="iex-fixed" id="iexRegs"></div>'+
+    '<section class="iex-card iex-sec" id="iexDrv" aria-labelledby="iexDrvH" hidden></section>'+
     '<section class="iex-card iex-sec" id="iexMap" aria-labelledby="iexMapH" hidden>'+mapHtml()+'</section>'+
-    '<div class="iex-xsecs">'+EX.geo.shellHtml()+EX.driver.shellHtml()+'</div>'+
+    '<div class="iex-xsecs" hidden>'+EXP.shellHtml()+'</div>'+
     '<p class="iex-attr" id="iexAttr"></p><div id="iexToast" class="iex-toast" hidden></div></div>';
 }
 
-// ---- URL hash: #year=2026&geo=[...]&driver=[...]&open=geo,driver ----
-// A path is written only when it is not the section's default (geo: ["NA"], driver: none). The old
-// '#path=' parameter is read as geo. Without an 'open' parameter, a section opens when the link carries a
-// non-default path for it (a deep link); 'open' (possibly empty) always wins.
+// ---- URL hash: #drv=Flex%20DP,DSP%20DA&path=<encoded JSON array>&open=1&map=IN ----
+// map = the ISO 3166-1 alpha-2 code of the open state map (GB / AE, never UK / UAE); left out on the world map.
+// On read, the state map follows the country in path (a state-map country always has its state map open);
+// map= alone, without a country in path, is ignored.
+// drv = exactly the ticked types; left out when all four are ticked (the default), 'drv=' (empty) when none.
+// No drv parameter = all four ticked. path is written only while a country is selected (the default is no
+// selection, explorer hidden); then open=1 / open=0 says whether the explorer is expanded. Older links:
+// geo= / path= are read as the path (a path shorter than [region, country] selects nothing), open containing
+// 'geo' or '1' opens the explorer, year= / driver= are ignored. Without an 'open' parameter, a link with a
+// country in path opens the explorer.
 function writeHash(){
-  var h='#year='+G.year, open=[];
-  HKEYS.forEach(function(k){
-    var x=EX[k]; if(!x.isDefaultSel()) h+='&'+k+'='+encodeURIComponent(JSON.stringify(x.sel()));
-    if(x.isOpen()) open.push(k);
-  });
-  if(open.length) h+='&open='+open.join(',');
-  try{ history.replaceState(null,'',h); }catch(e){}
+  var parts=[];
+  if(G.drv.length!==DRV.length) parts.push('drv='+G.drv.map(encodeURIComponent).join(','));
+  if(!EXP.isDefaultSel()) parts.push('path='+encodeURIComponent(JSON.stringify(EXP.sel())));
+  if(EXP.shown()&&!EXP.isDefaultSel()) parts.push('open='+(EXP.isOpen()?'1':'0'));
+  if(SM.iso) parts.push('map='+SM.iso);
+  try{ history.replaceState(null,'',parts.length?'#'+parts.join('&'):location.pathname+location.search); }catch(e){}
 }
 function readHash(){
   var h=String(location.hash||'').replace(/^#/,''), out={};
   h.split('&').forEach(function(kv){ var i=kv.indexOf('='); if(i>0){ try{ out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); }catch(e){} } });
-  var y=Number(out.year); if(YEARS.indexOf(y)>=0) G.year=y;
-  var parse=function(s){ try{ var p=JSON.parse(s); if(Array.isArray(p)&&p.every(function(x){ return typeof x==='string'; })) return p.slice(0,9); }catch(e){} return null; };
-  var raw={ geo:out.geo!=null?out.geo:out.path, driver:out.driver };
+  var dl=out.drv!=null?String(out.drv).split(',').map(function(s){ return s.trim(); }):DRV;
+  G.drv=DRV.filter(function(d){ return dl.indexOf(d)>=0; });
+  var parse=function(s){ try{ var p=JSON.parse(s); if(Array.isArray(p)&&p.every(function(x){ return typeof x==='string'; })) return p.slice(0,CFG.levels.length); }catch(e){} return null; };
+  var raw=out.path!=null?out.path:out.geo, p=raw!=null?parse(raw):null;
   var hasOpen=Object.prototype.hasOwnProperty.call(out,'open'), openList=hasOpen?String(out.open).split(','):[];
-  HKEYS.forEach(function(k){
-    var p=raw[k]!=null?parse(raw[k]):null, x=EX[k];
-    if(p) x.setSelRaw(p);
-    x.X.open=hasOpen?openList.indexOf(k)>=0:!!(p&&!x.isDefaultSel());
-  });
+  var hasCountry=!!(p&&p.length>=CFG.startDepth);
+  if(p) EXP.setSelRaw(hasCountry?p:[]);
+  EXP.X.open=hasCountry&&(hasOpen?(openList.indexOf('1')>=0||openList.indexOf('geo')>=0):true);
+  var sm=hasCountry?mapId(p[1]):'';
+  SM.want=STATE_MAP_ISO.indexOf(sm)>=0?sm:null;
 }
 
 // ---- Load ----
-function loadAll(){
-  // geo always (the fixed 'All regions' card + hero use its payload); driver only once its section is open.
-  EX.geo.load();
-  if(EX.driver.isOpen()) EX.driver.load(); else EX.driver.render();
-}
+function loadAll(){ EXP.load(); }
 
 // ---- Events ----
 function bind(){
@@ -1186,16 +1628,13 @@ function bind(){
     var t=ev.target&&ev.target.closest?ev.target:null; if(!t) return;
     if(t.closest('[data-toast-x]')){ var ts=$('iexToast'); if(ts) ts.hidden=true; return; }
     var tg=t.closest('[data-xtoggle]');
-    if(tg){ var x=EX[tg.getAttribute('data-xtoggle')]; if(x){ x.setOpen(!x.isOpen()); renderFixed(); x.focusToggle(); } return; }
-    var rg=t.closest('[data-region]');
-    if(rg){
-      EX.geo.openAt(EX.geo.X.NODES[Number(rg.getAttribute('data-region'))].path);
-      var bx=EX.geo.box(); if(bx&&bx.scrollIntoView) bx.scrollIntoView({block:'start',behavior:'smooth'});
-      var chip=bx&&bx.querySelector('.iex-it[aria-pressed="true"]'); if(chip) chip.focus({preventScroll:true});
-      return;
-    }
-    if(t.closest('[data-gretry]')){ EX.geo.load(); return; }
-    var sec=t.closest('[data-ex]'); if(sec&&EX[sec.getAttribute('data-ex')]) EX[sec.getAttribute('data-ex')].click(t);
+    if(tg){ EXP.setOpen(!EXP.isOpen()); renderFixed(); EXP.focusToggle(); return; }
+    var off=t.closest('[data-offmap]');
+    if(off){ offClick(Number(off.getAttribute('data-offmap'))); return; }
+    if(t.closest('[data-gretry]')){ EXP.load(); return; }
+    if(t.closest('[data-map-back]')){ smBack(); return; }
+    if(t.closest('[data-sm-retry]')){ var ri=SM.iso; SM.err=''; SM.loaded=''; openStateMap(ri); return; }
+    if(t.closest('[data-ex]')) EXP.click(t);
   });
   // World map: four delegated listeners on the map box cover all 256 country shapes.
   var mp=$('iexMapIn');
@@ -1206,15 +1645,37 @@ function bind(){
     mp.addEventListener('click',function(ev){ var p=ev.target; if(p&&p.tagName==='path') mapClick(p); });
     window.addEventListener('scroll',mapHideTip,{passive:true});
   }
+  // State map: the same hover tooltip, plus keyboard (focus shows the tooltip at the region, Enter / Space click).
+  var sm=$('iexStIn');
+  if(sm){
+    var isReg=function(p){ return p&&p.tagName==='path'&&p.hasAttribute('data-iso'); };
+    sm.addEventListener('mouseover',function(ev){ if(isReg(ev.target)) mapShowTip(ev,ev.target); });
+    sm.addEventListener('mousemove',function(ev){ if(isReg(ev.target)) mapShowTip(ev,ev.target); else mapHideTip(); });
+    sm.addEventListener('mouseleave',mapHideTip);
+    sm.addEventListener('click',function(ev){ if(isReg(ev.target)) smClick(ev.target); });
+    sm.addEventListener('focusin',function(ev){
+      var p=ev.target; if(!isReg(p)) return;
+      var r=p.getBoundingClientRect(); mapShowTip({ clientX:r.left+r.width/2, clientY:r.top+r.height/2 },p);
+    });
+    sm.addEventListener('focusout',mapHideTip);
+    sm.addEventListener('keydown',function(ev){
+      if(!isReg(ev.target)||(ev.key!=='Enter'&&ev.key!==' '&&ev.key!=='Spacebar')) return;
+      ev.preventDefault(); smClick(ev.target);
+    });
+  }
+  // Driver type filter: re-render the whole page from the loaded payload (no new /tree request).
   wrap.addEventListener('change',function(ev){
-    var el=ev.target; if(!el||el.id!=='iexYear') return;
-    G.year=Number(el.value)||2026;
-    HKEYS.forEach(function(k){ EX[k].resetYear(); });
-    writeHash(); loadAll();
+    var el=ev.target; if(!el||!el.hasAttribute||!el.hasAttribute('data-drv')) return;
+    var box=$('iexDrv'), on=[];
+    if(box) Array.prototype.forEach.call(box.querySelectorAll('[data-drv]'),function(i){ if(i.checked) on.push(i.getAttribute('data-drv')); });
+    G.drv=DRV.filter(function(d){ return on.indexOf(d)>=0; });
+    EXP.applyFilter();
+    var root=EXP.X.NODES.length?EXP.X.NODES[0].node.n:0;
+    announce('Driver type: '+drvLabel()+'. '+num(root)+' successfully resolved tickets.');
   });
   wrap.addEventListener('input',function(ev){
     var el=ev.target; if(!el||!el.hasAttribute||!el.hasAttribute('data-q')) return;
-    var sec=el.closest('[data-ex]'); if(sec&&EX[sec.getAttribute('data-ex')]) EX[sec.getAttribute('data-ex')].input(el);
+    if(el.closest('[data-ex]')) EXP.input(el);
   });
 }
 

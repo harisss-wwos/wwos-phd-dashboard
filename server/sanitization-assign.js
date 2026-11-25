@@ -1,7 +1,7 @@
 // Sanitization assignments (ticket-sanitization.html, owner-only): harisss hands low-score tickets to
 // a contractor to sanitize, then the next data uploads verify them. One collection
 // (COLLECTIONS.sanitizationAssignments), one doc per assign action:
-//   { _id, assignee, assignedBy, assignedAt, score, count,
+//   { _id, assignee, assignedBy, assignedAt, score (null for a closure-code assignment), closureCode?, group?, count,
 //     tickets:[{ shortId, url, title, cq, scoreAtAssign, missingAtAssign:[criterion keys] }],
 //     status:'active'|'revoked', revokedAt?, revokedBy?,
 //     verification:{ dataStamp, verifiedAt, results:[{ shortId, score, missing:[keys], found, cleared, mark, ... }] } | null,
@@ -38,8 +38,12 @@
 // 'approved error'), so they are never available / picked, and verification counts them as excluded
 // (neither passed nor failed). On the TRACKER (contractorView rows / totals, sectionCounts) an approved
 // error of an assignment counts as SANITIZED: section 4 with approvedError { by, at, reason, note }.
+// TEST / NON-PHD tickets (ticket-rules.js; report.ruleExcluded) are never in the report's tickets, so
+// they are never available / picked either, and liveTickets drops them from every assignment that
+// already holds them (no row, no section / card / performance count, no verification).
 'use strict';
-const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, ticketCleared, closureKey, CODE_SUCCESSFUL, CODE_IR, CODE_DUP } = require('./sanitization-score');
+const { isOwner, CRITERIA, MAX_SCORE, APPROVED_REASON, ticketCleared, closureKey, closureGroupOf, GROUP_BLANK, CODE_SUCCESSFUL, CODE_IR, CODE_DUP, CODE_AUTO } = require('./sanitization-score');
+const ticketRules = require('./ticket-rules');
 const DUP_REASON = 'duplicate';   // excludeReason of a SIM Duplicate: counts as cleared here (no checks)
 
 const COUNT_MAX = 2000;
@@ -63,11 +67,23 @@ function reportIndex(report) {
     ix = {
       byId: new Map((report.tickets || []).map(t => [t.shortId, t])),
       excluded: new Map((report.excludedTickets || []).map(t => [t.shortId, t.reason])),
+      rule: new Map((report.ruleExcluded || []).map(t => [t.shortId, t.reason])),
     };
     _idx.set(report, ix);
   }
   return ix;
 }
+// TEST / NON-PHD tickets (ticket-rules.js, shared with the Incident Explorer) are dropped from every
+// assignment as if they were never in it: no row, no card / section / performance count, no
+// verification. Decided by the current title (report.ruleExcluded) or, for a ticket the report does
+// not have at all, by the title stored in the assignment. ix may be null (stored title only).
+function ruleOut(t, ix) {
+  if (!t || !t.shortId) return false;
+  if (ix && ix.rule.has(t.shortId)) return true;
+  if (ix && (ix.byId.has(t.shortId) || ix.excluded.has(t.shortId))) return false;
+  return !!ticketRules.excludeReason(t.title);
+}
+const liveTickets = (a, ix) => (a && a.tickets || []).filter(t => t && t.shortId && !ruleOut(t, ix));
 const missingKeys = checks => CRITERIA.filter((c, i) => !(checks && checks[i] && checks[i][0])).map(c => c.key);
 // Missing chip of one criterion; with a target code (the closure-code rule, sanitization-score.js
 // closureRule) the ClosureCode chip says what to change it to ('ClosureCode: change to Successful').
@@ -104,8 +120,7 @@ function liveVerification(a, report, stamp, now, marks) {
   if (!a || a.status !== 'active' || !report) return null;
   const ix = reportIndex(report), mk = markMap(marks);
   const results = [];
-  (a.tickets || []).forEach(t => {
-    if (!t || !t.shortId) return;
+  liveTickets(a, ix).forEach(t => {
     const m = mk.get(markKey(a.assignee, t.shortId));
     if (!verifiedClaim(m, stamp)) return;
     const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
@@ -152,6 +167,36 @@ function availableCounts(report, locked) {
   return out;
 }
 
+// ---- Closure-code groups (the scores page's assign groups; score is not used) ----
+// Tickets still to sanitize (!ticketCleared) grouped by SIM ClosureCode (closureGroupOf):
+// -> [{ id, label, n, available }]: n = every such ticket, available = not locked (as availableCounts).
+// Order: Successful, Immediately Resolved, Automatically Closed, then the other codes by n desc, then
+// label; 'No closure code' last. Empty groups are left out.
+const GROUP_FIXED = [CODE_SUCCESSFUL, CODE_IR, CODE_AUTO].map(closureKey);
+function closureGroups(report, locked) {
+  const by = new Map();
+  ((report && report.tickets) || []).forEach(t => {
+    if (ticketCleared(t)) return;
+    const g = closureGroupOf(t.cc);
+    if (!by.has(g.id)) by.set(g.id, { id: g.id, label: g.label, n: 0, available: 0 });
+    const r = by.get(g.id);
+    r.n++;
+    if (t.shortId && !(locked && locked.has(t.shortId))) r.available++;
+  });
+  const rank = g => (g.id === GROUP_BLANK ? 1e9 : (GROUP_FIXED.indexOf(g.id) >= 0 ? GROUP_FIXED.indexOf(g.id) : 100));
+  return Array.from(by.values()).filter(g => g.n > 0)
+    .sort((a, b) => (rank(a) - rank(b)) || (b.n - a.n) || a.label.localeCompare(b.label));
+}
+// Available tickets of one closure-code group, in pick order: created quarter oldest -> newest (no
+// quarter last), then oldest resolved first (ro), then shortId.
+function availableInGroup(report, id, locked) {
+  const qk = t => (/^\d{4}-Q[1-4]$/.test(t.cq || '') ? t.cq : '~');
+  const ro = t => (typeof t.ro === 'number' ? t.ro : Infinity);
+  return ((report && report.tickets) || [])
+    .filter(t => !ticketCleared(t) && closureGroupOf(t.cc).id === id && t.shortId && !(locked && locked.has(t.shortId)))
+    .sort((a, b) => qk(a).localeCompare(qk(b)) || (ro(a) - ro(b)) || a.shortId.localeCompare(b.shortId));
+}
+
 // Scores page row "Approved errors & agent-marked duplicates" (GET /api/sanitization-score):
 //   approvedErrors - owner-approved error tickets (COLLECTIONS.sanitizationExcluded): login = the agent
 //                    who marked it Error, markedAt = that Error mark's time (the mark is kept on approval).
@@ -162,7 +207,7 @@ function availableCounts(report, locked) {
 // Title / url / SIM code come from the score report BEFORE applyApproved (base), else from the
 // assignments' stored tickets. scope: 'scored' | the exclusion reason | 'not-found' (not in the data).
 function markedTickets(base, approved, marks, assignments, stamp) {
-  const ix = base ? reportIndex(base) : { byId: new Map(), excluded: new Map() };
+  const ix = base ? reportIndex(base) : { byId: new Map(), excluded: new Map(), rule: new Map() };
   const meta = new Map();
   (assignments || []).forEach(a => (a && a.tickets || []).forEach(t => { if (t && t.shortId && !meta.has(t.shortId)) meta.set(t.shortId, t); }));
   const mk = markMap(marks);
@@ -170,7 +215,7 @@ function markedTickets(base, approved, marks, assignments, stamp) {
     const cur = ix.byId.get(sid), why = cur ? null : ix.excluded.get(sid), t = meta.get(sid) || {};
     return { shortId: sid, url: (cur && cur.url) || t.url || 'https://t.corp.amazon.com/issues/' + encodeURIComponent(sid),
       title: (cur && cur.title) || t.title || '', cc: cur ? (cur.cc || '') : (why === DUP_REASON ? CODE_DUP : ''),
-      scope: cur ? 'scored' : (why || 'not-found') };
+      scope: cur ? 'scored' : (why || ix.rule.get(sid) || 'not-found') };
   };
   const newest = (x, y) => String(y.markedAt || '').localeCompare(String(x.markedAt || '')) || x.shortId.localeCompare(y.shortId);
   const approvedErrors = (approved || []).filter(d => d && d.shortId).map(d => {
@@ -181,6 +226,7 @@ function markedTickets(base, approved, marks, assignments, stamp) {
   const duplicates = [];
   mk.forEach(m => {
     if (!m || m.status !== 'duplicate' || !m.shortId) return;
+    if (ruleOut(meta.get(m.shortId) || { shortId: m.shortId }, ix)) return;   // TEST / NON-PHD ticket: not listed
     const it = info(m.shortId);
     duplicates.push({ ...it, login: normLogin(m.login), markedAt: m.at || null, simDup: closureKey(it.cc) === closureKey(CODE_DUP), pending: claimPending(m, stamp) });
   });
@@ -193,40 +239,57 @@ function markedTickets(base, approved, marks, assignments, stamp) {
   return { approvedErrors, duplicates, agents, simDuplicates: (base && base.excludedBy && base.excludedBy[DUP_REASON]) || 0 };
 }
 
-// Strict input check. -> { ok, value:{score,count,assignee} } | { ok:false, status, error }.
+// Strict input check: exactly one of closureCode (a closure-code group id, closureGroupOf; matched
+// case-insensitively, '(blank)' = no closure code) or score (legacy, 0..MAX_SCORE-1).
+// -> { ok, value:{ closureCode? | score?, count, assignee } } | { ok:false, status, error }.
+const CLOSURE_MAX = 120;
 function validateAssign(body, contractors) {
   const b = body || {};
   const bad = error => ({ ok: false, status: 400, error });
-  if (typeof b.score !== 'number' || !Number.isInteger(b.score) || b.score < 0 || b.score > MAX_SCORE - 1) return bad('score must be a whole number from 0 to ' + (MAX_SCORE - 1) + '.');
+  const hasScore = b.score !== undefined && b.score !== null, hasCode = b.closureCode !== undefined && b.closureCode !== null;
+  if (hasScore === hasCode) return bad('Send either score or closureCode.');
+  let closureCode = null;
+  if (hasCode) {
+    const s = typeof b.closureCode === 'string' ? b.closureCode.trim() : '';
+    if (!s || s.length > CLOSURE_MAX) return bad('closureCode must be a closure-code group.');
+    closureCode = s === GROUP_BLANK ? GROUP_BLANK : closureKey(s);
+  } else if (typeof b.score !== 'number' || !Number.isInteger(b.score) || b.score < 0 || b.score > MAX_SCORE - 1) return bad('score must be a whole number from 0 to ' + (MAX_SCORE - 1) + '.');
   if (typeof b.count !== 'number' || !Number.isInteger(b.count) || b.count < 1 || b.count > COUNT_MAX) return bad('count must be a whole number from 1 to ' + COUNT_MAX + '.');
   const assignee = typeof b.assignee === 'string' ? normLogin(b.assignee) : '';
   if (!assignee || !(contractors || []).some(c => c.login === assignee)) return bad('assignee must be one of the contractors.');
-  return { ok: true, value: { score: b.score, count: b.count, assignee } };
+  return { ok: true, value: hasCode ? { closureCode, count: b.count, assignee } : { score: b.score, count: b.count, assignee } };
 }
 
 // One assignment at a time per process, so two quick POSTs cannot pick the same tickets.
 let _chain = Promise.resolve();
 function serial(fn) { const p = _chain.then(fn, fn); _chain = p.catch(() => {}); return p; }
 
-// POST /api/sanitization-assign { score, count, assignee }. Returns { status, body }.
-// The SERVER picks the tickets: the section's first `count` available tickets (availableInSection).
+// POST /api/sanitization-assign { closureCode, count, assignee } (or the legacy { score, count, assignee }).
+// Returns { status, body }. The SERVER picks the tickets: the group's first `count` available tickets
+// (availableInGroup; legacy: the score section's, availableInSection). A closure-code doc stores
+// score: null, closureCode: <group label>, group: <group id>.
 // deps: { coll, user:{username}, report, stamp, contractors, marks?, now? }
 function handleAssign(body, deps) {
   if (!deps.user || !isOwner(deps.user.username)) return Promise.resolve({ status: 403, body: { error: OWNER_ONLY } });
   const v = validateAssign(body, deps.contractors);
   if (!v.ok) return Promise.resolve({ status: v.status, body: { error: v.error } });
   return serial(async () => {
-    const { score, count, assignee } = v.value;
+    const { count, assignee } = v.value, byCode = v.value.closureCode != null;
+    const score = byCode ? null : v.value.score;
     const now = deps.now ? deps.now() : new Date();
     const coll = deps.coll;
     const active = await coll.find({ status: 'active' }).toArray();
-    const avail = availableInSection(deps.report, score, lockedMap(active, deps.report, deps.stamp, now, deps.marks));
+    const locked = lockedMap(active, deps.report, deps.stamp, now, deps.marks);
+    const avail = byCode ? availableInGroup(deps.report, v.value.closureCode, locked) : availableInSection(deps.report, score, locked);
+    const group = byCode ? (closureGroups(deps.report, null).find(g => g.id === v.value.closureCode) || null) : null;
+    const label = byCode ? (group ? group.label : v.value.closureCode) : null;
     if (avail.length < count) {
-      return { status: 409, body: { error: 'Only ' + avail.length + ' tickets with ' + score + ' points are available.', available: avail.length } };
+      return { status: 409, body: { error: 'Only ' + avail.length + ' tickets with ' + (byCode ? 'closure code ' + label : score + ' points') + ' are available.', available: avail.length } };
     }
     const at = now.toISOString();
     const doc = {
-      assignee, assignedBy: normLogin(deps.user.username), assignedAt: at, score, count,
+      assignee, assignedBy: normLogin(deps.user.username), assignedAt: at, score,
+      ...(byCode ? { closureCode: label, group: v.value.closureCode } : {}), count,
       tickets: avail.slice(0, count).map(t => ({
         shortId: t.shortId, url: t.url || '', title: String(t.title || '').slice(0, 300), cq: t.cq || '',
         scoreAtAssign: t.score, missingAtAssign: missingKeys(t.checks),
@@ -234,7 +297,7 @@ function handleAssign(body, deps) {
       status: 'active', verification: null, history: [],
     };
     const ins = await coll.insertOne(doc);
-    return { status: 200, body: { ok: true, id: String(ins && ins.insertedId), assignee, score, count,
+    return { status: 200, body: { ok: true, id: String(ins && ins.insertedId), assignee, ...(byCode ? { closureCode: label } : { score }), count,
       tickets: doc.tickets.map(t => ({ shortId: t.shortId, url: t.url })), available: avail.length - count } };
   });
 }
@@ -266,9 +329,8 @@ const mean = xs => (xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.le
 // other (excluded / not found). No deadline: nothing here depends on the date.
 function sectionCounts(a, report, stamp, marks) {
   const c = { toSanitize: 0, tempCleared: 0, errors: 0, sanitized: 0, other: 0 };
-  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() }, mk = markMap(marks);
-  (a.tickets || []).forEach(t => {
-    if (!t || !t.shortId) return;
+  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map(), rule: new Map() }, mk = markMap(marks);
+  liveTickets(a, ix).forEach(t => {
     const cur = ix.byId.get(t.shortId), why = cur ? null : ix.excluded.get(t.shortId);
     if (why === APPROVED_REASON) { c.sanitized++; return; }   // owner-approved error: sanitized on the tracker
     const ev = evalTicket(cur, why, mk.get(markKey(a.assignee, t.shortId)), stamp);
@@ -338,13 +400,15 @@ async function handleGet(deps) {
   locked.forEach(login => { openBy[login] = (openBy[login] || 0) + 1; });
   const contractors = (deps.contractors || []).map(c => ({ ...c, open: openBy[c.login] || 0 }));
 
+  const rix = deps.report ? reportIndex(deps.report) : null;   // TEST / NON-PHD tickets are left out (liveTickets)
   const assignments = docs.map(a => {
     const v = live.get(a), sum = summarize(a, v, counts.get(a) || null);
     const res = v ? new Map(v.results.map(r => [r.shortId, r])) : new Map();
+    const kept = liveTickets(a, rix);
     return {
       id: String(a._id), assignee: a.assignee, assignedBy: a.assignedBy, assignedAt: a.assignedAt,
-      score: a.score, count: a.count, status: a.status, revokedAt: a.revokedAt || null, revokedBy: a.revokedBy || null,
-      tickets: (a.tickets || []).map(t => {
+      score: a.score, closureCode: a.closureCode || null, count: kept.length === (a.tickets || []).length ? a.count : kept.length, status: a.status, revokedAt: a.revokedAt || null, revokedBy: a.revokedBy || null,
+      tickets: kept.map(t => {
         const r = res.get(t.shortId);
         return { shortId: t.shortId, url: t.url, title: t.title, cq: t.cq, scoreAtAssign: t.scoreAtAssign,
           score: r ? r.score : null, found: r ? r.found : null, excludedReason: (r && r.excludedReason) || null };
@@ -364,8 +428,9 @@ async function handleGet(deps) {
   docs.forEach(a => {
     if (a.status !== 'active') return;
     const p = row(a.assignee), v = live.get(a);
-    p.assignments++; p.ticketsAssigned += (a.tickets || []).length;
-    p.pending += (a.tickets || []).length - (v ? v.results.length : 0);
+    const n = liveTickets(a, rix).length;
+    p.assignments++; p.ticketsAssigned += n;
+    p.pending += n - (v ? v.results.length : 0);
     if (!v) return;
     const before = new Map((a.tickets || []).map(t => [t.shortId, t.scoreAtAssign]));
     v.results.forEach(r => {
@@ -638,7 +703,7 @@ function validationOf(doc, approvedSet, stamp) {
 // fieldApprMap); without them every row's `validation` is null and the mark rules decide alone.
 function contractorView(assignments, login, report, stamp, marks, approvedIds, validations, approvedFields) {
   const me = normLogin(login);
-  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map() };
+  const ix = report ? reportIndex(report) : { byId: new Map(), excluded: new Map(), rule: new Map() };
   const appr = apprMap(approvedIds);
   const vals = valMap(validations), apprF = fieldApprMap(approvedFields);
   const mk = new Map((marks || []).filter(m => m && normLogin(m.login) === me && m.shortId).map(m => [m.shortId, m]));
@@ -647,8 +712,8 @@ function contractorView(assignments, login, report, stamp, marks, approvedIds, v
     .sort((a, b) => String(b.assignedAt || '').localeCompare(String(a.assignedAt || '')));
   const seen = new Set(), tickets = [];
   docs.forEach(a => {
-    (a.tickets || []).forEach(t => {
-      if (!t || !t.shortId || seen.has(t.shortId)) return;
+    liveTickets(a, ix).forEach(t => {   // TEST / NON-PHD tickets: no row, not counted
+      if (seen.has(t.shortId)) return;
       seen.add(t.shortId);
       const row = rowOf(a, t, ix, mk.get(t.shortId), stamp, appr, validationOf(vals.get(t.shortId), apprF.get(t.shortId), stamp));
       if (row) tickets.push(row);
@@ -954,6 +1019,7 @@ async function handleValidationReview(body, deps) {
 
 module.exports = {
   COUNT_MAX, REASON_MAX, REVIEW_MAX, contractorsOf, liveVerification, lockedMap, availableInSection, availableCounts, markedTickets,
+  closureGroups, availableInGroup,
   validateAssign, handleAssign, handleRevoke, handleGet, statusOf, sectionCounts, contractorView, handleMine, handleMark, markValid,
   handleErrorReview, handleRestore, handleValidationReview, missingChips, passedResult, chipFor, missingRequired,
   CLAIMS, NEED_REASONS, claimPending, verifiedClaim, verifyClaim, evalTicket, rowOf, markMap,

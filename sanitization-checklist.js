@@ -2,7 +2,8 @@
 //   - the hero "Copy prompt" button (TS_PROMPT) and the hero summary chips,
 //   - the top-level one-open-at-a-time accordion (also used by the page's Contractors section),
 //   - "Sanitization checklist" (everyone; editors add / edit / delete checks),
-//   - "Sanitization scores" + the "Assign to sanitize" pop-up (owner only),
+//   - "Sanitization scores" (closure-code groups) + the "Assign to sanitize" pop-up (owner only),
+//   - "Sanitized tickets" and "Approved errors & agent-marked duplicates" (owner only),
 //   - "Sanitization assignment log" (owner only).
 // Styles: sanitization-checklist.css. Needs icons.js, api-config.js, topbar-auth.js (PHDAuth, PHDLoginUI,
 // PHDConfirm, PHDBanner, the shared .tbl-* dialog shell) and the page's #tsAddModal / #tsEditModal /
@@ -540,21 +541,27 @@ async function tsDelConfirm(){
 window.tsDelConfirm=tsDelConfirm;
 
 // ---- Sanitization scores (owner-only; the server enforces it too: GET /api/sanitization-score) ----
-// Every Resolved / Closed ticket scored 0..scMax() (11: one point per check); appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored.
-// Collapsible groups, 0 points first (they matter most): one per point value for tickets that do not pass rule A yet,
-// then Tickets with clear data (rule A pass, any raw score) and Approved errors & agent-marked duplicates; one open at a time.
-// Inside: created-quarter sub-sections (Pacific, oldest first, collapsed); tickets paged by 100 in two 50-row columns.
+// Three owner-only top-level cards share one payload (SC.data) and one open sub-group (SC.open):
+//   Sanitization scores (#tsScore) - the tickets that still need sanitizing (rule A not passed), one
+//     collapsible group per SIM closure code (server: groups, sanitization-assign.js closureGroups), each
+//     with 'N available' + 'Assign to sanitize'. No points are shown.
+//   Sanitized tickets (#tsSanitized) - Tickets with clear data (rule A pass: the server's clr flag).
+//   Approved errors & agent-marked duplicates (#tsMarked, last) - two tables; Restore per approved error.
+// Appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored (the server leaves them out).
+// Inside a group: created-quarter sub-sections (Pacific, oldest first, collapsed); tickets paged by 100 in two 50-row columns.
 var TS_OWNER='harisss';
 function tsIsOwner(){ var u=A&&A.getUser&&A.getUser(); return !!(u && String(u.username||'').trim().toLowerCase()===TS_OWNER); }
-// open = open score section; openQ = open quarter sub-section inside it ('2026-Q1'); page = {'score|quarter': page no.}.
-var SC={loading:true, err:'', data:null, quarter:'', open:null, openQ:null, page:{}};
+// open = open sub-group ('g<index into SC.data.groups>', 'clear', 'ae' approved errors, 'du' duplicates);
+// openQ = open quarter sub-section inside it ('2026-Q1'); page = {'key|quarter': page no.};
+// rs = {shortId:true} while its Restore request runs.
+var SC={loading:true, err:'', data:null, quarter:'', open:null, openQ:null, page:{}, rs:{}};
 var SC_PAGE=100;
 var ICO_SCORE='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>';
 // Top score: the server's maxScore (MAX_SCORE in sanitization-score.js), 11 until the payload is here.
 var SC_MAX_DEFAULT=11;
 function scMax(){ var m=SC.data&&Number(SC.data.maxScore); return m>0?m:SC_MAX_DEFAULT; }
-// Hue per score: 0 red (0) -> half amber (38) -> max green (142).
-function scHue(s){ var M=scMax(), h=M/2; s=Math.max(0,Math.min(M,Number(s)||0)); return s<=h ? Math.round(s/h*38) : Math.round(38+(s-h)/(M-h)*104); }
+// One neutral hue for every closure-code group (colour does not imply a score).
+var SC_GROUP_HUE=210;
 function scWhen(iso){ var d=new Date(iso); return iso&&!isNaN(d)?d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):''; }
 
 function scSkel(){
@@ -568,32 +575,56 @@ function scSkel(){
 function scQuarterSelect(){
   return '<div class="ts-sc-ctl ts-top-acts"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
 }
-// Groups: point values 0..scMax() (tickets NOT passing rule A), 'clear' (Tickets with clear data: the
-// server's clr flag = rule A pass, any raw score) and 'marked' (approved errors + agent-marked duplicates).
-// The top point value is only shown when tickets sit in it without passing rule A (e.g. an ineligible
-// Immediately Resolved with all 11 checks).
+// Sub-group keys: 'g<i>' = closure-code group i of SC.data.groups (tickets NOT passing rule A; the
+// index, never the code, goes into inline handlers), 'clear' (Tickets with clear data: the server's clr
+// flag = rule A pass), 'ae' / 'du' (approved errors / agent-marked duplicates, the last card).
 var SC_CLEAR_CODES=['Successful','Immediately Resolved','Automatically Closed'];
 function scArg(k){ return typeof k==='number'?String(k):'\''+k+'\''; }
-function scName(k){ return k==='clear'?'Tickets with clear data':(k===1?'1 point':k+' points'); }
-function scList(k){
-  var all=(SC.data&&SC.data.tickets)||[];
-  return k==='clear'?all.filter(function(t){ return t.clr; }):all.filter(function(t){ return !t.clr&&t.score===k; });
+// Closure-code group id of a SIM code. KEEP IN SYNC with server/sanitization-score.js closureGroupOf.
+function scGroupId(cc){ var s=String(cc==null?'':cc).trim().replace(/\s+/g,' '); return s?s.toLowerCase():'(blank)'; }
+function scGroupOf(d,k){ var m=/^g(\d+)$/.exec(String(k)), g=d&&d.groups; return m&&g&&g[Number(m[1])]?g[Number(m[1])]:null; }
+function scGroup(k){ return scGroupOf(SC.data,k); }
+// Key of the group with this id in the current payload, or null.
+function scGroupKey(id){ var g=(SC.data&&SC.data.groups)||[]; for(var i=0;i<g.length;i++) if(g[i].id===id) return 'g'+i; return null; }
+function scName(k){
+  if(k==='clear') return 'Tickets with clear data';
+  if(k==='ae') return 'Approved errors';
+  if(k==='du') return 'Agent-marked duplicates';
+  var g=scGroup(k); return g?g.label:String(k);
 }
-function scClearTotal(d){ return (d.clear&&Number(d.clear.total))||0; }
-function scDistHtml(d){
-  var M=scMax(), max=0, i, cols=[];
-  for(i=0;i<M;i++) cols.push(i);
-  if(d.buckets[M]) cols.push(M);
-  cols.push('clear');
-  var cnt=function(k){ return k==='clear'?scClearTotal(d):(d.buckets[k]||0); };
-  cols.forEach(function(k){ max=Math.max(max,cnt(k)); });
-  var li=cols.map(function(k){
-    var n=cnt(k), h=max?Math.max(n?4:0,Math.round(n/max*100)):0, hue=k==='clear'?142:scHue(k);
-    return '<li style="--sc-h:'+hue+'"><button type="button" onclick="tsScoreJump('+scArg(k)+')" aria-label="'+esc(scName(k))+': '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
-      '<span class="ts-sc-n" aria-hidden="true">'+n+'</span><span class="ts-sc-col" aria-hidden="true"><span class="ts-sc-bar" style="height:'+h+'%"></span></span>'+
-      '<span class="ts-sc-x" aria-hidden="true">'+(k==='clear'?'Clear':k)+'</span></button></li>';
+// Created quarter oldest first (none last), then oldest resolved (ro), then ticket id: the server's pick order.
+function scRo(t){ return typeof t.ro==='number'?t.ro:Infinity; }
+function scByAge(a,b){
+  var qa=scQKey(a), qb=scQKey(b);
+  return (qa===qb?0:(qa==='none'?1:(qb==='none'?-1:qa.localeCompare(qb))))||(scRo(a)-scRo(b))||String(a.shortId||'').localeCompare(String(b.shortId||''));
+}
+// Ticket lists per sub-group key, built once per payload (d._lists).
+function scLists(d){
+  if(d._lists) return d._lists;
+  var L={clear:[]}, ix={};
+  (d.groups||[]).forEach(function(g,i){ ix[g.id]=i; L['g'+i]=[]; });
+  (d.tickets||[]).forEach(function(t){
+    if(t.clr){ L.clear.push(t); return; }
+    var i=ix[scGroupId(t.cc)]; if(i!=null) L['g'+i].push(t);
   });
-  return '<ul class="ts-sc-dist" style="grid-template-columns:repeat('+cols.length+',minmax(0,1fr))" aria-label="Score distribution: 0 to '+(cols.length-2)+' points, then tickets with clear data">'+li.join('')+'</ul>';
+  Object.keys(L).forEach(function(k){ L[k].sort(scByAge); });
+  return (d._lists=L);
+}
+function scList(k){ return SC.data?(scLists(SC.data)[k]||[]):[]; }
+function scClearTotal(d){ return (d.clear&&Number(d.clear.total))||0; }
+function scToSanitize(d){ return (d.groups||[]).reduce(function(s,g){ return s+(Number(g.n)||0); },0); }
+// One column per closure-code group (full code in the aria-label / title; the short label is cut by CSS).
+function scDistHtml(d){
+  var gs=d.groups||[], max=0;
+  if(!gs.length) return '';
+  gs.forEach(function(g){ max=Math.max(max,Number(g.n)||0); });
+  var li=gs.map(function(g,i){
+    var n=Number(g.n)||0, h=max?Math.max(n?4:0,Math.round(n/max*100)):0;
+    return '<li style="--sc-h:'+SC_GROUP_HUE+'"><button type="button" onclick="tsScoreJump(\'g'+i+'\')" title="'+esc(g.label)+'" aria-label="'+esc(g.label)+': '+n+' '+(n===1?'ticket':'tickets')+'. Show this group">'+
+      '<span class="ts-sc-n" aria-hidden="true">'+n.toLocaleString()+'</span><span class="ts-sc-col" aria-hidden="true"><span class="ts-sc-bar" style="height:'+h+'%"></span></span>'+
+      '<span class="ts-sc-x" aria-hidden="true" style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(g.label)+'</span></button></li>';
+  });
+  return '<ul class="ts-sc-dist" style="grid-template-columns:repeat('+gs.length+',minmax(0,1fr))" aria-label="Tickets to sanitize by closure code">'+li.join('')+'</ul>';
 }
 // Created quarter id from the server ('2026-Q1'); anything else (no CreateDate) -> 'none'.
 function scQKey(t){ var q=t&&t.cq; return /^\d{4}-Q[1-4]$/.test(q||'')?q:'none'; }
@@ -604,11 +635,9 @@ function scMissText(t,crit){
   (t.checks||[]).forEach(function(c,i){ if(c[0]) return; var cr=crit[i]||{chip:'Check '+(i+1)}; m.push(cr.chip+(c[1]?' (value: '+c[1]+')':'')); });
   return m.length?'Missing: '+m.join(', '):'All checks pass';
 }
-// Header summary: failing criteria among a score group's tickets, most frequent first.
-function scMissHtml(list,score,crit){
+// Header summary: failing criteria among a closure-code group's tickets (name = the group label).
+function scMissHtml(list,name,crit){
   if(!list.length) return '';
-  // Top score outside "clear data": every check passes but rule A fails (e.g. Immediately Resolved not eligible for the title).
-  if(score===scMax()) return '<ul class="ts-sc-miss" aria-label="Checks for '+score+' points"><li class="ts-chip">All '+score+' checks pass, but the closure code does not fit the title</li></ul>';
   var cnt=crit.map(function(){ return 0; });
   list.forEach(function(t){ (t.checks||[]).forEach(function(c,i){ if(!c[0]&&i<cnt.length) cnt[i]++; }); });
   var rows=cnt.map(function(n,i){ return {i:i,n:n}; }).filter(function(x){ return x.n>0; });
@@ -628,7 +657,7 @@ function scMissHtml(list,score,crit){
     groups[gi[pre]].items.push({name:name,n:x.n,label:cr.label||chip,by:by});
   });
   var tot=list.length.toLocaleString();
-  return '<ul class="ts-sc-miss" aria-label="Missing checks for '+score+' '+(score===1?'point':'points')+'">'+groups.map(function(g){
+  return '<ul class="ts-sc-miss" aria-label="'+esc('Missing checks for '+name)+'">'+groups.map(function(g){
     var tip=g.items.map(function(it){ return it.n.toLocaleString()+' of '+tot+' tickets fail: '+it.label+(it.by&&it.by.length?'\n'+it.by.join('\n'):''); }).join('\n');
     return '<li class="ts-chip ts-chip-grp" title="'+esc(tip)+'">['+(g.pre?esc(g.pre)+': ':'')+g.items.map(function(it){
       return esc(it.name)+' <b>'+it.n.toLocaleString()+'</b><span class="ts-sr"> tickets</span>';
@@ -670,7 +699,7 @@ function scQuartersHtml(list,score,crit){
       '<div class="ts-sc-qb" id="tsScQL-'+id+'"'+(open?'':' hidden')+'>'+(open?scQBodyHtml(by[k],score,k,crit):'')+'</div></section>';
   }).join('')+'</div>';
 }
-// Collapsible group shell (point values, 'clear', 'marked'): k = group key, badge / label / n = header, extra = header-row HTML.
+// Collapsible group shell ('g<i>', 'clear', 'ae', 'du'): k = group key, badge / label / n = header, extra = header-row HTML.
 function scSecHtml(k,o){
   var open=SC.open===k, n=Number(o.n)||0;
   return '<section class="ts-sec ts-sc-sec'+(open?' is-open':'')+(o.great?' is-great':'')+'" style="--sc-h:'+o.hue+'" id="tsScSec-'+k+'" aria-labelledby="tsScH-'+k+'">'+
@@ -689,90 +718,125 @@ function scCountChips(aria,rows,keepZero){
   });
   return li.length?'<ul class="ts-sc-miss" aria-label="'+esc(aria)+'">'+li.join('')+'</ul>':'';
 }
-function scBucketsHtml(d){
-  var M=scMax(), by={}, i; for(i=0;i<=M;i++) by[i]=[];
-  var clear=[];
-  (d.tickets||[]).forEach(function(t){ if(t.clr) clear.push(t); else if(by[t.score]) by[t.score].push(t); });
-  var crit=d.criteria||[], out=[];
+// Sanitization scores card body: one group per closure code (tickets still to sanitize).
+function scGroupsHtml(d){
+  var crit=d.criteria||[], gs=d.groups||[];
+  if(!gs.length) return scEmpty();
   if(!d._miss) d._miss={};   // header summaries, computed once per payload
-  for(i=0;i<=M;i++){
-    var n=(d.buckets&&d.buckets[i])||0;
-    if(i===M&&!n) continue;   // the top score only when tickets sit in it without clear data
-    (function(i,n){
-      out.push(scSecHtml(i,{n:n,hue:scHue(i),badge:i+' / '+M,label:scName(i),
-        extra:(i===M?'':saHeadActs(d,i,n))+(d._miss[i]!=null?d._miss[i]:(d._miss[i]=scMissHtml(by[i],i,crit))),
-        body:function(){ return by[i].length?scQuartersHtml(by[i],i,crit):scEmpty(); }}));
-    })(i,n);
-  }
-  // Tickets with clear data: rule A passes (Successful 11 checks; eligible Immediately Resolved / Automatically Closed: 3 title checks).
-  var bc=(d.clear&&d.clear.byCode)||{}, codes=SC_CLEAR_CODES.slice();
+  return '<div class="ts-secs">'+gs.map(function(g,i){
+    var k='g'+i;
+    return scSecHtml(k,{n:g.n,hue:SC_GROUP_HUE,badge:'SIM',label:g.label,
+      extra:saHeadActs(d,k)+(d._miss[k]!=null?d._miss[k]:(d._miss[k]=scMissHtml(scList(k),g.label,crit))),
+      body:function(){ var l=scList(k); return l.length?scQuartersHtml(l,k,crit):scEmpty(); }});
+  }).join('')+'</div>';
+}
+// Sanitized tickets card body: Tickets with clear data (rule A passes: Successful 11 checks; eligible
+// Immediately Resolved / Automatically Closed: 3 title checks), counted per closure code.
+function scClearHtml(d){
+  var crit=d.criteria||[], bc=(d.clear&&d.clear.byCode)||{}, codes=SC_CLEAR_CODES.slice();
   Object.keys(bc).forEach(function(c){ if(codes.indexOf(c)<0) codes.push(c); });
-  out.push(scSecHtml('clear',{n:scClearTotal(d),hue:142,great:true,badge:'Clear',label:scName('clear'),tag:'Great',
+  return '<div class="ts-secs">'+scSecHtml('clear',{n:scClearTotal(d),hue:142,great:true,badge:'Clear',label:scName('clear'),tag:'Great',
     extra:scCountChips('Tickets with clear data by closure code',codes.map(function(c){ return [c,bc[c]||0,true]; }).filter(function(r,ix){ return ix<2||r[1]; }),true),
-    body:function(){ return clear.length?scQuartersHtml(clear,'clear',crit):scEmpty(); }}));
-  out.push(scMarkedSecHtml(d));
-  return '<div class="ts-secs">'+out.join('')+'</div>';
+    body:function(){ var l=scList('clear'); return l.length?scQuartersHtml(l,'clear',crit):scEmpty(); }})+'</div>';
 }
-// Approved error tickets + tickets agents marked Duplicate, with who marked them (server: markedTickets).
-function scMarkedSecHtml(d){
-  var mk=d.marked||{approvedErrors:[],duplicates:[],agents:[],simDuplicates:0};
-  var ae=mk.approvedErrors||[], du=mk.duplicates||[], n=ae.length+du.length;
-  var chips=scCountChips('Approved errors and agent-marked duplicates',[['Approved errors',ae.length],['Marked Duplicate',du.length]],true)+
-    ((mk.agents||[]).length?'<ul class="ts-sc-miss" aria-label="By agent">'+mk.agents.map(function(a){
-      return '<li class="ts-chip ts-chip-grp">['+esc(a.login)+': errors <b>'+Number(a.errors).toLocaleString()+'</b> <span class="ts-chip-sep" aria-hidden="true">|</span> duplicates <b>'+Number(a.duplicates).toLocaleString()+'</b>]</li>';
-    }).join('')+'</ul>':'');
-  return scSecHtml('marked',{n:n,hue:210,badge:'Agent',label:'Approved errors & agent-marked duplicates',extra:chips,
-    body:function(){ return scMarkedBodyHtml(ae,du,Number(mk.simDuplicates)||0); }});
+function scLinkHtml(r){
+  var id=r.shortId||'\u2014';
+  return r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id);
 }
-function scMarkedBodyHtml(ae,du,simDup){
-  var rows=ae.map(function(r){ return {r:r,kind:'Error (approved)'}; }).concat(du.map(function(r){ return {r:r,kind:'Duplicate'}; }));
-  var note='<p class="ts-sc-tot" style="margin:12px 14px 0">'+Number(simDup).toLocaleString()+' '+(simDup===1?'ticket is':'tickets are')+' closed as Duplicate in SIM and left out of scoring; only the tickets an agent marked Duplicate are listed here.</p>';
-  if(!rows.length) return note+scEmpty();
-  var scopeTxt=function(r){
-    if(r.scope==='scored'||!r.scope) return '';
-    return r.scope==='not-found'?'Not in the current data':'Left out of scoring: '+r.scope;
-  };
-  var sim=function(x){
-    var r=x.r, s=r.cc||'\u2014';
-    if(x.kind==='Duplicate'&&r.pending) s+=' (no upload since the mark)';
-    var sc=scopeTxt(r); return esc(s)+(sc?'<br><small>'+esc(sc)+'</small>':'');
-  };
-  return note+'<div class="ts-sc-tw"><table class="ts-sc-tbl"><caption class="ts-sr">Approved error tickets and tickets marked Duplicate by agents</caption>'+
-    '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th><th scope="col">Marked as</th><th scope="col">Agent</th><th scope="col">Marked on</th><th scope="col">Approved</th><th scope="col">SIM closure code now</th></tr></thead><tbody>'+
-    rows.map(function(x){
-      var r=x.r, id=r.shortId||'\u2014';
-      return '<tr'+(r.reason?' title="'+esc('Reason: '+r.reason+(r.note?'\nOwner note: '+r.note:''))+'"':'')+'><td class="id">'+(r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(id)+'<span class="ts-sr"> (opens in a new tab)</span></a>':esc(id))+'</td>'+
-        '<td class="tt">'+esc(r.title||'\u2014')+'</td><td>'+esc(x.kind)+'</td><td>'+esc(r.login||'\u2014')+'</td><td>'+esc(scWhen(r.markedAt)||'\u2014')+'</td>'+
-        '<td>'+(x.kind==='Duplicate'?'\u2014':esc((r.approvedBy||'\u2014')+(r.approvedAt?' \u00b7 '+scWhen(r.approvedAt):'')))+'</td><td>'+sim(x)+'</td></tr>';
+function scScopeTxt(r){
+  if(r.scope==='scored'||!r.scope) return '';
+  return r.scope==='not-found'?'Not in the current data':'Left out of scoring: '+r.scope;
+}
+// Approved errors: the contractor's error message (the Error mark's reason the owner read before approving).
+function scAeTableHtml(ae){
+  return '<div class="ts-sc-tw"><table class="ts-sc-tbl"><caption class="ts-sr">Approved error tickets with the contractor\u2019s error message</caption>'+
+    '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th><th scope="col">Error message</th><th scope="col">Contractor</th><th scope="col">Approved</th><th scope="col">Action</th></tr></thead><tbody>'+
+    ae.map(function(r){
+      var sid=String(r.shortId||''), busy=!!SC.rs[sid];
+      return '<tr><td class="id">'+scLinkHtml(r)+'</td><td class="tt">'+esc(r.title||'\u2014')+'</td>'+
+        '<td class="tt">'+(r.reason?esc(r.reason):'\u2014')+(r.note?'<br><small>Owner note: '+esc(r.note)+'</small>':'')+'</td>'+
+        '<td>'+esc(r.login||'\u2014')+'</td><td>'+esc((r.approvedBy||'\u2014')+(r.approvedAt?' \u00b7 '+scWhen(r.approvedAt):''))+'</td>'+
+        '<td>'+(sid?'<button type="button" class="ts-abtn" data-tsrestore="'+esc(sid)+'" id="tsRs-'+esc(sid)+'"'+(busy?' disabled aria-busy="true"':'')+'>'+
+          (busy?'Restoring\u2026':'Restore')+'<span class="ts-sr"> '+esc(sid)+'</span></button>':'')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
-function scBodyHtml(){
+// Agent-marked duplicates: no error message (the same column, said explicitly).
+function scDuTableHtml(du){
+  return '<div class="ts-sc-tw"><table class="ts-sc-tbl"><caption class="ts-sr">Tickets marked Duplicate by agents</caption>'+
+    '<thead><tr><th scope="col" class="id">Ticket ID</th><th scope="col">Title</th><th scope="col">Error message</th><th scope="col">Agent</th><th scope="col">Marked on</th><th scope="col">SIM closure code now</th></tr></thead><tbody>'+
+    du.map(function(r){
+      var s=(r.cc||'\u2014')+(r.pending?' (no upload since the mark)':''), sc=scScopeTxt(r);
+      return '<tr><td class="id">'+scLinkHtml(r)+'</td><td class="tt">'+esc(r.title||'\u2014')+'</td>'+
+        '<td><span class="tsa-mut">\u2014 (marked Duplicate, no message)</span></td><td>'+esc(r.login||'\u2014')+'</td><td>'+esc(scWhen(r.markedAt)||'\u2014')+'</td>'+
+        '<td>'+esc(s)+(sc?'<br><small>'+esc(sc)+'</small>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function scMarkedOf(d){ return (d&&d.marked)||{approvedErrors:[],duplicates:[],agents:[],simDuplicates:0}; }
+// Last card body: by-agent chips, the SIM-duplicates note, then the two separately headed tables.
+function scMarkedHtml(d){
+  var mk=scMarkedOf(d), ae=mk.approvedErrors||[], du=mk.duplicates||[], simDup=Number(mk.simDuplicates)||0;
+  var chips=(mk.agents||[]).length?'<ul class="ts-sc-miss" aria-label="By agent" style="margin:12px 14px 0">'+mk.agents.map(function(a){
+      return '<li class="ts-chip ts-chip-grp">['+esc(a.login)+': errors <b>'+Number(a.errors).toLocaleString()+'</b> <span class="ts-chip-sep" aria-hidden="true">|</span> duplicates <b>'+Number(a.duplicates).toLocaleString()+'</b>]</li>';
+    }).join('')+'</ul>':'';
+  var note='<p class="ts-sc-tot" style="margin:12px 14px 0">'+simDup.toLocaleString()+' '+(simDup===1?'ticket is':'tickets are')+' closed as Duplicate in SIM and left out of scoring; only the tickets an agent marked Duplicate are listed here.</p>';
+  return chips+note+'<div class="ts-secs">'+
+    scSecHtml('ae',{n:ae.length,hue:0,badge:'Error',label:scName('ae'),body:function(){ return ae.length?scAeTableHtml(ae):scEmpty(); }})+
+    scSecHtml('du',{n:du.length,hue:SC_GROUP_HUE,badge:'Dup',label:scName('du'),body:function(){ return du.length?scDuTableHtml(du):scEmpty(); }})+'</div>';
+}
+// Loading skeleton / load error with Retry (each card gets its own Retry id), or '' once loaded.
+function scStateHtml(retryId){
   if(SC.loading) return scSkel();
   if(SC.err) return '<div class="ts-state" role="alert"><span class="ts-state-ic" aria-hidden="true">'+ic('alert-triangle',20)+'</span><div class="ts-state-txt">'+
     '<p class="ts-state-t">Couldn\u2019t load the sanitization scores</p><p class="ts-state-p">'+esc(SC.err)+'</p></div>'+
-    '<button type="button" class="ts-btn" id="tsScoreRetry" onclick="tsScoreRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
+    '<button type="button" class="ts-btn" id="'+retryId+'" onclick="tsScoreRetry()">'+ICO_RETRY+'<span>Retry</span></button></div>';
+  return '';
+}
+function scBodyHtml(){
+  var st=scStateHtml('tsScoreRetry'); if(st) return st;
   var d=SC.data; if(!d) return '';
-  var when=scWhen(d.asOf);
+  var when=scWhen(d.asOf), todo=scToSanitize(d);
   var xb=d.excludedBy||{}, XL=[['appeal','appeal'],['test','test'],['duplicate','duplicate'],['autosim','AUTO-SIM'],['cnt','Cnt &gt; 0'],['approved error','approved error']];
   var why=XL.filter(function(x){ return xb[x[0]]; }).map(function(x){ return Number(xb[x[0]]).toLocaleString()+' '+x[1]; }).join(', ');
-  return '<p class="ts-sc-tot"><b>'+Number(d.total||0).toLocaleString()+'</b> '+(d.total===1?'ticket':'tickets')+' scored (<b>'+scClearTotal(d).toLocaleString()+'</b> with clear data) \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
+  return '<p class="ts-sc-tot"><b>'+todo.toLocaleString()+'</b> '+(todo===1?'ticket':'tickets')+' to sanitize \u00b7 <b>'+scClearTotal(d).toLocaleString()+'</b> sanitized \u00b7 <b>'+Number(d.excluded||0).toLocaleString()+'</b> ignored'+(why?' ('+why+')':'')+
       (when?' <span>\u00b7 data as of '+esc(when)+'</span>':'')+'</p>'+
-    scDistHtml(d)+scBucketsHtml(d);
+    scDistHtml(d)+scGroupsHtml(d);
 }
+function scReady(){ return !SC.loading&&!SC.err&&SC.data; }
 function scoreHtml(){
   if(!tsIsOwner()) return '';
-  var tot=SC.data?Number(SC.data.total||0):null;
+  var tot=scReady()?scToSanitize(SC.data):null;
   return '<section class="'+tsTopCls('tsScore')+'" id="tsScore" aria-labelledby="tsScoreHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
     tsTopHead('tsScore',{icon:ICO_SCORE,title:'Sanitization scores',
-      sum:tot!=null?tsTopSum(tot.toLocaleString()+' scored'):'',
+      sum:tot!=null?tsTopSum(tot.toLocaleString()+' to sanitize'):'',
       tags:'<span class="ts-own">Only visible to you</span>',
-      sub:'Every Resolved or Closed ticket gets one point per check (3 SIM Title + 7 Root Cause Details + 1 ClosureCode = '+scMax()+'). Tickets that already meet their closure code\u2019s checks (Successful: all '+scMax()+'; Immediately Resolved or Automatically Closed with an eligible title: the 3 title checks) are under Tickets with clear data. Lowest scores need sanitizing first.',
+      sub:'Tickets that still need sanitizing, grouped by their SIM closure code. Assign a group\u2019s oldest tickets to a contractor. Tickets that already meet their closure code\u2019s checks are under Sanitized tickets.',
       acts:scQuarterSelect()})+
     tsTopBody('tsScore')+scBodyHtml()+'</div></section>';
 }
+function sanitizedHtml(){
+  if(!tsIsOwner()) return '';
+  var d=scReady()?SC.data:null;
+  return '<section class="'+tsTopCls('tsSanitized')+'" id="tsSanitized" aria-labelledby="tsSanitizedHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
+    tsTopHead('tsSanitized',{icon:ic('check-circle',17)||ICO_SCORE,title:'Sanitized tickets',
+      sum:d?tsTopSum(scClearTotal(d).toLocaleString()+' sanitized'):'',
+      tags:'<span class="ts-own">Only visible to you</span>',
+      sub:'Tickets that already meet their closure code\u2019s checks (Successful: all '+scMax()+'; Immediately Resolved or Automatically Closed with an eligible title: the 3 title checks). Nothing to assign.'})+
+    tsTopBody('tsSanitized')+(scStateHtml('tsScoreRetry2')||(d?scClearHtml(d):''))+'</div></section>';
+}
+function markedHtml(){
+  if(!tsIsOwner()) return '';
+  var d=scReady()?SC.data:null, mk=scMarkedOf(d), ne=(mk.approvedErrors||[]).length, nd=(mk.duplicates||[]).length;
+  return '<section class="'+tsTopCls('tsMarked')+'" id="tsMarked" aria-labelledby="tsMarkedHead" aria-busy="'+(SC.loading?'true':'false')+'">'+
+    tsTopHead('tsMarked',{icon:ic('flag',17)||ICO_SCORE,title:'Approved errors &amp; agent-marked duplicates',
+      sum:d?tsTopSum(saPlural(ne,'approved error')+' \u00b7 '+saPlural(nd,'duplicate')):'',
+      tags:'<span class="ts-own">Only visible to you</span>',
+      sub:'Tickets you approved as errors, with the error message the contractor wrote, and tickets an agent marked Duplicate. Restore puts an approved error back into sanitization tracking.'})+
+    tsTopBody('tsMarked')+(scStateHtml('tsScoreRetry3')||(d?scMarkedHtml(d):''))+'</div></section>';
+}
+// The three cards re-render in place together (same payload, one open sub-group).
+var SC_CARDS=[['tsScore',scoreHtml],['tsSanitized',sanitizedHtml],['tsMarked',markedHtml]];
 function scRender(focusId){
-  var el=document.getElementById('tsScore'); if(!el) return;
-  tsKeepFocus(function(){ el.outerHTML=scoreHtml(); });
+  tsKeepFocus(function(){ SC_CARDS.forEach(function(c){ var el=document.getElementById(c[0]); if(el) el.outerHTML=c[1](); }); });
   if(focusId){ var f=document.getElementById(focusId); if(f) f.focus(); }
 }
 // keep = refresh in place (after an assign / revoke): the open section, quarter and page stay.
@@ -782,14 +846,20 @@ async function loadScores(quarter,fromRetry,keep){
   var r=null;
   try{ r=await A.api('GET','/api/sanitization-score?quarter=since2026'); }catch(e){ r=null; }
   SC.loading=false;
-  if(r&&r.ok&&r.data&&r.data.buckets){ SC.data=r.data; SC.quarter=r.data.quarter; if(!keep){ SC.open=null; SC.openQ=null; SC.page={}; } }
-  else SC.err=(r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.');
+  if(r&&r.ok&&r.data&&r.data.buckets&&Array.isArray(r.data.groups)){
+    // A kept open closure-code group follows its id (group indexes can move after a refresh).
+    var og=keep?scGroup(SC.open):null;
+    SC.data=r.data; SC.quarter=r.data.quarter;
+    if(!keep){ SC.open=null; SC.openQ=null; SC.page={}; }
+    else if(og){ var nk=scGroupKey(og.id); if(nk!==SC.open){ SC.open=nk; SC.openQ=null; SC.page={}; } }
+  }
+  else SC.err=(r&&r.ok&&r.data&&!r.data.error)?'The server did not send the closure-code groups (it may need a restart).':((r&&r.data&&r.data.error)||(r?'The server answered HTTP '+(r.status||'?')+'.':'Network error.'));
   scRender(SC.err&&fromRetry?'tsScoreRetry':(quarter!=null?'tsScoreQ':null));
-  announce(SC.err?'Couldn\u2019t load the sanitization scores.':('Sanitization scores loaded: '+SC.data.total+' tickets scored, '+SC.data.excluded+' ignored.'));
+  announce(SC.err?'Couldn\u2019t load the sanitization scores.':('Sanitization scores loaded: '+scToSanitize(SC.data)+' tickets to sanitize, '+scClearTotal(SC.data)+' sanitized, '+SC.data.excluded+' ignored.'));
 }
 function tsScoreRetry(){ loadScores(null,true); }
 function tsScoreQuarter(v){ loadScores(String(v||'')); }
-// Opening / closing a score section collapses its quarters and forgets their pages.
+// Opening / closing a sub-group collapses its quarters and forgets their pages.
 function tsScoreToggle(i){ SC.open=SC.open===i?null:i; SC.openQ=null; SC.page={}; scRender('tsScB-'+i); }
 function tsScoreJump(i){
   if(SC.open!==i){ SC.open=i; SC.openQ=null; SC.page={}; }
@@ -812,10 +882,35 @@ function tsScorePage(i,k,dir){
   var a=(p-1)*SC_PAGE;
   announce(scQLabel(k)+', '+scName(i)+': page '+p+' of '+pages+', showing '+(a+1)+' to '+Math.min(a+SC_PAGE,n)+' of '+n+'.');
 }
+// Restore an approved error (last card; POST /api/my-sanitization/restore, owner only). No confirm: the
+// Error mark is kept, so the ticket goes back to Error tickets and can be approved again. Success (or a
+// 404: the row is stale) reloads the three cards; success also tells the page ('phd-san-restored') so the
+// contractor's view refetches.
+async function scRestore(sid){
+  if(!sid||SC.rs[sid]||!tsIsOwner()) return;
+  var row=null; (scMarkedOf(SC.data).approvedErrors||[]).forEach(function(r){ if(r.shortId===sid) row=r; });
+  SC.rs[sid]=true; scRender('tsRs-'+sid);
+  var r=null; try{ r=await A.api('POST','/api/my-sanitization/restore',{shortId:sid}); }catch(e){ r=null; }
+  delete SC.rs[sid];
+  var ok=!!(r&&r.ok&&r.data&&r.data.ok), gone=!ok&&r&&r.status===404;
+  var msg=ok?sid+' restored: it is tracked again.':((r&&r.data&&r.data.error)||'Could not restore the ticket. Please try again.');
+  if(window.PHDBanner) window.PHDBanner[ok?'ok':'error'](msg);
+  if(ok||gone){
+    await loadScores(null,false,true);
+    var f=document.getElementById('tsScB-ae'); if(f) f.focus();
+    if(ok){ try{ document.dispatchEvent(new CustomEvent('phd-san-restored',{detail:{shortId:sid,login:row?row.login:''}})); }catch(e){} }
+  } else scRender('tsRs-'+sid);
+  announce(msg);
+}
+document.addEventListener('click',function(ev){
+  var b=ev.target&&ev.target.closest?ev.target.closest('[data-tsrestore]'):null;
+  if(!b||b.disabled) return;
+  scRestore(b.getAttribute('data-tsrestore'));
+});
 window.tsScoreRetry=tsScoreRetry; window.tsScoreQuarter=tsScoreQuarter; window.tsScoreToggle=tsScoreToggle; window.tsScoreJump=tsScoreJump; window.tsScoreQtr=tsScoreQtr; window.tsScorePage=tsScorePage;
 
 // ---- Sanitization assignments (owner-only; the server enforces it: /api/sanitization-assign) ----
-// Assign a score section's oldest available tickets to a contractor (the server picks them), then the
+// Assign a closure-code group's oldest available tickets to a contractor (the server picks them), then the
 // next data uploads verify them (assignment log here; per-contractor results on sanitization-tracker.html).
 // SA = { loading, err, data:{contractors, assignments, ...}, x:{id:true} (Show IDs), rv:{id:true} (revoking),
 //        day:{dayKey:true} (expanded day groups; all collapsed by default) }
@@ -854,11 +949,12 @@ function saCopy(urls,btn,fbHost){
   else copyFallback(text,done);
 }
 
-// Score section header: 'N available' + 'Assign to sanitize' (0..scMax()-1 points; the top section has none).
-function saHeadActs(d,i,n){
-  var av=(d.available&&d.available[i]!=null)?d.available[i]:n;
-  return '<div class="ts-sc-acts"><span class="ts-sc-av'+(av?'':' is-none')+'" id="tsScAv-'+i+'">'+Number(av).toLocaleString()+' available</span>'+
-    '<button type="button" class="ts-abtn" id="tsScA-'+i+'" aria-haspopup="dialog" aria-label="Assign '+i+'-point tickets to sanitize" aria-describedby="tsScAv-'+i+'" onclick="tsAsgOpen('+i+')"'+(av?'':' disabled')+'>'+
+// Closure-code group header ('g<i>'): 'N available' (not locked in an active assignment) + 'Assign to sanitize'.
+function saHeadActs(d,k){
+  var g=scGroupOf(d,k); if(!g) return '';
+  var av=Number(g.available)||0;
+  return '<div class="ts-sc-acts"><span class="ts-sc-av'+(av?'':' is-none')+'" id="tsScAv-'+k+'">'+av.toLocaleString()+' available</span>'+
+    '<button type="button" class="ts-abtn" id="tsScA-'+k+'" aria-haspopup="dialog" aria-label="'+esc('Assign '+g.label+' tickets to sanitize')+'" aria-describedby="tsScAv-'+k+'" onclick="tsAsgOpen(\''+k+'\')"'+(av?'':' disabled')+'>'+
       ic('user-plus',14)+'Assign to sanitize</button></div>';
 }
 
@@ -919,7 +1015,7 @@ function saEntryHtml(a){
   }).join(''):'';
   return '<li class="tsa-e'+(a.status==='revoked'?' is-rvk':'')+'">'+
     '<span class="tsa-what"><span class="tsa-mut">'+esc(new Date(a.assignedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+'</span> \u00b7 '+
-      '<b>'+esc(a.assignedBy)+'</b> assigned <b>'+saPlural(a.count,'ticket')+'</b> ('+a.score+' '+(a.score===1?'point':'points')+') to <b>'+esc(a.assignee)+'</b>'+saStatusHtml(a)+'</span>'+
+      '<b>'+esc(a.assignedBy)+'</b> assigned <b>'+saPlural(a.count,'ticket')+'</b> ('+(a.closureCode?esc(a.closureCode):a.score+' '+(a.score===1?'point':'points'))+') to <b>'+esc(a.assignee)+'</b>'+saStatusHtml(a)+'</span>'+
     '<span class="tsa-acts">'+saExtractBtn('data-sa="copy" data-id="'+esc(id)+'"','for '+sum)+
       '<button type="button" class="ts-abtn" data-sa="x" data-id="'+esc(id)+'" id="tsaX-'+esc(id)+'" aria-expanded="'+x+'" aria-controls="tsaI-'+esc(id)+'">'+(x?'Hide':'Show')+' IDs<span class="ts-sr"> for '+esc(sum)+'</span></button>'+
       (a.status==='active'?'<button type="button" class="ts-abtn is-red" data-sa="rv" data-id="'+esc(id)+'"'+(rv?' disabled aria-busy="true"':'')+'>'+ic('clock-rewind',13)+(rv?'Revoking\u2026':'Revoke')+'<span class="ts-sr"> '+esc(sum)+'</span></button>':'')+
@@ -929,7 +1025,7 @@ function saEntryHtml(a){
 }
 function saLogHtml(d){
   var list=(d.assignments||[]).slice().sort(function(a,b){ return String(b.assignedAt||'').localeCompare(String(a.assignedAt||'')); });
-  if(!list.length) return '<div class="ts-empty">'+ICO_INFO+'No tickets have been assigned for sanitization yet. Use \u201cAssign to sanitize\u201d on a score section above.</div>';
+  if(!list.length) return '<div class="ts-empty">'+ICO_INFO+'No tickets have been assigned for sanitization yet. Use \u201cAssign to sanitize\u201d on a closure-code group in Sanitization scores.</div>';
   var days=[], by={};
   list.forEach(function(a){ var k=saDayKey(a.assignedAt); if(!by[k]){ by[k]=[]; days.push(k); } by[k].push(a); });
   return '<ol class="tsa-days" aria-label="Assignment log by day, newest first">'+days.map(function(k){
@@ -973,7 +1069,7 @@ document.addEventListener('click',async function(ev){
 });
 
 // ---- Assign pop-up: how many -> split across contractors -> done (Extract tickets) ----
-// SAD = { score, avail, step:1|2|3, count, split:{login:'typed'}, touched, busy, prog, err,
+// SAD = { sel:{closureCode,label}, avail, step:1|2|3, count, split:{login:'typed'}, touched, busy, prog, err,
 //         done:[{assignee,count,tickets:[{shortId,url}]}], failed:{login,count,status,msg}|null, rest:[{login,count}] }
 var SAD=null;
 var SAD_SUB={1:'Step 1 of 2 \u00b7 How many tickets?',2:'Step 2 of 2 \u00b7 Which contractors?',3:'Done'};
@@ -997,11 +1093,13 @@ function saSplitCheck(split,logins,n){
 }
 // One POST per contractor, in list order (the server picks the next oldest available tickets each call).
 // Stops at the first failure; returns what succeeded, the failure and the not-yet-attempted rest.
-async function saRunSplit(api,score,queue,onStep){
+// sel = {closureCode:<group id>} (the page) or a number (legacy score section).
+async function saRunSplit(api,sel,queue,onStep){
   var done=[];
   for(var i=0;i<queue.length;i++){
     var q=queue[i]; if(onStep) onStep(q,i,queue.length);
-    var r=null; try{ r=await api('POST','/api/sanitization-assign',{score:score,count:q.count,assignee:q.login}); }catch(e){ r=null; }
+    var body=typeof sel==='number'?{score:sel,count:q.count,assignee:q.login}:{closureCode:sel.closureCode,count:q.count,assignee:q.login};
+    var r=null; try{ r=await api('POST','/api/sanitization-assign',body); }catch(e){ r=null; }
     if(r&&r.ok&&r.data&&r.data.ok){
       done.push({login:q.login,assignee:r.data.assignee||q.login,count:r.data.count!=null?Number(r.data.count):q.count,tickets:r.data.tickets||[]});
       continue;
@@ -1018,16 +1116,18 @@ function saQueue(){
     var v=String(SAD.split[l]==null?'':SAD.split[l]).trim(); return {login:l,count:/^\d+$/.test(v)?Number(v):0};
   }).filter(function(q){ return q.count>0; });
 }
-async function tsAsgOpen(score){
+// k = closure-code group key ('g<i>'); SAD.sel = {closureCode:<group id>, label}.
+async function tsAsgOpen(k){
   if(!tsIsOwner()||!SC.data) return;
-  var av=(SC.data.available&&SC.data.available[score]!=null)?SC.data.available[score]:(SC.data.buckets[score]||0);
+  var g=scGroup(k); if(!g) return;
+  var av=Number(g.available)||0;
   if(!av) return;
   tsAsgClose(true);
-  SAD={score:score,avail:av,step:1,count:av,split:{},touched:false,busy:false,prog:'',err:'',done:[],failed:null,rest:[]};
+  SAD={sel:{closureCode:g.id,label:g.label},avail:av,step:1,count:av,split:{},touched:false,busy:false,prog:'',err:'',done:[],failed:null,rest:[]};
   var ov=document.createElement('div'); ov.id='tsAsgDlg'; ov.className='tbl-bg'; ov.style.cssText='display:flex;z-index:5000';
   ov.innerHTML='<div class="tbl-card" role="dialog" aria-modal="true" aria-labelledby="tsAsgT" aria-describedby="tsAsgSub">'+
     '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic('user-plus',20)+'</span>'+
-      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization scores \u00b7 Assign</div><h2 class="tbl-title" id="tsAsgT">Assign '+score+'-point tickets to sanitize</h2></div>'+
+      '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization scores \u00b7 Assign</div><h2 class="tbl-title" id="tsAsgT">Assign '+esc(g.label)+' tickets to sanitize</h2></div>'+
       '<button type="button" class="tbl-x" data-sax="1" aria-label="Close">'+ic('close',18)+'</button>'+
       '<p class="tbl-sub" id="tsAsgSub"></p></div>'+
     '<div class="tbl-body" id="tsAsgBody"></div></div>';
@@ -1042,11 +1142,15 @@ window.tsAsgOpen=tsAsgOpen;
 function tsAsgClose(force){
   var ov=document.getElementById('tsAsgDlg'); if(!ov) return;
   if(SAD&&SAD.busy&&!force) return;
-  var done=!!(SAD&&SAD.done.length), score=SAD?SAD.score:null; SAD=null;   // any contractor assigned (also a partial run)
+  var done=!!(SAD&&SAD.done.length), sel=SAD?SAD.sel:null; SAD=null;   // any contractor assigned (also a partial run)
   ov.remove(); if(window.PHDLoginUI) window.PHDLoginUI.closed(ov);
   if(done){
     loadAssign();
-    loadScores(null,false,true).then(function(){ var b=document.getElementById('tsScA-'+score)||document.getElementById('tsScB-'+score); if(b) b.focus(); });
+    // Refocus the group's button, found again by id (its index can move after the refresh).
+    loadScores(null,false,true).then(function(){
+      var k=sel?scGroupKey(sel.closureCode):null; if(!k) return;
+      var a=document.getElementById('tsScA-'+k), b=a&&!a.disabled?a:document.getElementById('tsScB-'+k); if(b) b.focus();
+    });
   }
 }
 window.tsAsgClose=tsAsgClose;
@@ -1089,7 +1193,7 @@ function saSplitSync(){
 function saBodyHtml(){
   var cancel='<button type="button" class="tbl-cancel" data-sax="1"'+(SAD.busy?' disabled':'')+'>Cancel</button>';
   if(SAD.step===1){
-    return '<p class="tbl-msg"><b>'+saPlural(SAD.avail,'ticket')+'</b> with <b>'+SAD.score+' '+(SAD.score===1?'point':'points')+'</b> available to assign</p>'+
+    return '<p class="tbl-msg"><b>'+saPlural(SAD.avail,'ticket')+'</b> with closure code <b>'+esc(SAD.sel.label)+'</b> available to assign</p>'+
       '<label class="tbl-label" for="tsaCount" style="margin-top:14px!important">How many tickets?</label>'+
       '<input type="number" class="tsa-num" id="tsaCount" min="1" max="'+SAD.avail+'" step="1" inputmode="numeric" value="'+SAD.count+'" aria-describedby="tsaHint'+(SAD.err?' tsaErr':'')+'"'+(SAD.err?' aria-invalid="true"':'')+'>'+
       '<p class="tsa-hint" id="tsaHint">Oldest first, across all quarters \u00b7 1 to '+SAD.avail.toLocaleString()+'</p>'+saErrP()+
@@ -1104,7 +1208,7 @@ function saBodyHtml(){
         '<input type="number" class="tsa-q" id="tsaQ-'+i+'" data-login="'+esc(c.login)+'" aria-label="Tickets for '+esc(c.login)+'" aria-describedby="tsaSum tsaSErr"'+
           ' min="0" max="'+SAD.count+'" step="1" inputmode="numeric" placeholder="0" value="'+esc(v)+'"'+(d||SAD.busy?' disabled':'')+'></label></li>';
     }).join('')+'</ul>':(SA.loading?'<p class="tbl-msg">Loading contractors\u2026</p>':'<p class="tbl-msg">No contractors found.</p>');
-    return '<p class="tsa-k" id="tsaWhoK">Split '+saPlural(SAD.count,'ticket')+' ('+SAD.score+' '+(SAD.score===1?'point':'points')+') across contractors</p>'+rows+
+    return '<p class="tsa-k" id="tsaWhoK">Split '+saPlural(SAD.count,'ticket')+' ('+esc(SAD.sel.label)+') across contractors</p>'+rows+
       '<div class="tsa-sum" id="tsaSum" aria-live="polite">'+saSumHtml(chk)+'</div>'+
       '<p class="tbl-err" id="tsaSErr" aria-live="polite"'+(showErr?' style="display:block"':'')+'>'+esc(showErr?chk.err:'')+'</p>'+
       '<p class="tsa-hint">Any tickets left unallocated stay available.</p>'+
@@ -1144,7 +1248,7 @@ async function saSubmit(){
   var chk=saSplitCheck(SAD.split,saLogins(),SAD.count), queue=saQueue();
   if(!chk.ok||!queue.length){ saSplitSync(); var bad=document.querySelector('#tsAsgBody input.tsa-q[aria-invalid="true"]')||document.querySelector('#tsAsgBody input.tsa-q:not(:disabled)'); if(bad) bad.focus(); return; }
   var sd=SAD; SAD.busy=true; SAD.err=''; SAD.failed=null; SAD.rest=[]; SAD.prog='Assigning\u2026'; saPaint('#tsaGo');
-  var out=await saRunSplit(A.api.bind(A),SAD.score,queue,function(q,i,k){
+  var out=await saRunSplit(A.api.bind(A),SAD.sel,queue,function(q,i,k){
     if(SAD!==sd) return;
     SAD.prog='Assigning to '+q.login+' ('+(i+1)+' of '+k+')\u2026';
     var go=document.getElementById('tsaGo'); if(go) go.textContent=SAD.prog;
@@ -1197,6 +1301,7 @@ window.PHDSanCheck = {
   topCls: tsTopCls, topHead: tsTopHead, topBody: tsTopBody, topSum: tsTopSum,
   chipsHtml: function () { return chipsHtml(tsCanEdit()); }, promptBtnHtml: promptBtnHtml,
   guideHtml: function () { return guideHtml(false); }, scoreHtml: scoreHtml, logHtml: saSecsHtml,
+  sanitizedHtml: sanitizedHtml, markedHtml: markedHtml,
   start: function () {
     loadChecklist();
     loadScores();   // owner only (no-op for everyone else; the server returns 403 to non-owners anyway)

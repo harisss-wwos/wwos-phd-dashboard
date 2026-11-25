@@ -17,7 +17,7 @@ const { EXT_LINK_LIMITS, validateExternalLink, EXT_LINK_ICONS, EXT_LINK_REAL_FIL
 const { canEditRegions, normalizeCountryCode, normalizeRegionKey, REGION_REAL_FILTER, mapRegion, seedRegions } = require('./regions');
 const { canEditPhdResolutions, validateNewResolution, normalizePriority, moveToPriority, PHD_RES_REAL_FILTER, mapResolution, seedPhdResolutions } = require('./phd-resolutions');
 const { resolutionGroupOf } = require('./resolution-groups');
-const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, parseYear: ieParseYear, parsePath: ieParsePath, parseHierarchy: ieParseHierarchy, treeOf: ieTreeOf, parsePosInt: ieParsePosInt, findNode: ieFindNode, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
+const { MAX_PAGE_SIZE: IE_MAX_PAGE_SIZE, buildExplorer: ieBuildExplorer, approvedSig: ieApprovedSig, parseYear: ieParseYear, parseDrivers: ieParseDrivers, parsePath: ieParsePath, parsePosInt: ieParsePosInt, ticketsAt: ieTicketsAt, treePayload: ieTreePayload, ticketsPage: ieTicketsPage, exportCsv: ieExportCsv } = require('./incident-explorer');
 const { SETTINGS_ID: EIR_SETTINGS_ID, SECTIONS: EIR_SECTIONS, SECTION_KEYS: EIR_SECTION_KEYS, AGENT_FILTERS: EIR_AGENT_FILTERS, loadIssueTypesFromFile, typesFromCats, loadIssueCategoriesFromFile, categoriesFromCats, parseCsv, evaluateUpload, normalizeDisabled: eirNormalizeDisabled, buildReport: eirBuildReport, fromTicketDoc: eirFromTicketDoc, filterTickets: eirFilterTickets, maskGroups: eirMaskGroups, pageOf: eirPageOf } = require('./errors-in-resolved');
 const { isOwner: sanIsOwner, CRITERIA: SAN_CRITERIA, MAX_SCORE: SAN_MAX_SCORE, buildScoreReport: sanBuildScoreReport, applyApproved: sanApplyApproved, clearSplit: sanClearSplit, ticketCleared: sanTicketCleared } = require('./sanitization-score');
 const sanAssign = require('./sanitization-assign');
@@ -25,6 +25,7 @@ const sanUpdate = require('./sanitization-update');
 const sanValidateStore = require('./sanitization-validate-store');
 const resolvedErrors = require('./resolved-errors');
 const { createSingleFlight } = require('./single-flight');
+const ticketRules = require('./ticket-rules');   // shared TEST / NON-PHD / malformed-country title rules (Sanitization + Incident Explorer)
 const hiLinesErrors = require('./hi-lines-errors');
 const lmhub = require('./lmhub-filter');
 const uploadRevoke = require('./upload-revoke');
@@ -875,30 +876,54 @@ app.get('/api/page-zero/export', requireOwnerOrManager, async (req, res) => {
   }
 });
 
-// ---- Incident Explorer (incident-explorer.html): Region > Country > State > City > SID > Issue > Root cause > Resolution > Driver ----
+// ---- Incident Explorer (incident-explorer.html): Region > Country > State > City > SID > Issue > Root cause > Resolution ----
 // Any logged-in user (same as the other Ticket Insights pages / /api/errors-in-resolved). Read-only.
 // Model (server/incident-explorer.js) = Page ZERO's ticket selection (pageZeroDocs + the same dedupe and
 // created-in-year filter as row 01) classified with page-zero.js issueTypeOf / driverTypeOf, slaCountryOf,
 // the Rules-page regions and the Resolutions page labels (perfResolutionGroupLabelOf(doc, true)).
 // Only tickets RESOLVED SUCCESSFULLY BY AN AGENT are counted / listed / exported (incident-explorer.js
 // agentResolveExclusion); the other created tickets are context counts only.
-// Built once and cached per (year, latest upload, regions): a new upload changes the key, so it rebuilds.
-//   &hierarchy=geo (default: Region > ... > Driver type) | driver (Driver type > Region > ... > Resolution) on every route.
-//   GET /api/incident-explorer/tree?year=2026                          -> nested counts for every level
-//   GET /api/incident-explorer/tickets?year=&path=<JSON array>&page=&pageSize=20  -> one page, Created desc
-//   GET /api/incident-explorer/export?year=&path=<JSON array>          -> CSV of the full list
-// 400 on a bad year / path / page / pageSize; 404 when the path is not a node of the tree.
-const IE_CACHE_PREFIX = 'ie:v4:';   // v4: geo + driver hierarchies (two trees over one record set)
+// The page covers ONLY tickets created from 1 Jan 2026 to now (IE_YEAR); ?year= accepts blank or 2026 only.
+// Driver type is the page's filter, not a level: /tree sends one tree per driver type (the client sums the
+// ticked ones); /tickets and /export take &drv=<comma list of Others, Flex DP, DSP DA, Hub DA> (blank = all).
+// Tickets the owner approved as errors on the Ticket Sanitization page (COLLECTIONS.sanitizationExcluded,
+// the same store as sanApproved below) are left out of everything (incident-explorer.js isApprovedError),
+// and so are TEST / NON-PHD tickets (ticket-rules.js, the same rule as the Sanitization tracker).
+// Country = ieCountryOf (slaCountryOf + the malformed-prefix recovery, this page only).
+// Built once and cached per (latest upload, regions, approved-error set): a new upload, a regions edit,
+// an approval or a Restore changes the key, so it rebuilds; the error-review / restore routes also drop
+// the cached model (ieDropCache) right away.
+//   GET /api/incident-explorer/tree                                    -> per-driver nested counts
+//   GET /api/incident-explorer/tickets?path=<JSON array>&drv=&page=&pageSize=20  -> one page, Created desc
+//   GET /api/incident-explorer/export?path=<JSON array>&drv=           -> CSV of the full list
+// 400 on a bad year / drv / path / page / pageSize; 404 when no ticket matches a non-empty path under the filter.
+const IE_CACHE_PREFIX = 'ie:v7:';   // v7: TEST / NON-PHD tickets left out + malformed title country prefixes recovered (ticket-rules.js); v6: owner-approved error tickets left out; v5: one geo chain + per-driver trees, 2026 only
+const IE_YEAR = 2026;
+// Country of an Incident Explorer ticket: slaCountryOf (as Page ZERO); when that is 'Unknown' and the
+// Country field is empty (a filled-in Country field is never overridden, even one outside the code
+// list), a malformed title prefix is recovered by ticket-rules.js malformedCountry ('USCommunity ...',
+// '[USA] ...', "'+1 USA ...", 'Country Code e.x US ...', 'TX US ...', 'Country Code AU - ...').
+// Incident Explorer ONLY: the other pages keep slaCountryOf.
+const IE_COUNTRY_PLACEHOLDER_RE = /^(?:n\/?a|none|null|unknown|-+|\.+)?$/i;
+function ieCountryOf(t) {
+  const c = slaCountryOf(t);
+  if (c !== 'Unknown' || !IE_COUNTRY_PLACEHOLDER_RE.test(String(t.Country == null ? '' : t.Country).trim())) return c;
+  const fix = ticketRules.malformedCountry(t.Title, SLA_COUNTRY_CODES);
+  return fix ? fix.code : c;
+}
+function ieDropCache() { dropCachedReports(IE_CACHE_PREFIX); }
 async function ieModel(year) {
   const { latestUploadAt } = await eirLatestFileMeta();
   const regions = (await (await getCollection(COLLECTIONS.regions)).find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()).map(mapRegion);
-  const key = IE_CACHE_PREFIX + year + ':' + (latestUploadAt || '-') + ':' + regions.map(r => r.name + '=' + r.countries.join('.')).join('|');
-  // The key changes with every upload (and every regions edit), so the entry never goes stale: no TTL.
+  const approvedIds = new Set((await (await getCollection(COLLECTIONS.sanitizationExcluded)).find({}, { projection: { _id: 0, shortId: 1 } }).toArray())
+    .map(d => String((d && d.shortId) || '').trim()).filter(Boolean));
+  const key = IE_CACHE_PREFIX + year + ':' + (latestUploadAt || '-') + ':' + ieApprovedSig(approvedIds) + ':' + regions.map(r => r.name + '=' + r.countries.join('.')).join('|');
+  // The key changes with every upload, regions edit, approval and Restore, so the entry never goes stale: no TTL.
   let model = getStaleCachedReport(key);
   if (!model) {
     const docs = await pageZeroDocs(year, { IssueUrl: 1, ResolvedByIdentity: 1, RootCause: 1, Tags: 1, Labels: 1 });
     model = ieBuildExplorer(docs, {
-      year, now: new Date(), regions, countryOf: slaCountryOf,
+      year, now: new Date(), regions, countryOf: ieCountryOf, approvedErrorIds: approvedIds,
       resolutionLabelOf: doc => perfResolutionGroupLabelOf(doc, true), resolverName: perfResolverName,
     });
     pruneCachedReports(IE_CACHE_PREFIX, 1);
@@ -906,24 +931,22 @@ async function ieModel(year) {
   }
   return { model, source: { latestUploadAt: latestUploadAt || null } };
 }
-// Shared query validation -> { year, path, hierarchy } or sends a 400 and returns null.
+// Shared query validation -> { path, drivers } or sends a 400 and returns null.
 function ieQuery(req, res) {
-  const y = ieParseYear(req.query.year, new Date());
+  const y = ieParseYear(req.query.year);
   if (!y.ok) { res.status(400).json({ error: y.error }); return null; }
-  const h = ieParseHierarchy(req.query.hierarchy);
-  if (!h.ok) { res.status(400).json({ error: h.error }); return null; }
+  const d = ieParseDrivers(req.query.drv);
+  if (!d.ok) { res.status(400).json({ error: d.error }); return null; }
   const p = ieParsePath(req.query.path);
   if (!p.ok) { res.status(400).json({ error: p.error }); return null; }
-  return { year: y.value, path: p.value, hierarchy: h.value };
+  return { path: p.value, drivers: d.value };
 }
 app.get('/api/incident-explorer/tree', requireRole('user'), async (req, res) => {
   try {
-    const y = ieParseYear(req.query.year, new Date());
+    const y = ieParseYear(req.query.year);
     if (!y.ok) return res.status(400).json({ error: y.error });
-    const h = ieParseHierarchy(req.query.hierarchy);
-    if (!h.ok) return res.status(400).json({ error: h.error });
-    const { model, source } = await ieModel(y.value);
-    res.json(ieTreePayload(model, source, h.value));
+    const { model, source } = await ieModel(IE_YEAR);
+    res.json(ieTreePayload(model, source));
   } catch (e) {
     console.error('incident-explorer tree error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the Incident Explorer.' });
@@ -936,9 +959,9 @@ app.get('/api/incident-explorer/tickets', requireRole('user'), async (req, res) 
     if (!page.ok) return res.status(400).json({ error: page.error });
     const size = ieParsePosInt(req.query.pageSize, 20, IE_MAX_PAGE_SIZE, 'pageSize');
     if (!size.ok) return res.status(400).json({ error: size.error });
-    const { model } = await ieModel(q.year);
-    if (!ieFindNode(ieTreeOf(model, q.hierarchy), q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
-    res.json(ieTicketsPage(model, q.path, page.value, size.value, q.hierarchy));
+    const { model } = await ieModel(IE_YEAR);
+    if (q.path.length && !ieTicketsAt(model, q.path, q.drivers).length) return res.status(404).json({ error: 'No tickets at that path.' });
+    res.json(ieTicketsPage(model, q.path, page.value, size.value, q.drivers));
   } catch (e) {
     console.error('incident-explorer tickets error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not load the tickets.' });
@@ -947,9 +970,9 @@ app.get('/api/incident-explorer/tickets', requireRole('user'), async (req, res) 
 app.get('/api/incident-explorer/export', requireRole('user'), async (req, res) => {
   try {
     const q = ieQuery(req, res); if (!q) return;
-    const { model } = await ieModel(q.year);
-    if (!ieFindNode(ieTreeOf(model, q.hierarchy), q.path)) return res.status(404).json({ error: 'No tickets at that path.' });
-    const out = ieExportCsv(model, q.path, q.hierarchy);
+    const { model } = await ieModel(IE_YEAR);
+    if (q.path.length && !ieTicketsAt(model, q.path, q.drivers).length) return res.status(404).json({ error: 'No tickets at that path.' });
+    const out = ieExportCsv(model, q.path, q.drivers);
     res.set({
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': 'attachment; filename="' + out.filename + '"',
@@ -3504,7 +3527,8 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
 // Cached 5 min per (latest data upload, quarter, issue types, resolution list).
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
-const SAN_CACHE_PREFIX = 'san:v15:';   // v15: the GET splits off "Tickets with clear data" (rule A pass: buckets / available exclude them, tickets carry clr, payload clear + marked); v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_CACHE_PREFIX = 'san:v17:';   // v17: tickets carry ro (resolved-order rank: the closure-code groups' pick / display order, no score sort); v16: TEST / NON-PHD tickets (ticket-rules.js) left out of the report entirely (report.ruleExcluded); v15: the GET splits off "Tickets with clear data" (rule A pass: buckets / available exclude them, tickets carry clr, payload clear + marked); v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_SINCE_CACHE_PREFIX = 'sanc:v2:';   // the 'Since 1 Jan 2026' selector count; v2: TEST / NON-PHD tickets left out
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
 const SAN_URL_BASE = 'https://t.corp.amazon.com/issues/';   // IssueUrl of a ticket = this + ShortId (sanScopeRows)
@@ -3562,8 +3586,8 @@ async function sanQuarterCounts() {
 // Deduped Resolved / Closed ticket count for the 'Since 1 Jan 2026' scope (light projection).
 async function sanSinceCount() {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
-  const docs = await coll.find(sanSinceMatch(), { projection: { _id: 0, q: 1, ShortId: 1, IssueId: 1, CreateDate: 1 } }).toArray();
-  return pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst)).length;
+  const docs = await coll.find(sanSinceMatch(), { projection: { _id: 0, q: 1, ShortId: 1, IssueId: 1, CreateDate: 1, Title: 1 } }).toArray();
+  return pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst)).filter(d => !ticketRules.ticketExcludeReason(d)).length;   // TEST / NON-PHD left out
 }
 async function sanScopeRows(quarter) {
   const coll = await getCollection(COLLECTIONS.ticketDocs);
@@ -3609,12 +3633,13 @@ async function sanReportFor(data, resNames, quarter) {
         // The 'Since 1 Jan 2026' selector count (GET /api/sanitization-score) is the deduped row count:
         // cache it here instead of a second scan of the same tickets (sanSinceCount stays the fallback).
         // Cached together with the report (same age), so it never expires before it.
-        const sinceN = rows.length;
         const rep = sanBuildScoreReport(rows, types, resNames, cats);
+        // TEST / NON-PHD tickets (ticket-rules.js) are not counted anywhere, the selector count included.
+        const sinceN = rows.length - (rep.ruleExcluded || []).length;
         rep.computedAt = new Date().toISOString();
         pruneCachedReports(SAN_CACHE_PREFIX, 3);
         setCachedReport(key, rep);
-        if (quarter === SAN_SINCE_ID) { setCachedReport('sanc:v1:' + (data.stamp || '-'), sinceN); pruneCachedReports('sanc:', 1); }
+        if (quarter === SAN_SINCE_ID) { setCachedReport(SAN_SINCE_CACHE_PREFIX + (data.stamp || '-'), sinceN); pruneCachedReports('sanc:', 1); }
         return rep;
       })();
       _sanInflight.set(key, p);
@@ -3651,7 +3676,7 @@ async function sanValidateAfterUpload(why) {
       sanScopeRows(SAN_SINCE_ID), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanFieldApprovalsShared()]);
     const out = await sanValidateStore.runValidation({
       validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
-      ticketRows: rows, assignments, marks, approved,
+      ticketRows: rows.filter(d => !ticketRules.ticketExcludeReason(d)), assignments, marks, approved,   // TEST / NON-PHD tickets are never validated
       approvedFields: sanValidateStore.fieldApprovalSet(fieldApprovals),
       types: eirIssueTypes(), stamp: data.stamp,
     });
@@ -3710,7 +3735,7 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
     const quarter = (!want || wl === SAN_SINCE_ID) ? SAN_SINCE_ID : (wl === 'all' ? 'all' : want);
     // The report first: building it also caches the since count (sanReportFor), so no second scan.
     const base = await sanReportFor(data, resNames, quarter), approved = await sanApprovedShared();
-    const sinceKey = 'sanc:v1:' + (data.stamp || '-');
+    const sinceKey = SAN_SINCE_CACHE_PREFIX + (data.stamp || '-');
     let sinceCount = getCachedReport(sinceKey);
     if (sinceCount == null) { sinceCount = await sanSinceCount(); setCachedReport(sinceKey, sinceCount); pruneCachedReports('sanc:', 1); }
     // Selector: 'Since 1 Jan 2026' (default), the live quarter, then every previous quarter with Resolved / Closed tickets, then 'all'.
@@ -3737,6 +3762,8 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
       total: report.total, excluded: report.excluded, excludedBy: report.excludedBy || {}, buckets: split.buckets, clear: split.clear,
       criteria: SAN_CRITERIA, maxScore: SAN_MAX_SCORE, typeCount: report.typeCount, resolutionCount: report.resolutionCount,
       available: sanAssign.availableCounts(report, locked),
+      // Closure-code groups of the tickets still to sanitize (the scores page's assign groups, sanitization-assign.js closureGroups).
+      groups: sanAssign.closureGroups(report, locked),
       // Approved error tickets + agent-marked Duplicates, with the agent who marked them (sanitization-assign.js markedTickets).
       marked: sanAssign.markedTickets(base, approved, asgMarks, asgMeta, data.stamp),
       tickets: report.tickets.map(tag),
@@ -3748,12 +3775,13 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
 });
 
 // ---- Sanitization assignments (owner-only; logic in ./sanitization-assign.js) ----
-// The owner hands a score section's oldest available tickets to a contractor; later uploads verify
+// The owner hands a closure-code group's oldest available tickets to a contractor; later uploads verify
 // them against the same score report (data stamp = eirDataStamp).
 //   GET  /api/sanitization-assign            contractors, assignments (+ live verification), performance, issues.
 //        Persists a snapshot of the VERIFIED tickets (closure mark + newer upload) only when it changed since the stored one
 //        (env SAN_ASSIGN_READONLY=1 turns that write off).
-//   POST /api/sanitization-assign            { score:0..MAX_SCORE-1 (0..10), count:1..2000, assignee:<contractor> } -> the server picks the tickets (409 + available when short)
+//   POST /api/sanitization-assign            { closureCode:<group id>, count:1..2000, assignee:<contractor> } -> the server picks the group's oldest available tickets (409 + available when short)
+//                                            legacy body: { score:0..MAX_SCORE-1 (0..10), count, assignee } (a score section)
 //   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
 // shared: the GET joins in-flight reads (_sanReads); the POST reads directly.
 async function sanAssignDeps(req, shared) {
@@ -3887,6 +3915,7 @@ app.get('/api/my-sanitization/approvals', requireSanOwner, async (req, res) => {
       if (done.has(sid)) return;                   // already approved
       const login = String(m.login || '').trim().toLowerCase();
       const t = meta.get(sid) || {};
+      if (ticketRules.excludeReason(t.title)) return;   // TEST / NON-PHD ticket: out of the tracker (ticket-rules.js)
       (byAgent[login] = byAgent[login] || []).push({ shortId: sid, url: t.url || '', title: String(t.title || ''), note: String(m.reason || ''), at: m.at || null });
     });
     const agents = Object.keys(byAgent).sort().map(l => ({ login: l, tickets: byAgent[l].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')) || a.shortId.localeCompare(b.shortId)) }));
@@ -3904,6 +3933,7 @@ app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) 
       exclColl: await getCollection(COLLECTIONS.sanitizationExcluded),
     });
     _sanReads.bump();
+    if (out.status === 200) ieDropCache();   // an approval leaves the ticket out of the Incident Explorer
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization error-review error:', e && (e.stack || e.message));
@@ -3914,6 +3944,7 @@ app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleRestore(req.body, { user: req.user, exclColl: await getCollection(COLLECTIONS.sanitizationExcluded) });
     _sanReads.bump();
+    if (out.status === 200) ieDropCache();   // a restored ticket is back on the Incident Explorer
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization restore error:', e && (e.stack || e.message));

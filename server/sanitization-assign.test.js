@@ -287,3 +287,90 @@ test('the review writes nothing to ticket_docs', async () => {
   assert.deepEqual(touched.sort(), ['sanitization_field_approvals', 'sanitization_marks']);
   assert.equal(JSON.stringify(allWrites(deps)).indexOf('ticket_docs'), -1);
 });
+
+// ---- Closure-code groups (Sanitization scores page) ----
+const score = require('./sanitization-score');
+const gt = (id, cc, o) => ({ shortId: id, url: 'u/' + id, title: id + ' title', score: 5, cc, pass: 1, need: 11, miss: ['res'],
+  tgt: 'Successful', grp: 'successful', def: [], checks: [], cq: '2026-Q1', ro: 0, ...o });
+const GROUP_REPORT = { tickets: [
+  gt('S1', 'Successful', { ro: 5, cq: '2026-Q2' }), gt('S2', 'successful ', { ro: 9, score: 0 }), gt('S3', 'Successful', { ro: 1, score: 10 }),
+  gt('I1', 'Immediately Resolved', { ro: 3 }), gt('N1', 'No Issue', { ro: 2 }), gt('N2', 'No  issue', { ro: 4 }),
+  gt('U1', 'Unsuccessful', { ro: 6 }), gt('B1', '', { ro: 7 }),
+  gt('C1', 'Successful', { pass: 11, need: 11, miss: [] }),          // cleared: Sanitized tickets, not a group
+] };
+
+test('closureGroupOf: blank and case / space variants', () => {
+  assert.deepEqual(score.closureGroupOf('  '), { id: '(blank)', label: 'No closure code' });
+  assert.deepEqual(score.closureGroupOf(null), { id: '(blank)', label: 'No closure code' });
+  assert.equal(score.closureGroupOf(' No   Issue ').id, 'no issue');
+  assert.equal(score.closureGroupOf(' No   Issue ').label, 'No Issue');
+  assert.equal(score.closureGroupOf('no issue').id, score.closureGroupOf('No Issue').id);
+});
+
+test('closureGroups: order, n / available, cleared tickets left out, sums with clearSplit', () => {
+  const g = san.closureGroups(GROUP_REPORT, new Map([['S1', AGENT], ['N2', AGENT]]));
+  assert.deepEqual(g.map(x => x.label), ['Successful', 'Immediately Resolved', 'No Issue', 'Unsuccessful', 'No closure code']);
+  assert.deepEqual(g.map(x => x.n), [3, 1, 2, 1, 1]);
+  assert.deepEqual(g.map(x => x.available), [2, 1, 1, 1, 1]);
+  const sum = g.reduce((s, x) => s + x.n, 0);
+  assert.equal(sum + score.clearSplit(GROUP_REPORT).clear.total, GROUP_REPORT.tickets.length);
+});
+
+test('availableInGroup: quarter then resolved order, score ignored, locked left out', () => {
+  const ids = l => san.availableInGroup(GROUP_REPORT, 'successful', l).map(t => t.shortId);
+  assert.deepEqual(ids(new Map()), ['S3', 'S2', 'S1']);              // 2026-Q1 by ro (1, 9), then 2026-Q2
+  assert.deepEqual(ids(new Map([['S3', AGENT]])), ['S2', 'S1']);
+  assert.deepEqual(san.availableInGroup(GROUP_REPORT, '(blank)', new Map()).map(t => t.shortId), ['B1']);
+  assert.deepEqual(san.availableInGroup(GROUP_REPORT, 'nope', new Map()), []);
+});
+
+test('validateAssign: exactly one of closureCode or score', () => {
+  const v = b => san.validateAssign({ count: 1, assignee: AGENT, ...b }, CONTRACTORS);
+  assert.deepEqual(v({ closureCode: ' No Issue ' }).value, { closureCode: 'no issue', count: 1, assignee: AGENT });
+  assert.equal(v({ closureCode: '(blank)' }).value.closureCode, '(blank)');
+  assert.deepEqual(v({ score: 3 }).value, { score: 3, count: 1, assignee: AGENT });
+  assert.equal(v({ score: 3, closureCode: 'successful' }).error, 'Send either score or closureCode.');
+  assert.equal(v({}).error, 'Send either score or closureCode.');
+  assert.equal(v({ closureCode: '  ' }).error, 'closureCode must be a closure-code group.');
+  assert.equal(v({ closureCode: 'x'.repeat(121) }).error, 'closureCode must be a closure-code group.');
+  assert.equal(v({ closureCode: 5 }).error, 'closureCode must be a closure-code group.');
+  assert.equal(v({ score: 11 }).ok, false);
+});
+
+// In-memory assignment collection (find({status:'active'}) / insertOne); nothing touches MongoDB.
+function fakeAsgColl() {
+  const docs = [];
+  return { docs, find: q => ({ toArray: async () => docs.filter(d => !q || !q.status || d.status === q.status) }),
+    insertOne: async d => { const id = 'x' + docs.length; docs.push({ _id: id, ...d }); return { insertedId: id }; } };
+}
+test('handleAssign with closureCode picks the oldest, stores the group, 409 when short, no re-pick', async () => {
+  const coll = fakeAsgColl();
+  const deps = { coll, user: { username: OWNER }, report: GROUP_REPORT, stamp: STAMP, contractors: CONTRACTORS, marks: [] };
+  const a = await san.handleAssign({ closureCode: 'Successful', count: 2, assignee: AGENT }, deps);
+  assert.equal(a.status, 200);
+  assert.equal(a.body.closureCode, 'Successful');
+  assert.equal('score' in a.body, false);
+  assert.deepEqual(a.body.tickets.map(t => t.shortId), ['S3', 'S2']);
+  assert.equal(a.body.available, 1);
+  assert.equal(coll.docs[0].score, null);
+  assert.equal(coll.docs[0].closureCode, 'Successful');
+  assert.equal(coll.docs[0].group, 'successful');
+  assert.deepEqual(coll.docs[0].tickets.map(t => t.scoreAtAssign), [10, 0]);
+  const b = await san.handleAssign({ closureCode: 'successful', count: 2, assignee: AGENT }, deps);
+  assert.equal(b.status, 409);
+  assert.equal(b.body.available, 1);
+  assert.equal(b.body.error, 'Only 1 tickets with closure code Successful are available.');
+  const c = await san.handleAssign({ closureCode: 'successful', count: 1, assignee: AGENT }, deps);
+  assert.deepEqual(c.body.tickets.map(t => t.shortId), ['S1']);
+  const d = await san.handleAssign({ closureCode: 'Nope', count: 1, assignee: AGENT }, deps);
+  assert.equal(d.status, 409);
+  assert.equal(d.body.available, 0);
+  assert.equal(coll.docs.length, 2);
+});
+
+test('buildScoreReport: ro is a 0..n-1 rank by resolved time', () => {
+  const doc = (id, rd) => ({ ShortId: id, Status: 'Resolved', Title: 'US Severity 3 - x', RootCauseDetails: '', ClosureCode: 'Successful', ResolvedDate: rd, CreateDate: '2026-01-05T00:00:00Z' });
+  const rep = score.buildScoreReport([doc('A', '2026-02-03T00:00:00Z'), doc('B', '2026-02-01T00:00:00Z'), doc('C', null), doc('D', '2026-02-02T00:00:00Z')], [], [], {});
+  const ro = Object.fromEntries(rep.tickets.map(t => [t.shortId, t.ro]));
+  assert.deepEqual(ro, { B: 0, D: 1, A: 2, C: 3 });
+});

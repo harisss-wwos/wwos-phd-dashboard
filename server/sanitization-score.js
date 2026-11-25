@@ -25,6 +25,7 @@
 // Tickets whose Cnt: value is a number greater than 0 are EXCLUDED (counted, never scored or listed).
 'use strict';
 const { RCD_ISSUE_RE, RCD_RESOLUTION_RE, RCD_NEXT_KEYS, rcdPlain } = require('./pulse-check');
+const ticketRules = require('./ticket-rules');
 let zipGeo = null;
 try { zipGeo = require('./zip-geo'); } catch (e) { zipGeo = null; }   // pattern-only when the index is unavailable
 
@@ -306,6 +307,8 @@ function prepCats(cats) {
 //    order; group / target / required / defects = the closure-code rule, closureRule).
 // Duplicate tickets stay excluded from the score report (the scores page distribution); the tracker
 // verification counts an excluded 'duplicate' as cleared (sanitization-assign.js).
+// Before any of these, buildScoreReport drops TEST / NON-PHD tickets (ticket-rules.js) from the report
+// entirely (report.ruleExcluded; not counted in total / excluded / excludedBy / buckets).
 // Tickets left out of scoring (checked in this order; the first match is the reason):
 //   appeal    - 'appeal' anywhere in the title
 //   test      - a word starting with 'test' in the title (test, testing, test202; not 'protest'/'latest')
@@ -378,7 +381,7 @@ function pacificQuarter(v) {
 // IssueUrl, CreateDate). Only Status Resolved / Closed is scored. Each ticket carries cq = its
 // CreateDate quarter in Pacific time (pacificQuarter).
 // -> { total, excluded, buckets:{0..MAX_SCORE}, tickets } sorted by score asc, then oldest resolved first
-// (the resolved date only orders the list; it is not part of the payload).
+// (the resolved date only orders the list; it is not part of the payload, only its rank ro is).
 // typeCategories: { issue type: category } (issue-types-data.js IZ_CATS) for the closure-code rule.
 function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
   const ctx = { types: prepList(issueTypes), resolutions: prepList(resolutionNames), cats: prepCats(typeCategories) };
@@ -386,12 +389,17 @@ function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
   for (let i = 0; i <= MAX_SCORE; i++) buckets[i] = 0;
   const tickets = [], at = new Map();   // ticket -> resolved time (sort key only)
   const excludedTickets = [];           // [{ shortId, reason }] (sanitization-assign verification; not in the GET payload)
+  const ruleExcluded = [];              // [{ shortId, reason:'test'|'non-phd' }] (ticket-rules.js; dropped from every sanitization feature, not in the GET payload)
   let excluded = 0;
   const excludedBy = {}; EXCLUDE_KEYS.forEach(k => { excludedBy[k] = 0; });
   (Array.isArray(rows) ? rows : []).forEach(d => {
     if (!d || !/^\s*(resolved|closed)\s*$/i.test(str(d.Status))) return;
-    const r = scoreTicket(d, ctx);
     const id = str(d.ShortId || d.IssueId).trim(), url = str(d.IssueUrl).trim();
+    // TEST / NON-PHD tickets (ticket-rules.js, shared with the Incident Explorer): out of the report
+    // entirely, like tickets that are not there (not scored, not in excluded / excludedBy).
+    const ruleWhy = ticketRules.ticketExcludeReason(d);
+    if (ruleWhy) { if (id) ruleExcluded.push({ shortId: id, reason: ruleWhy }); return; }
+    const r = scoreTicket(d, ctx);
     if (r.excluded) { excluded++; excludedBy[r.reason]++; if (id) excludedTickets.push({ shortId: id, reason: r.reason }); return; }
     buckets[r.score]++;
     const t = {
@@ -412,8 +420,11 @@ function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
     tickets.push(t);
   });
   tickets.sort((a, b) => (a.score - b.score) || (at.get(a) - at.get(b)) || a.shortId.localeCompare(b.shortId));
+  // ro = resolved-order rank over the final list (oldest resolved 0, ties by shortId, missing date
+  // last): the closure-code groups' pick / display order, which never sorts by score.
+  tickets.slice().sort((a, b) => (at.get(a) - at.get(b)) || a.shortId.localeCompare(b.shortId)).forEach((t, i) => { t.ro = i; });
   excludedBy[APPROVED_REASON] = 0;
-  return { total: tickets.length, excluded, excludedBy, excludedTickets, buckets, tickets, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
+  return { total: tickets.length, excluded, excludedBy, excludedTickets, ruleExcluded, buckets, tickets, typeCount: ctx.types.length, resolutionCount: ctx.resolutions.length };
 }
 
 // ---- Owner-approved error tickets (COLLECTIONS.sanitizationExcluded) ----
@@ -461,7 +472,18 @@ function clearSplit(report) {
   return { buckets, clear: { total, byCode } };
 }
 
+// ---- Closure-code groups (Sanitization scores page: tickets still to sanitize, by SIM ClosureCode) ----
+// -> { id, label }: id = closureKey(cc) (lower-case, trimmed, whitespace collapsed), label = the cleaned
+// code; a blank code -> { id: GROUP_BLANK, label: 'No closure code' }. Every code in the data gets its
+// own group (sanitization-assign.js closureGroups / availableInGroup).
+const GROUP_BLANK = '(blank)';
+function closureGroupOf(cc) {
+  const label = cleanCode(cc);
+  return label ? { id: closureKey(label), label } : { id: GROUP_BLANK, label: 'No closure code' };
+}
+
 module.exports = {
+  GROUP_BLANK, closureGroupOf,
   OWNER, isOwner, CRITERIA, MAX_SCORE, DRIVER_TYPES, clearSplit,
   titleCountry, titleSeverity, parseDate, zipCheck, validSid, validDriv, cntNumber,
   scoreTicket, buildScoreReport, prepList, findInText, pacificQuarter, APPROVED_REASON, applyApproved,

@@ -32,8 +32,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 /* Sanitization Tracker (also the Ticket Sanitization page): navy hero with an orange rule and two rows
    of tool buttons, then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
    Sanitization checklist (everyone), Contractors (owner + contractors: KPI cards, the contractor cards,
-   the selected contractor's view = sanitization-view.js markup), Sanitization scores and the assignment
-   log (owner only; sanitization-checklist.js). Page styles are scoped under .st. */
+   the selected contractor's view = sanitization-view.js markup), and owner only (sanitization-checklist.js):
+   the assignment log, Sanitization scores (by closure code), Sanitized tickets and, last, Approved errors &
+   agent-marked duplicates. Page styles are scoped under .st. */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
 .st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
   --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--blue:#1f5fbf;--blue-bg:#e9f0fb;--focus:#f0a35a;container-type:inline-size;color:var(--ink)}
@@ -583,7 +584,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="sanitization-view.js?v=23"></script>
 <script src="sanitization-tools.js?v=2"></script>
 <!-- Checklist / Copy prompt / scores / assignment log (uses the three pop-ups above). -->
-<script src="sanitization-checklist.js?v=9"></script>
+<script src="sanitization-checklist.js?v=10"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -777,10 +778,12 @@ function conHtml(){
       acts:'<div class="ts-top-acts st-info"><button type="button" class="st-info-btn" id="stInfoBtn" aria-label="How it works" aria-describedby="stInfoTip">'+ic('info',18)+'</button></div>'})+
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
-// The page shell (built once): hero, then Checklist / Assignment log / Scores / Sanitization Center (#stCon).
+// The page shell (built once): hero, then Checklist / Assignment log / Scores (closure-code groups) /
+// Sanitization Center (#stCon) / Sanitized tickets (#tsSanitized) / Approved errors & agent-marked
+// duplicates (#tsMarked, last). DOM order = visual order.
 function buildPage(){
   $('wrap').innerHTML='<div class="st ts">'+heroHtml(false)+'<div class="ts-main">'+
-    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?conHtml():'')+'</div></div>';
+    CK.guideHtml()+CK.logHtml()+CK.scoreHtml()+(CON?conHtml():'')+CK.sanitizedHtml()+CK.markedHtml()+'</div></div>';
 }
 // Re-render the Contractors section's contents in place (the other sections keep their state).
 function render(){
@@ -1015,6 +1018,15 @@ function restoreApproved(sid){
     loadView(login,true,function(ok){ if(ok) syncTotals(); renderView('#stViewH'); announce(ok?(sid+' restored: it is tracked again.'):('Restored '+sid+', but the tickets could not be reloaded.')); });
   });
 }
+// Restore from the "Approved errors & agent-marked duplicates" card (sanitization-checklist.js): that
+// contractor's view refetches (now if it is the one shown, else the next time it is opened).
+document.addEventListener('phd-san-restored',function(ev){
+  try{
+    var login=String((ev&&ev.detail&&ev.detail.login)||'').trim().toLowerCase(); if(!login) return;
+    delete VIEWS[login];
+    if(SEL===login) loadView(login,true,function(ok){ if(ok) syncTotals(); renderView(); });
+  }catch(e){}
+});
 
 // ---- Error detected: Rework and per-item Approve (owner only; POST /api/sanitization-validation/review) ----
 // ONE ticket at a time (the endpoint rejects anything bulk-shaped): Rework posts an empty approveFields
