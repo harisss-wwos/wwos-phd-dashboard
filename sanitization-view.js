@@ -116,7 +116,8 @@
       + '</span><b>' + pctOf(B.ok[4], a) + '% sanitized</b></div>';
   }
   // Agent row (the tracker's contractor list): three zones on one grid line, one <dl> of counts each.
-  //   left   o.lead (the select button: avatar + login), then Temp. sanitized, Successfully sanitized
+  //   left   o.lead (the select button: avatar + login) and the sr-only total (no visible counts: the
+  //          Temp. sanitized / Successfully sanitized badges live only in the expanded card's tiles)
   //   centre Errors needing approvals, then Errors detected
   //   right  'N needs work' flush right, then o.tail (the expand chevron)
   // The row grid gives the two side zones equal weight (1fr auto 1fr), so the centre pair sits on the
@@ -139,7 +140,7 @@
         + '<dl class="stv-cst"' + (o.id ? ' id="' + esc(o.id + '-' + k) + '"' : '') + '>' + inner + '</dl>' + after + '</div>';
     };
     return '<div class="stv-crow">'
-      + zone('l', o.lead || '', '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>' + chip(B.wait) + chip(B.ok), '')
+      + zone('l', o.lead || '', '<div class="stv-sr"><dt>' + esc(B.tot[1]) + '</dt><dd>' + numTxt(a) + '</dd></div>', '')
       + zone('c', '', (B.err ? chip(B.err) : '') + chip(B.ded), '')
       + zone('r', '', '<div class="stv-hero" title="' + esc(bad[1]) + '"><dt><span class="stv-sr">' + esc(bad[1]) + '</span></dt>'
         + '<dd><b>' + numTxt(bad[4]) + '</b> <span class="stv-hero-r" aria-hidden="true">needs work</span></dd></div>', o.tail || '')
@@ -464,7 +465,7 @@
       ? '<div class="stv-bulk" role="group" aria-label="Actions for the selected error tickets"><span class="stv-bulk-n">' + plural(ss.n, 'ticket') + ' selected</span>'
         + '<button type="button" class="tb-san-btn stv-save" data-stvrev="approve:*"' + (rb ? ' disabled' : '') + '>Approve ' + ss.n + '</button>'
         + '<button type="button" class="tb-san-btn stv-link" data-stvclear="1"' + (rb ? ' disabled' : '') + '>Clear selection</button></div>'
-      : '<p class="stv-help">Approve or send back one ticket with the buttons on its row, or tick several and approve them together (Shift+click selects a range inside an agent).</p>');
+      : '');
     return bar + (rev ? errOpenHtml(all, o) : '') + agents.map(function (a, i) {
       var rows = a.tickets, lg = String(a.login || ''), name = a.displayName || '', as = selState(rows, sel);
       return '<details class="st-apv-d" data-stvagent="' + esc(lg) + '"' + (openAg === lg || (!openAg && i === 0) ? ' open' : '') + '>'

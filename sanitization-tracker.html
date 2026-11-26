@@ -33,7 +33,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
    left, two buttons per row on the right, two of which open the Sanitization checklist and Sanitization
    assignment log pop-ups - then one-open-at-a-time accordion sections (sanitization-checklist.css .ts-acc):
    Contractors (owner + contractors: KPI cards, the contractor cards, the selected contractor's view =
-   sanitization-view.js markup), and owner only (sanitization-checklist.js): Sanitization scores (by closure
+   sanitization-view.js markup), and owner only (sanitization-checklist.js): Assignment Center (by closure
    code), Sanitized tickets and, last, Approved errors & agent-marked duplicates.
    Page styles are scoped under .st. */
 #wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
@@ -198,11 +198,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 /* ---- Agent row ----------------------------------------------------------------------------
    One line per contractor, in three zones (sanitization-view.js cardStatsHtml):
-     [avatar login | N Temp. sanitized | N Successfully sanitized]  left, flush
-     [N Errors needing approvals | N Errors detected]               centred on the row
-     [N needs work] [chevron]                                      right, flush
+     [avatar login]                                    left, flush (the zone's dl is sr-only now)
+     [N Errors needing approvals | N Errors detected]   centred on the row
+     [N needs work] [chevron]                           right, flush
    The two side columns of the row grid carry the same weight (1fr auto 1fr), so the centre pair
-   sits on the middle of the row itself and stays put whether the left-hand counts read 0 or 274.
+   sits on the middle of the row itself and shares one x-offset on every row whatever the login
+   reads. The sanitized counts are not badges here - they are tiles inside the expanded card.
    Inside a zone every item is --stv-g apart: a fixed pixel gap, not a share of the free space. */
 .st-con-cards .st-card{--stv-g:12px;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;font-size:.8rem}
 .st-con-cards .st-card:hover{transform:none;box-shadow:0 6px 16px -12px rgba(20,30,50,.4)}
@@ -213,6 +214,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-cz.is-cr{justify-content:flex-end}
 .stv-cst{margin:0;min-width:0;display:flex;align-items:center;gap:var(--stv-g);font-variant-numeric:tabular-nums}
 .stv-cst dt,.stv-cst dd{margin:0}
+/* the left zone's dl holds only the sr-only total, so it must not leave a gap after the login block */
+.stv-cz.is-cl .stv-cst{gap:0}
 /* the login block, flush left */
 .st-con-cards .st-card-btn{flex:0 0 auto;width:auto}
 .st-con-cards .st-card-top{width:auto;gap:8px}
@@ -228,14 +231,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .stv-chip dd{order:1;flex:0 0 auto}
 .stv-chip dd b{font-size:1.1em;font-weight:800}
 .stv-chip dt{order:2;font-size:.82em;font-weight:600;white-space:nowrap}
-/* Temp. sanitized: light green */
-.stv-chip.is-wait{background:var(--grn-bg);border-color:#c0e2cf}
-.stv-chip.is-wait dd b{color:#15603a}
-.stv-chip.is-wait dt{color:#2f6347}
-/* Successfully sanitized: dark green, so its text has to go light (white on --grn is 5.4:1) */
-.stv-chip.is-ok{background:var(--grn);border-color:#15663a}
-.stv-chip.is-ok dd b{color:#fff}
-.stv-chip.is-ok dt{color:#e8f5ee}
 /* both error counts: light red */
 .stv-chip.is-errn,.stv-chip.is-ded{background:var(--red-bg);border-color:#f3c7c4}
 .stv-chip.is-errn dd b,.stv-chip.is-ded dd b{color:#a61b1b}
@@ -339,7 +334,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-sk-hero{display:flex;align-items:center;gap:8px}
 .st-sk-big{height:26px;width:46px;flex-shrink:0}
 .st-sk-bl{height:26px;width:90px;min-width:0}
-.st-sk-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.st-sk-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .st-sk-chip{height:26px;border-radius:5px!important}
 @media (prefers-reduced-motion:reduce){.st .shimmer::after{animation:none;display:none}}
 /* 'How it works' info button (Contractors header, outside the toggle); the tooltip (#stInfoTip) is in <body>. */
@@ -525,7 +520,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #stApv .tb-san-btn.stv-save:hover{background:#0f1420;color:#fff}
 #stApv .tb-san-btn.stv-link{border-color:transparent;background:transparent;text-decoration:underline}
 #stApv .tb-san-btn:disabled{opacity:.6;cursor:default}
-#stApv .stv-help{margin:0 0 8px;color:#5c6773;font-size:.82em;line-height:1.5}
 #stApv .st-apv-note{margin:0 0 10px;color:#5c6773;font-size:.84em;line-height:1.5}
 #stApv .st-apv-msg{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.86em;font-weight:700}
 #stApv .st-apv-msg:empty{display:none}
@@ -664,9 +658,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
 <script src="topbar-auth.js?v=242"></script>
-<script src="sanitization-view.js?v=28"></script>
+<script src="sanitization-view.js?v=29"></script>
 <script src="sanitization-tools.js?v=3"></script>
-<!-- Checklist / Copy prompt / scores / assignment log (uses the pop-ups above). -->
+<!-- Checklist / Copy prompt / Assignment Center / assignment log (uses the pop-ups above). -->
 <script src="sanitization-checklist.js?v=13"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
@@ -796,9 +790,9 @@ function cardHtml(c){
 function errNeedText(n){ return V.plural(n,'ticket')+' marked Error and need approval'; }
 function cardsBody(){
   if(ST.state==='loading'){
-    // Skeleton: 6 agent rows (login block, 3 count badges, the needs-work badge).
+    // Skeleton: 6 agent rows (login block, the 2 error badges, the needs-work badge).
     var sk='<li><div class="st-card is-sk"><span class="st-card-top"><span class="shimmer st-sk-av"></span><span class="shimmer st-sk-who"></span></span>'+
-      '<span class="st-sk-chips"><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span></span>'+
+      '<span class="st-sk-chips"><span class="shimmer st-sk-chip"></span><span class="shimmer st-sk-chip"></span></span>'+
       '<span class="st-sk-hero"><span class="shimmer st-sk-big"></span><span class="shimmer st-sk-bl"></span></span></div></li>';
     return '<div role="status"><span class="st-sr">Loading contractors\u2026</span><ul class="st-grid" aria-hidden="true" style="--n3:3;--n2:2">'+sk+sk+sk+sk+sk+sk+'</ul></div>';
   }
@@ -964,10 +958,9 @@ function apvSecSum(){ return (APVSEC.loading||APVSEC.error)?'':CK.topSum(V.plura
 function apvSecBody(){
   if(APVSEC.loading&&!APVSEC.data) return '<p class="tb-asg-empty">Loading the tickets waiting for error approval\u2026</p>';
   if(APVSEC.error) return '<div class="st-err" role="alert">'+esc(APVSEC.error)+'<button type="button" class="st-btn is-ghost" id="stApvRetry">Try again</button></div>';
+  // The owner needs no explanation of their own buttons; the contractor's sentence says who acts next.
   return '<p class="st-apv-msg" role="alert">'+esc(APVSEC.msg)+'</p>'+
-    '<p class="st-apv-note">'+(apvCanReview()
-      ? 'Tickets an agent marked as an error with a reason, by agent. <b>Approve</b> counts a ticket as sanitized (tagged Approved error) and leaves it out of the sanitization scores and assignment picking; <b>Send back</b> returns it to that agent\u2019s Tickets to sanitize with your message. Tick several rows to approve them in one go.'
-      : 'Tickets you marked as an error with a reason. They wait here until harisss approves one \u2014 it then counts as sanitized \u2014 or sends it back to your Tickets to sanitize with a message.')+'</p>'+
+    (apvCanReview()?'':'<p class="st-apv-note">Tickets you marked as an error with a reason. They wait here until harisss approves one \u2014 it then counts as sanitized \u2014 or sends it back to your Tickets to sanitize with a message.</p>')+
     V.approvalSectionHtml(APVSEC.data,{review:apvCanReview(),sel:APVSEC.sel,revBusy:REVBUSY,openAgent:APVSEC.open,h:{ic:ic,when:S.when,url:S.url}});
 }
 function apvSecHtml(){
@@ -1018,7 +1011,7 @@ function conHtml(){
     CK.topBody('stCon')+kpisHtml()+'<div class="st-con-cards" id="stCardsBody"></div>'+viewSecHtml()+'</div></section>';
 }
 // The page shell (built once): hero (the checklist and the assignment log are pop-ups opened from it),
-// then Scores (closure-code groups) / Error detected (#stErr) / Error tickets that need approval (#stApv,
+// then Assignment Center (closure-code groups) / Error detected (#stErr) / Error tickets that need approval (#stApv,
 // the other error section, right under it) / Sanitization Center (#stCon) / Sanitized tickets
 // (#tsSanitized) / Approved errors & agent-marked duplicates (#tsMarked, last). DOM order = visual order.
 function buildPage(){
@@ -1464,7 +1457,7 @@ function bindInfo(){
 (function(){
   if(!(A&&A.getUser&&A.getUser())){ gate(); return; }
   // Every logged-in user: hero + the checklist. Contractors section: the owner and contractors (analyst +
-  // role editor; the server decides, a 403 removes it). Scores + assignment log: the owner (CK decides).
+  // role editor; the server decides, a 403 removes it). Assignment Center + assignment log: the owner (CK decides).
   // The checklist is open on load (a ?login= deep link still picks that contractor inside Contractors).
   CON=!!(S&&V&&S.mayAsk());
   buildPage();

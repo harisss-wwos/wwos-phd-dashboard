@@ -1,6 +1,6 @@
 /* Ticket Sanitization sections of sanitization-tracker.html (sanitization-checklist.js; moved here from
    ticket-sanitization.html): hero chips, the top-level accordion cards, the checklist (vertical numbered
-   stepper, circles joined by a rail), sanitization scores, the Assign pop-up and the assignment log.
+   stepper, circles joined by a rail), Assignment Center, the Assign pop-up and the assignment log.
    Everything is scoped under .ts (a size container, so the layout reacts to the content column width).
    The hero itself and its buttons are the page's (.st-hero) + sanitization-tools.css (.ts-hero-link). */
 .ts{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
@@ -186,23 +186,13 @@
 .ts-sc-ctl select{height:36px;padding:0 10px;border:1px solid #d4dce4;border-radius:8px;color:#1b2026;font-size:.88em;font-weight:700;font-family:inherit;background:#fff;cursor:pointer}
 .ts-sc-ctl select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .ts-sc-ctl select:disabled{opacity:.6;cursor:default}
-.ts-sc-tot{margin:0 0 12px;font-size:.9em;font-weight:700;color:#2a3340;font-variant-numeric:tabular-nums}
+/* Standalone note in a card body (the SIM-duplicates line): same 14px gutter as .ts-sc-chiprow. */
+.ts-sc-tot{margin:12px 14px 0;font-size:.9em;font-weight:700;color:#2a3340;font-variant-numeric:tabular-nums}
 .ts-sc-tot b{font-weight:800;color:var(--ink)}
 .ts-sc-tot span{color:var(--mut);font-weight:600}
-.ts-sc-dist{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
-.ts-sc-dist li{min-width:0}
-.ts-sc-dist button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:2px 0;border:none;background:transparent;font:inherit;cursor:pointer;border-radius:6px}
-.ts-sc-dist button:hover .ts-sc-bar{filter:brightness(.92)}
-.ts-sc-n{font-size:.74em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums}
-.ts-sc-col{display:flex;align-items:flex-end;width:100%;max-width:38px;height:64px}
-.ts-sc-bar{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:hsl(var(--sc-h),68%,46%)}
-.ts-sc-x{font-size:.72em;font-weight:800;color:hsl(var(--sc-h),70%,28%)}
 .ts-sc-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 9px;border-radius:7px;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums;
   background:hsl(var(--sc-h),78%,92%);color:hsl(var(--sc-h),72%,26%);border:1px solid hsl(var(--sc-h),55%,70%)}
 .ts-sc-sec{border-left:4px solid hsl(var(--sc-h),68%,46%)}
-.ts-sc-sec.is-great .ts-sec-tog{background:#e5f5ec}
-.ts-sc-sec.is-great .ts-sec-tog:hover{background:#d6efe0}
-.ts-sc-great{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:.72em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;background:var(--grn);color:#fff}
 .ts-sc-tw{overflow-x:auto;margin:14px}
 .ts-sc-tbl{width:100%;border-collapse:collapse;font-size:.84em}
 .ts-sc-tbl th{text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);font-size:.86em;font-weight:800;color:var(--mut);white-space:nowrap}
@@ -219,13 +209,15 @@
 .ts-chip.ts-chip-grp{white-space:normal;border-radius:8px;gap:0;display:inline-block;line-height:1.5}
 .ts-chip-grp b{margin-left:3px}
 .ts-chip-sep{margin:0 5px;opacity:.55;font-weight:600}
-/* Score header row: toggle (left) + missing-checks summary chips (right corner; wraps below the title when narrow). */
+/* Group header row: toggle (left) + 'N available' / Assign (right corner; wraps below the title when narrow). */
 .ts-sc-hrow{display:flex;align-items:center;flex-wrap:wrap;background:var(--soft)}
 .ts-sc-hrow>.ts-sec-h{flex:1 1 260px;min-width:0}
 .ts-sc-sec.is-open>.ts-sc-hrow{border-bottom:1px solid var(--line)}
-.ts-sc-sec.is-great .ts-sc-hrow{background:#e5f5ec}
+/* .ts-sc-miss is a HEADER-ROW rule (a .ts-sc-hrow flex child). A chip list standing on its own in a
+   card body uses .ts-sc-chiprow instead: full width from the card's left padding, wrapping left to right. */
 .ts-sc-miss{flex:0 1 auto;max-width:62%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;list-style:none;margin:0;padding:8px 14px 8px 0;font-size:.8em}
 @container (max-width:700px){ .ts-sc-miss{flex-basis:100%;max-width:none;justify-content:flex-start;padding:0 14px 10px 39px} }
+.ts-sc-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin:12px 14px 0;padding:0;list-style:none;font-size:.8em}
 /* Quarter sub-sections inside an open score section. */
 .ts-sc-qs{display:flex;flex-direction:column;gap:8px;margin:14px}
 .ts-sc-q{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
@@ -249,7 +241,6 @@
 .ts-sc-pgb{display:flex;gap:8px}
 .ts-sc-pgb .ts-mbtn{padding:7px 14px}
 .ts-sc-pgb .ts-mbtn:disabled{opacity:.45}
-@container (max-width:620px){ .ts-sc-dist{gap:3px;padding:10px 6px} .ts-sc-n{font-size:.66em} }
 
 /* ---- Sanitization assignments (owner-only): header Assign button, row tag, pop-up, assignment log card ---- */
 .ts-sc-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 14px 6px 0}
