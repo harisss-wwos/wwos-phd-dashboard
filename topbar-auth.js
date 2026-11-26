@@ -1476,10 +1476,11 @@
       +   '#tbHomeChrome .home-navgrp-action{gap:3px;padding-top:6px}'
       +   '#tbHomeChrome .home-nav-btn.is-current::before{top:4px;bottom:4px}'
       + '}'
-      // Very short viewport (1366x768, or 1080p at 150% zoom): the last step. The rail cannot fall
-      // back to scrolling here - the collapse-tab rule below sets overflow:visible on the column -
-      // so everything down to Assignment Center has to FIT. Labels stay one ellipsised line + title.
-      + '@media(max-height:700px){'
+      // Very short viewport (1366x768, or 1080p at 150% zoom = a 720px-tall viewport, which is why
+      // this step starts at 760px and not at 700): everything down to Assignment Center has to FIT,
+      // because the collapse-tab rule below sets overflow:visible on the column. Labels stay one
+      // ellipsised line + title.
+      + '@media(max-height:760px){'
       +   '#tbHomeChrome .home-recent-col{gap:4px;padding:5px 7px 4px}'
       +   '#tbHomeChrome .home-navgrp{gap:0}'
       +   '#tbHomeChrome .home-navgrp-h{margin:0 0 1px;font-size:.52em;letter-spacing:1px}'
@@ -1589,6 +1590,15 @@
 + '#tbHomeChrome.is-navmax .home-recent-col{flex:0 0 clamp(180px,16vw,240px)!important;width:clamp(180px,16vw,240px)!important}'
 + '#tbHomeChrome.is-navinit .home-recent-col,#tbHomeChrome.is-navinit .home-navtg svg{transition:none!important}'
 + '@media(prefers-reduced-motion:reduce){#tbHomeChrome .home-recent-col,#tbHomeChrome .home-navtg svg{transition:none}}'
+// At or below 700px of viewport height (a 1366x768 screen at 125% zoom leaves 614px, at 150% zoom 512px) the items cannot fit
+// at any legible row height, so the column gets its scrollbar back - the thin light bar the base rule
+// styles - instead of running its last items off the bottom of the screen. It comes AFTER the
+// collapse-tab rule above on purpose: that rule's overflow:visible would otherwise win. The tab moves
+// inside the column's right edge here, since a scroll container clips an overhanging child.
++ '@media(max-height:700px){'
++   '#tbHomeChrome .home-recent-col{overflow-y:auto;overflow-x:hidden}'
++   '#tbHomeChrome .home-navtg{right:3px}'
++ '}'
       ;
     var st = document.createElement('style');
     st.id = 'tbAuthStyles';
@@ -3127,7 +3137,7 @@
   }
   // Top sanitization score: the server's maxScore (GET /api/my-sanitization), 11 until it is here.
   function tbSanMax() { var m = tbSan.data && Number(tbSan.data.maxScore); return m > 0 ? m : 11; }
-  // Hue per score (same scale as the Sanitization scores page): 0 red -> half amber -> max green.
+  // Hue per score (same scale as the Sanitization Tracker): 0 red -> half amber -> max green.
   function tbSanHue(s) {
     var M = tbSanMax(), h = M / 2; s = Math.max(0, Math.min(M, Number(s) || 0));
     return s <= h ? Math.round(s / h * 38) : Math.round(38 + (s - h) / (M - h) * 104);
@@ -3216,8 +3226,15 @@
   function tbhWireChrome() {
     tbhRenderHdrProf(); tbhRenderRecent();
     if (tbMyAsg.data) tbMyAsgPaint(); else tbMyAsgFetch(false);
-    if (tbSan.req) tbSanPaint(); else tbSanFetch();
-    if (tbReErr.req) tbReErrPaint(); else tbReErrFetch();
+    // GET /api/my-sanitization and GET /api/resolved-errors are asked for ONE reason here: to paint
+    // the two count chips (#tbhMySan / #tbhResErr). Those chips were removed from the top bar, so on
+    // every other page the answer had no consumer - two requests per navigation that nothing read
+    // (and that sat pending, holding a connection). Each call is now gated on its chip being on the
+    // page. The two pages that still need the data ask for it themselves - sanitization-tracker.html
+    // via PHDSan.ready() and errors-in-resolved.html via PHDResErr.ready() - and both memoise the
+    // request (tbSan.req / tbReErr.req), so neither page gains a second round trip.
+    if (document.getElementById('tbhMySan')) { if (tbSan.req) tbSanPaint(); else tbSanFetch(); }
+    if (document.getElementById('tbhResErr')) { if (tbReErr.req) tbReErrPaint(); else tbReErrFetch(); }
     var clr = document.getElementById('tbhClear');
     if (clr) clr.onclick = function () { try { localStorage.removeItem('phd_recent_pages'); } catch (e) {} tbhRenderRecent(); };
   }
@@ -3295,6 +3312,11 @@
       + navBtn('station-request.html', 'Station Requests', 'map-pin')
       + navBtn('hashtags.html', '#Hashtags (Trends)', 'hash')
       + navBtn('hi-resolved.html', 'Recurring Cases', 'repeat')
+      // Errors in Resolved (errors-in-resolved.html): the only way in used to be a top-bar chip,
+      // which was removed, leaving the page reachable by URL alone. It sits next to the other
+      // resolved-ticket view and, like the chip before it, is listed only for the BLR / AZA team the
+      // page and GET /api/resolved-errors are limited to.
+      + (li && tbReErrMayAsk() ? navBtn('errors-in-resolved.html', 'Resolved Errors', 'alert-triangle', 'Resolved tickets with errors') : '')
       + navBtn('important-cases.html', 'One-Off Cases', 'star')
       + '</nav>';
     // Group 0 (top): Program & Reference — the Home page's history + reference guides.
