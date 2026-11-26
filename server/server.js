@@ -6964,7 +6964,11 @@ function ticketDocId(qid, shortId) { return qid + '|' + String(shortId); }
 let _ticketIndexesReady = false;
 async function ensureTicketIndexes() {
   if (_ticketIndexesReady) return;
-  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); await coll.createIndex({ Status: 1 }); await coll.createIndex({ Status: 1, CreateDate: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
+  // { ResolvedDate: 1 } serves the Handover Report's resolved-in-window read (see handoverFromDb):
+  // the only field that query filters on, stored as a canonical ISO string, so a string range on it
+  // is an index seek. Single-field on purpose — the Resolved/Closed test is applied in JS over the
+  // ~200 rows the window returns, which is cheaper than carrying Status in the index keys.
+  try { const coll = await getCollection(COLLECTIONS.ticketDocs); await coll.createIndex({ q: 1 }); await coll.createIndex({ ShortId: 1 }); await coll.createIndex({ q: 1, Status: 1 }); await coll.createIndex({ q: 1, AssigneeIdentity: 1 }); await coll.createIndex({ CreateDate: 1 }); await coll.createIndex({ Status: 1 }); await coll.createIndex({ Status: 1, CreateDate: 1 }); await coll.createIndex({ ResolvedDate: 1 }); _ticketIndexesReady = true; } catch (e) { /* index best-effort */ }
 }
 // Load all tickets for a quarter from ticket_docs. If none exist yet (un-migrated quarter),
 // fall back to the legacy quarters.data.tickets array so nothing breaks mid-migration.
@@ -7652,8 +7656,8 @@ async function getShiftRollup() {
 // Assemble the Shift Report response: derive age-colours at read time, build the per-agent colour
 // breakdown for the takeover chart (with slim ticket lists for the drill-down), and return counts.
 // ---- Handover Report — the last 12 hours of the LATEST UPLOADED FILE (timezones ignored) ----
-// Anchor = the newest timestamp present in that file: max over CreateDate / ResolvedDate /
-// LastUpdatedDate / LastUpdatedConversationDate, parsed exactly as the importer stores them (ISO, UTC).
+// Anchor = the newest timestamp stored in ticket_docs over CreateDate / ResolvedDate (see
+// HANDOVER_ANCHOR_FIELDS), parsed exactly as the importer stores them (ISO, UTC).
 // Window = [anchor - 12h, anchor] (both ends inclusive). Items:
 //   created         = file tickets whose CreateDate is in the window
 //   stationRequests = those created tickets carrying a 'Station Request' label (comma-separated Labels)
@@ -7662,10 +7666,20 @@ async function getShiftRollup() {
 //                       rule    = not AutoSIM, ClosureCode Immediately Resolved / Automatically Closed
 //   inQueue / queueByStatus = CURRENT open tickets in ticket_docs (live snapshot, not window-bound)
 //   noEmt           = those open tickets whose Title says "no emt" (space / - / _ / nothing between)
-// The file-derived part is cached per stored file; the live queue part is read on every request.
-const HANDOVER_CACHE_PREFIX = 'handover:v2:';
+// The WHOLE payload is cached under the latest upload stamp: nothing in it moves with wall-clock time
+// (the window is anchored to the newest timestamp IN THE DATA, and the queue part is just the stored
+// docs), so the first caller after an upload pays and the rest are free until the next upload calls
+// invalidateReportCache(). HANDOVER_CACHE_TTL_MS is only a backstop against a missed invalidation.
+const HANDOVER_CACHE_PREFIX = 'handover:v3:';
+const HANDOVER_CACHE_TTL_MS = 12 * 3600 * 1000;
 const HANDOVER_WINDOW_MS = 12 * 3600 * 1000;
-const HANDOVER_ANCHOR_FIELDS = ['CreateDate', 'ResolvedDate', 'LastUpdatedDate', 'LastUpdatedConversationDate'];
+// Fields the anchor is taken from. CreateDate + ResolvedDate ONLY, and deliberately so: this report
+// has always read ticket_docs with a projection that omits LastUpdatedDate / LastUpdatedConversationDate,
+// so those two have never reached the anchor loop and never moved the window, whatever the older
+// comment implied. Both fields here are indexed, so the anchor is two index seeks. Letting the two
+// LastUpdated* fields in would shift the window (they run a couple of minutes ahead of ResolvedDate)
+// and change every published count, so that is a decision for the owner, not a side effect of this read.
+const HANDOVER_ANCHOR_FIELDS = ['CreateDate', 'ResolvedDate'];
 const HANDOVER_NO_EMT_RE = /no[\s_-]*emt/i;
 const HANDOVER_RESOLVED_SET = new Set(['resolved', 'closed']);
 // 'Station Request' label, case-insensitive and trimmed; also accepts '#station-request' / 'station_request'.
@@ -7673,35 +7687,63 @@ function handoverIsStationLabel(l) {
   return String(l == null ? '' : l).trim().replace(/^#/, '').replace(/[\s_-]+/g, ' ').toLowerCase() === 'station request';
 }
 function handoverTs(v) { const s = String(v == null ? '' : v).trim(); return s ? new Date(s).getTime() : NaN; }
-function handoverFromFile(rows) {
-  // One row per ticket (ShortId, else IssueId — the importer's key); a later row replaces an earlier one.
+function handoverEmptyWindow() {
+  return { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } };
+}
+// One row per ticket (ShortId, else IssueId — the importer's key); a later row replaces an earlier one.
+function handoverOnePerTicket(rows) {
   const bySid = new Map();
   (rows || []).forEach(r => { const sid = String(r.ShortId || r.IssueId || '').trim(); if (sid) bySid.set(sid, r); });
-  const tix = Array.from(bySid.values());
+  return Array.from(bySid.values());
+}
+// Anchor = the newest timestamp stored in HANDOVER_ANCHOR_FIELDS. One backwards index seek per field
+// ({ $gt: '' } keeps it on the index and skips the blank ResolvedDate rows) instead of shipping ~80k
+// tickets just to take a maximum. Ties keep the FIRST field in HANDOVER_ANCHOR_FIELDS order, which is
+// what the old per-ticket loop did.
+async function handoverAnchor(coll) {
+  const tops = await Promise.all(HANDOVER_ANCHOR_FIELDS.map(f => coll
+    .find({ [f]: { $gt: '' } }, { projection: { _id: 0, [f]: 1 } }).sort({ [f]: -1 }).limit(1).toArray()));
   let anchor = NaN, anchorField = null;
-  tix.forEach(r => HANDOVER_ANCHOR_FIELDS.forEach(f => {
-    const t = handoverTs(r[f]);
+  HANDOVER_ANCHOR_FIELDS.forEach((f, i) => {
+    const t = handoverTs(tops[i][0] && tops[i][0][f]);
     if (!isNaN(t) && (isNaN(anchor) || t > anchor)) { anchor = t; anchorField = f; }
-  }));
-  if (isNaN(anchor)) return { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } };
+  });
+  return { anchor, anchorField };
+}
+// The 12h-window half of the report. Both reads are INDEXED RANGE SCANS on the exact field the count
+// tests (CreateDate_1 / ResolvedDate_1): every date field is stored as a canonical ISO-8601 UTC
+// string, so a plain string range is chronological as well as index-usable — the same trick aggLive's
+// date-window scope uses. The per-row tests are the old ones unchanged, so the counts are identical
+// to the full-collection pass this replaces; only the ~80k documents it shipped are gone.
+async function handoverFromDb(coll) {
+  const { anchor, anchorField } = await handoverAnchor(coll);
+  if (isNaN(anchor)) return handoverEmptyWindow();
   const from = anchor - HANDOVER_WINDOW_MS;
+  const fromIso = new Date(from).toISOString(), toIso = new Date(anchor).toISOString();
+  const win = { $gte: fromIso, $lte: toIso };
   const inWin = (v) => { const t = handoverTs(v); return !isNaN(t) && t >= from && t <= anchor; };
+  const [createdRows, resolvedRows] = await Promise.all([
+    coll.find({ CreateDate: win }, { projection: { _id: 0, ShortId: 1, IssueId: 1, CreateDate: 1 } }).toArray(),
+    coll.find({ ResolvedDate: win }, { projection: { _id: 0, ShortId: 1, IssueId: 1, ResolvedDate: 1, Status: 1, ResolvedByIdentity: 1, ClosureCode: 1 } }).toArray(),
+  ]);
   let created = 0, stationRequests = 0, autosim = 0, rule = 0;
   const stationLabels = new Set();
-  tix.forEach(r => {
-    if (inWin(r.CreateDate)) {
-      created++;
-      const hits = String(r.Labels || '').split(',').map(x => x.trim()).filter(handoverIsStationLabel);
-      if (hits.length) { stationRequests++; hits.forEach(x => stationLabels.add(x)); }
-    }
-    if (HANDOVER_RESOLVED_SET.has(String(r.Status || '').trim().toLowerCase()) && inWin(r.ResolvedDate)) {
-      if (perfIsAutosimResolver(r.ResolvedByIdentity)) autosim++;
-      else if (perfIsRuleClosure(r.ClosureCode)) rule++;
-    }
+  handoverOnePerTicket(createdRows).forEach(r => {
+    if (!inWin(r.CreateDate)) return;
+    created++;
+    // Labels are not stored in ticket_docs, so this stays 0 / [] (as it has since the report moved off
+    // the raw CSV). The test is kept so the counts appear by themselves if Labels are ever stored.
+    const hits = String(r.Labels || '').split(',').map(x => x.trim()).filter(handoverIsStationLabel);
+    if (hits.length) { stationRequests++; hits.forEach(x => stationLabels.add(x)); }
+  });
+  handoverOnePerTicket(resolvedRows).forEach(r => {
+    if (!HANDOVER_RESOLVED_SET.has(String(r.Status || '').trim().toLowerCase()) || !inWin(r.ResolvedDate)) return;
+    if (perfIsAutosimResolver(r.ResolvedByIdentity)) autosim++;
+    else if (perfIsRuleClosure(r.ClosureCode)) rule++;
   });
   return {
     anchor: new Date(anchor).toISOString(), anchorField,
-    from: new Date(from).toISOString(), to: new Date(anchor).toISOString(),
+    from: fromIso, to: toIso,
     created, stationRequests, stationLabels: Array.from(stationLabels), resolvedSplit: { autosim, rule },
   };
 }
@@ -7717,30 +7759,29 @@ app.get('/api/handover-12h', requireRole('admin'), async (req, res) => {
     // The 12h window always comes from ticket_docs now (Labels are not stored there, so
     // stationRequests/stationLabels stay 0).
     const hKey = HANDOVER_CACHE_PREFIX + (hStamp || 'none');
-    let fromFile = getCachedReport(hKey);
-    if (!fromFile) {
-      const hTColl = await getCollection(COLLECTIONS.ticketDocs);
-      const hRows = await hTColl.find({}, { projection: { _id: 0, ShortId: 1, IssueId: 1, CreateDate: 1, ResolvedDate: 1, Status: 1, ResolvedByIdentity: 1, ClosureCode: 1 } }).toArray();
-      fromFile = handoverFromFile(hRows);
+    let payload = getCachedReportTtl(hKey, HANDOVER_CACHE_TTL_MS);
+    if (!payload) {
+      const coll = await getCollection(COLLECTIONS.ticketDocs);
+      const fromDb = await handoverFromDb(coll);
+
+      // Current in-queue (open) snapshot — across all quarters, broken down by status, plus No EMT titles.
+      const openDocs = await coll.find({ Status: { $in: OPEN_STATUSES } }, { projection: { _id: 0, Status: 1, Title: 1 } }).toArray();
+      const queueByStatus = { 'Assigned': 0, 'Work In Progress': 0, 'Researching': 0, 'Pending': 0 };
+      let noEmt = 0;
+      openDocs.forEach(t => {
+        if (queueByStatus[t.Status] != null) queueByStatus[t.Status]++;
+        if (HANDOVER_NO_EMT_RE.test(String(t.Title || ''))) noEmt++;
+      });
+
+      payload = Object.assign({
+        noFile: !hStamp,
+        file: hStamp ? { id: hStamp, name: (hLatest && hLatest.fileName) || '', uploadedAt: hStamp } : null,
+        inQueue: openDocs.length, queueByStatus, noEmt,
+      }, fromDb);
       pruneCachedReports(HANDOVER_CACHE_PREFIX, 1);
-      setCachedReport(hKey, fromFile);
+      setCachedReport(hKey, payload);
     }
-
-    // Current in-queue (open) snapshot — across all quarters, broken down by status, plus No EMT titles.
-    const coll = await getCollection(COLLECTIONS.ticketDocs);
-    const openDocs = await coll.find({ Status: { $in: OPEN_STATUSES } }, { projection: { _id: 0, Status: 1, Title: 1 } }).toArray();
-    const queueByStatus = { 'Assigned': 0, 'Work In Progress': 0, 'Researching': 0, 'Pending': 0 };
-    let noEmt = 0;
-    openDocs.forEach(t => {
-      if (queueByStatus[t.Status] != null) queueByStatus[t.Status]++;
-      if (HANDOVER_NO_EMT_RE.test(String(t.Title || ''))) noEmt++;
-    });
-
-    res.json(Object.assign({
-      noFile: !hStamp,
-      file: hStamp ? { id: hStamp, name: (hLatest && hLatest.fileName) || '', uploadedAt: hStamp } : null,
-      inQueue: openDocs.length, queueByStatus, noEmt,
-    }, fromFile || { anchor: null, anchorField: null, from: null, to: null, created: 0, stationRequests: 0, stationLabels: [], resolvedSplit: { autosim: 0, rule: 0 } }));
+    res.json(payload);
   } catch (e) {
     res.status(500).json({ error: 'Could not build the handover report.' });
   }
