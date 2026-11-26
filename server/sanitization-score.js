@@ -318,6 +318,10 @@ function prepCats(cats) {
 const EXCLUDE_KEYS = ['appeal', 'test', 'duplicate', 'autosim', 'cnt'];
 const AUTO_CLOSE_RE = /^\s*(immediately\s+resolved|automatically\s+(closed|resolved))\s*$/i;
 function excludeReason(t, cnt) {
+  // xr: the same reason already decided by the database (server.js sanScopeStages decides appeal /
+  // test / duplicate / autosim from the stored fields, so an excluded ticket's title, root cause
+  // details and resolver never have to be read). Only 'cnt' needs the parsed RootCauseDetails.
+  if (t.xr) return str(t.xr);
   const title = str(t.Title), cc = str(t.ClosureCode);
   if (/appeal/i.test(title)) return 'appeal';
   if (/\btest/i.test(title)) return 'test';
@@ -413,7 +417,10 @@ function buildScoreReport(rows, issueTypes, resolutionNames, typeCategories) {
       // irk: why Immediately Resolved is not eligible (grp 'ir-not-eligible' only, irEligibility), else null.
       irk: r.irk,
       cc: clip(str(d.ClosureCode).trim().replace(/\s+/g, ' ')),
-      cq: pacificQuarter(d.CreateDate),   // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing
+      // created quarter (Pacific), e.g. '2026-Q1'; '' when CreateDate is missing. `cq` on the row is the
+      // same quarter computed by the database (server.js sanScopeStages, $dateToParts in Pacific time),
+      // which is why the CreateDate string itself does not have to be read.
+      cq: d.cq != null ? str(d.cq) : pacificQuarter(d.CreateDate),
       rbi: str(d.ResolvedByIdentity).trim(),   // raw resolver (Errors in Resolved groups by it, see resolved-errors.js)
     };
     at.set(t, timeOf(isoOf(d.rd != null ? d.rd : d.ResolvedDate)));

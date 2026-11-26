@@ -3609,22 +3609,88 @@ async function sanScopeRows(quarter) {
   const since = quarter === SAN_SINCE_ID;
   const match = since ? sanSinceMatch() : { Status: SAN_STATUS_MATCH };
   if (!since && quarter !== 'all') match.q = quarter;
-  // CreateDate for every scope: the report groups each score's tickets by created quarter (Pacific).
-  // Fewer bytes over the wire: IssueUrl comes back as `true` when it is exactly SAN_URL_BASE + ShortId
-  // (restored below, before anything reads it), and IssueId is dropped when ShortId is a non-empty
-  // string (every reader uses ShortId || IssueId, so it is never read then).
-  let docs = await coll.find(match, { projection: sanScopeProjection() }).toArray();
+  let docs = await coll.aggregate(sanScopeStages(match, since, true), { allowDiskUse: false }).toArray();
   for (const d of docs) if (d.IssueUrl === true) d.IssueUrl = SAN_URL_BASE + d.ShortId;
-  if (since) docs = pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
-  else if (quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
+  // The since test is the aggregation's (sanScopeStages exact stage), not sanIsSince's: the same test,
+  // run where the CreateDate is, so the string never crosses the wire.
+  if (since || quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
   else if (!docs.length) docs = await loadQuarterTickets(quarter);   // legacy quarter not split into ticket_docs
   return docs;
 }
-function sanScopeProjection() {
+// ---- The scope read, done in the database (one aggregation, nothing but the rows that must be SCORED) ----
+// The link to the shared cluster carries ~71 kB/s (measured: 12.38 MB of scope rows = 164 s; wire
+// compression is not available, see sanScopeStages notes below), so every byte that does not have to
+// cross it is the whole cost of this report.
+// A string / a joined array of a field, '' when it is absent or another type: `str()` / the
+// `Array.isArray(Tags) ? join(',') : str(Tags)` of sanitization-score.js, as an expression.
+const sanStr = path => ({ $cond: [{ $eq: [{ $type: path }, 'string'] }, path, { $cond: [{ $in: [{ $type: path }, ['missing', 'null']] }, '', { $toString: path }] }] });
+const sanTagsStr = path => ({ $cond: [{ $eq: [{ $type: path }, 'array'] }, { $reduce: { input: path, initialValue: '', in: { $concat: ['$$value', ',', { $toString: '$$this' }] } } }, sanStr(path)] });
+// A date field as a Date, or null: the ticket dates are ISO-8601 strings with a zone ('...Z'; Date
+// objects are accepted too), so $dateFromString reads exactly what Date.parse reads.
+const sanDate = path => ({ $cond: [{ $eq: [{ $type: path }, 'date'] }, path,
+  { $dateFromString: { dateString: { $cond: [{ $eq: [{ $type: path }, 'string'] }, path, '' ] }, onError: null, onNull: null } }] });
+// Exclusions the database can decide from stored fields alone, in the order sanitization-score.js
+// excludeReason() applies them (appeal -> test -> duplicate -> autosim; 'cnt' needs the parsed
+// RootCauseDetails, so it stays in JS). A row with a reason is never scored and never listed: the
+// report only counts it (excluded / excludedBy / excludedTickets), so it crosses the wire as
+// { q, ShortId, Status, xr } instead of its title, root cause details and resolver.
+const SAN_XR = {
+  $switch: {
+    branches: [
+      { case: { $regexMatch: { input: '$$ti', regex: 'appeal', options: 'i' } }, then: 'appeal' },
+      { case: { $regexMatch: { input: '$$ti', regex: '\\btest', options: 'i' } }, then: 'test' },
+      { case: { $regexMatch: { input: '$$cc', regex: '^\\s*duplicate\\s*$', options: 'i' } }, then: 'duplicate' },
+      { case: { $and: [{ $regexMatch: { input: '$$tg', regex: 'pet_incident_auto_resolved', options: 'i' } },
+        { $regexMatch: { input: '$$cc', regex: '^\\s*(immediately\\s+resolved|automatically\\s+(closed|resolved))\\s*$', options: 'i' } }] }, then: 'autosim' },
+    ],
+    default: '',
+  },
+};
+// A title can only be a TEST / NON-PHD title (ticket-rules.js, checked BEFORE the exclusions above and
+// reported separately as report.ruleExcluded) when it contains 'test' or 'driver': every TEST_EXAMPLE,
+// TEST_RULE, NON_PHD_EXAMPLE and NON_PHD_RULE requires one of those two words, and ticket-rules only
+// collapses whitespace, so a match in the normalised title is a match in the raw one. So an excluded
+// row carries its title only when this (conservative) test passes - otherwise ticket-rules cannot fire
+// and the row needs no title at all.
+const SAN_RULE_MAYBE = { $regexMatch: { input: '$$ti', regex: 'test|driver', options: 'i' } };
+// The exclusion above is ALWAYS decided here, so no reader needs Tags and both reads classify a
+// ticket the same way. stub additionally strips what only a SCORED row is read for; it is off for a
+// read of named shortIds (sanScopeRowsForIds), which is small anyway and whose rows the post-upload
+// validation hook reads the title / closure code / root cause details of, excluded or not.
+function sanScopeStages(match, since, stub) {
+  const keep = e => (stub ? { $cond: [{ $eq: ['$$xr', ''] }, e, '$$REMOVE'] } : e);
   const shortIsStr = { $eq: [{ $type: '$ShortId' }, 'string'] };
-  return { _id: 0, q: 1, ShortId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1,
-    IssueId: { $cond: [{ $and: [shortIsStr, { $ne: ['$ShortId', ''] }] }, '$$REMOVE', '$IssueId'] },
-    IssueUrl: { $cond: [{ $and: [shortIsStr, { $eq: ['$IssueUrl', { $cond: [shortIsStr, { $concat: [SAN_URL_BASE, '$ShortId'] }, null] }] }] }, true, '$IssueUrl'] } };
+  const row = {
+    $let: {
+      vars: { ti: sanStr('$Title'), cc: sanStr('$ClosureCode'), tg: sanTagsStr('$Tags'), cd: sanDate('$CreateDate'), rd: sanDate('$ResolvedDate') },
+      in: {
+        $let: {
+          vars: { xr: SAN_XR },
+          in: {
+            q: '$q', ShortId: '$ShortId', Status: '$Status',
+            xr: { $cond: [{ $eq: ['$$xr', ''] }, '$$REMOVE', '$$xr'] },
+            IssueId: { $cond: [{ $and: [shortIsStr, { $ne: ['$ShortId', ''] }] }, '$$REMOVE', '$IssueId'] },
+            // Only ticket-rules reads an excluded row's title (SAN_RULE_MAYBE), and nothing reads the rest.
+            Title: stub ? { $cond: [{ $or: [{ $eq: ['$$xr', ''] }, SAN_RULE_MAYBE] }, '$Title', '$$REMOVE'] } : '$Title',
+            RootCauseDetails: keep('$RootCauseDetails'), ClosureCode: keep('$ClosureCode'), ResolvedByIdentity: keep('$ResolvedByIdentity'),
+            // IssueUrl comes back as `true` when it is exactly SAN_URL_BASE + ShortId (restored by the
+            // caller, before anything reads it); IssueId only when ShortId cannot stand in for it.
+            IssueUrl: keep({ $cond: [{ $and: [shortIsStr, { $eq: ['$IssueUrl', { $cond: [shortIsStr, { $concat: [SAN_URL_BASE, '$ShortId'] }, null] }] }] }, true, '$IssueUrl'] }),
+            // The two dates are read for exactly two things, so the database sends those instead of the
+            // 48-byte ISO strings: cq = the created quarter in Pacific time (pacificQuarter), rd = the
+            // resolved time in ms (the report's sort key and its ro rank, timeOf(isoOf(rd))).
+            cq: keep({ $cond: [{ $eq: ['$$cd', null] }, '', { $let: { vars: { p: { $dateToParts: { date: '$$cd', timezone: 'America/Los_Angeles' } } },
+              in: { $concat: [{ $toString: '$$p.year' }, '-Q', { $toString: { $add: [{ $floor: { $divide: [{ $subtract: ['$$p.month', 1] }, 3] } }, 1] } }] } } }] }),
+            rd: keep({ $cond: [{ $eq: ['$$rd', null] }, '$$REMOVE', { $toLong: '$$rd' }] }),
+          },
+        },
+      },
+    },
+  };
+  // The 'Since 1 Jan 2026' scope is settled here too (sanIsSince on the exact CreateDate), so the
+  // string never has to be sent: the coarse index predicate in `match` lets a few earlier rows through.
+  const exact = since ? [{ $match: { $expr: { $gte: [sanDate('$CreateDate'), SAN_SINCE_START] } } }] : [];
+  return [{ $match: match }, ...exact, { $replaceWith: row }];
 }
 // The same rows as sanScopeRows(SAN_SINCE_ID) for ONE set of shortIds (the Sanitization Tracker's
 // assigned tickets): an index seek per id on ShortId_1 instead of the whole since-2026 window, then
@@ -3635,9 +3701,9 @@ function sanScopeProjection() {
 async function sanScopeRowsForIds(ids) {
   if (!ids || !ids.length) return [];
   const coll = await getCollection(COLLECTIONS.ticketDocs);
-  const docs = await coll.find({ ShortId: { $in: ids }, ...sanSinceMatch() }, { projection: sanScopeProjection() }).toArray();
+  const docs = await coll.aggregate(sanScopeStages({ ShortId: { $in: ids }, ...sanSinceMatch() }, true, false), { allowDiskUse: false }).toArray();
   for (const d of docs) if (d.IssueUrl === true) d.IssueUrl = SAN_URL_BASE + d.ShortId;
-  return pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
+  return pzDedupeTickets(docs.sort(sanNewestFirst));
 }
 const _sanInflight = new Map();   // cache key -> pending promise (one scan per key at a time)
 // { issue type: category } (issue-types-data.js IZ_CATS, the seed when the file is not deployed) for the closure-code rule.
@@ -3717,8 +3783,13 @@ async function sanWarm(why) {
 async function sanValidateAfterUpload(why) {
   const t0 = Date.now();
   try {
-    const [data, rows, assignments, marks, approved, accepts] = await Promise.all([eirDataStamp(),
-      sanScopeRows(SAN_SINCE_ID), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanErrorAcceptsShared()]);
+    // The rows of the ASSIGNED tickets, not the whole since-2026 scope: runValidation keeps exactly
+    // the tickets of the ACTIVE assignments (sanitization-validate-store.js assignedIds) and reads
+    // their title / closure code / root cause details, so these are the same rows for 0.97 MB
+    // instead of 12.38 MB. The id set covers every assignment doc, the active ones included.
+    const [data, ids, assignments, marks, approved, accepts] = await Promise.all([eirDataStamp(),
+      sanAssignedIdsShared(), sanActiveAsgShared(), sanMarksShared(), sanApprovedShared(), sanErrorAcceptsShared()]);
+    const rows = await sanScopeRowsForIds(ids);
     const out = await sanValidateStore.runValidation({
       validationColl: await getCollection(COLLECTIONS.sanitizationValidations),
       ticketRows: rows.filter(d => !ticketRules.ticketExcludeReason(d)), assignments, marks, approved,   // TEST / NON-PHD tickets are never validated
@@ -3773,12 +3844,16 @@ const sanActiveAsgShared = () => {
     return docs;
   });
 };
-// The distinct shortIds of the ACTIVE assignments (~2,700 strings, ~30 kB): the scope of the
-// Sanitization Tracker's score report (sanReportFor ids). Read as ONE document per assignment so it
-// stays cheap even while the assignment docs themselves are still being transferred in parallel.
+// The distinct shortIds of EVERY assignment (~2,700 strings, ~30 kB): the scope of the score report
+// the Sanitization Tracker family and GET /api/sanitization-assign are built from (sanReportFor ids).
+// Read as ONE document per assignment so it stays cheap even while the assignment docs themselves are
+// still being transferred in parallel.
+// Revoked assignments are in it too, although nothing scores them: handleGet lists every assignment
+// doc and looks each of its tickets up in the report (liveTickets / reportIndex), so a revoked
+// assignment's tickets have to be in scope for its row to read exactly as it does from the full report.
 const sanAssignedIdsShared = () => _sanReads.run('asg:ids', async () => {
   const rows = await (await getCollection(COLLECTIONS.sanitizationAssignments))
-    .aggregate([{ $match: { status: 'active' } }, { $project: { _id: 0, ids: '$tickets.shortId' } }]).toArray();
+    .aggregate([{ $project: { _id: 0, ids: '$tickets.shortId' } }]).toArray();
   const set = new Set();
   rows.forEach(r => (r.ids || []).forEach(id => { if (typeof id === 'string' && id) set.add(id); }));
   return Array.from(set).sort();
@@ -3833,9 +3908,18 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
     const locked = sanAssign.lockedMap(asgDocs, report, data.stamp, new Date(), asgMarks);
     // Tickets with clear data (rule A pass, sanClearSplit): out of the point buckets, flagged clr:1.
     const split = sanClearSplit(report);
+    // One payload ticket: ONLY the fields the three owner cards render (sanitization-checklist.js
+    // scLists / scByAge / scColHtml / scMissText) - the ticket id and its link, the title, the SIM
+    // closure code (which group it belongs to), the created quarter and the resolved-order rank (the
+    // sort), the failed checks with their parsed values (the row tooltip), clr (Sanitized tickets) and
+    // asg (the "Assigned to" tag). The rule-A detail the report also carries (score, grp, tgt, need,
+    // pass, miss, def, irk, status, rbi - 3.59 MB of the 10.65 MB of tickets) is server-side working
+    // data that no page reads: the group counts, the available counts and the buckets are already
+    // computed from it here.
     const tag = t => {
       const clr = sanTicketCleared(t), asg = locked.get(t.shortId);
-      return (clr || asg) ? { ...t, ...(asg ? { asg } : {}), ...(clr ? { clr: 1 } : {}) } : t;
+      return { shortId: t.shortId, url: t.url, title: t.title, checks: t.checks, cc: t.cc, cq: t.cq, ro: t.ro,
+        ...(asg ? { asg } : {}), ...(clr ? { clr: 1 } : {}) };
     };
     res.json({
       quarter, quarterLabel: quarter === SAN_SINCE_ID ? SAN_SINCE_LABEL : (quarter === 'all' ? 'All quarters' : quarterLabel(quarter)), liveQuarter: live, quarters,
@@ -3864,11 +3948,17 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
 //   POST /api/sanitization-assign            { closureCode:<group id>, count:1..2000, assignee:<contractor> } -> the server picks the group's oldest available tickets (409 + available when short)
 //                                            legacy body: { score:0..MAX_SCORE-1 (0..10), count, assignee } (a score section)
 //   POST /api/sanitization-assign/revoke     { id } -> status 'revoked' (never deleted)
-// shared: the GET joins in-flight reads (_sanReads); the POST reads directly.
+// shared: the GET joins in-flight reads (_sanReads) AND scores the ASSIGNED tickets only
+// (sanAssignedIdsShared -> sanReportFor ids, the same report the Sanitization Tracker family reads):
+// handleGet never walks report.tickets, it looks the assignments' own tickets up by shortId
+// (reportIndex / liveTickets / liveVerification / sectionCounts / lockedMap), so the assigned scope
+// carries every ticket this endpoint can show. The POST reads directly and keeps the FULL report: it
+// picks the tickets to assign out of it (availableInGroup / availableInSection).
 async function sanAssignDeps(req, shared) {
-  const [data, resNames, contractors, approved, marks] = await Promise.all([eirDataStamp(), sanResNames(),
-    shared ? sanContractorsShared() : sanContractors(), shared ? sanApprovedShared() : sanApproved(), shared ? sanMarksShared() : sanMarks()]);
-  const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID), approved);
+  const [data, resNames, contractors, approved, marks, ids] = await Promise.all([eirDataStamp(), sanResNames(),
+    shared ? sanContractorsShared() : sanContractors(), shared ? sanApprovedShared() : sanApproved(), shared ? sanMarksShared() : sanMarks(),
+    shared ? sanAssignedIdsShared() : null]);
+  const report = sanLiveReport(await sanReportFor(data, resNames, SAN_SINCE_ID, shared ? ids : undefined), approved);
   return { coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user, report, stamp: data.stamp, contractors, marks };
 }
 app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
