@@ -122,35 +122,41 @@ test('the browser copies of the rules still match the engine', () => {
 });
 
 // ---- errorSectionHtml: the page's top-level Error detected section ----
-// GET /api/sanitization-errors rows: flat, detectedAt DESC, grouped here by day then agent.
+// GET /api/sanitization-errors rows: flat, detectedAt DESC, grouped here BY AGENT (like the sibling
+// approvals section); the upload-date accordion it used to carry was dropped on the owner's request.
 const ERR_NEW = '2026-11-25T02:37:33.469Z';
 const ERR_OLD = '2026-11-24T21:10:00.000Z';
 function errRow(o) {
   return Object.assign({ shortId: 'E0', url: 'https://sim/E0', title: 'A ticket', login: 'tanviroo', displayName: 'Tanvir',
     closureCode: 'Successful', detectedAt: ERR_NEW, missing: [{ key: 'Res', label: 'Sim Root Cause Details: Res', message: 'Res: has no value (it is required).' }] }, o);
 }
-// The page's day formatter: the calendar day in the viewer's timezone.
-const errOpts = o => Object.assign({ h: { when, ic: () => '', url: t => t.url, day: iso => String(iso || '').slice(0, 10) } }, o || {});
+const errOpts = o => Object.assign({ h: { when, ic: () => '', url: t => t.url } }, o || {});
 const errPayload = () => ({ owner: true, canReview: true, dataAsOf: ERR_NEW, tickets: [
   errRow({ shortId: 'E1' }),
   errRow({ shortId: 'E2', login: 'chousoud', displayName: 'Chou' }),
   errRow({ shortId: 'E3', detectedAt: ERR_OLD }),
 ] });
 
-test('errorSectionHtml groups by upload date, newest first and only the newest open', () => {
+test('errorSectionHtml groups by agent, logins A-Z, and opens the first', () => {
   const html = V.errorSectionHtml(errPayload(), errOpts({ review: true }));
-  const dates = [...html.matchAll(/<details class="st-err-d" data-stvdate="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
-  assert.deepEqual(dates, [['2026-11-25', true], ['2026-11-24', false]]);
+  const ags = [...html.matchAll(/<details class="st-err-d" data-stverrag="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
+  assert.deepEqual(ags, [['chousoud', true], ['tanviroo', false]]);
+  // chousoud has one row, tanviroo the other two (both uploads), counted per agent now.
+  assert.match(html, /<b>1 ticket<\/b>/);
+  assert.match(html, /<b>2 tickets<\/b>/);
+  // No upload-date grouping anywhere any more.
+  assert.equal(html.includes('data-stvdate'), false);
+  assert.deepEqual([...html.matchAll(/class="st-err-agh">([a-z]+)/g)].map(m => m[1]), ['chousoud', 'tanviroo']);
 });
 
-test('errorSectionHtml lists one block per agent that has rows, and none for the others', () => {
-  const html = V.errorSectionHtml(errPayload(), errOpts({ review: true }));
-  const d25 = html.slice(html.indexOf('data-stvdate="2026-11-25"'), html.indexOf('data-stvdate="2026-11-24"'));
-  // 25th: both agents, sorted by login; 24th: only tanviroo, who is the single agent with a row there.
-  assert.deepEqual([...d25.matchAll(/class="st-err-agh">([a-z]+)/g)].map(m => m[1]), ['chousoud', 'tanviroo']);
-  const d24 = html.slice(html.indexOf('data-stvdate="2026-11-24"'));
-  assert.deepEqual([...d24.matchAll(/class="st-err-agh">([a-z]+)/g)].map(m => m[1]), ['tanviroo']);
-  assert.equal(d24.includes('chousoud'), false);
+test('errorSectionHtml keeps the agent the viewer opened open across a re-render', () => {
+  // Accepting or reworking a row re-renders the whole section, so the open agent comes in as an
+  // option: the owner working in the second agent stays there instead of jumping to the first.
+  const openAgents = (o) => [...V.errorSectionHtml(errPayload(), errOpts(o))
+    .matchAll(/data-stverrag="([^"]+)"( open)?>/g)].map(m => [m[1], !!m[2]]);
+  assert.deepEqual(openAgents({ review: true, openAgent: 'tanviroo' }), [['chousoud', false], ['tanviroo', true]]);
+  // Only ever one open, and an agent with nothing detected opens nothing.
+  assert.deepEqual(openAgents({ review: true, openAgent: 'nobody' }), [['chousoud', false], ['tanviroo', false]]);
 });
 
 test('errorSectionHtml shows Closure Code | Ticket ID | Missing Fields', () => {
@@ -179,12 +185,12 @@ test('errorSectionHtml puts both actions on each row for the owner and neither f
 
 test('errorSectionHtml caps one agent block at 100 rows and says how many are held back', () => {
   // The section has no pager, so it must not try to render an upload that flagged thousands of
-  // tickets in one string: the first 100 per agent per date, with the true count in the summary.
+  // tickets in one string: the first 100 per agent, with the true count in the summary.
   const rows = [];
   for (let i = 0; i < 150; i++) rows.push(errRow({ shortId: 'E' + i }));
   const html = V.errorSectionHtml({ tickets: rows }, errOpts({ review: true }));
   assert.equal((html.match(/data-stvacc="/g) || []).length, 100);
-  assert.match(html, /Showing the first 100 of 150 errors for tanviroo on 2026-11-25/);
+  assert.match(html, /Showing the first 100 of 150 errors for tanviroo/);
   assert.match(html, /<b>150 tickets<\/b>/);
   // Under the cap nothing is held back and no notice is rendered.
   assert.equal(V.errorSectionHtml({ tickets: rows.slice(0, 100) }, errOpts({ review: true })).includes('Showing the first'), false);

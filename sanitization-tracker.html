@@ -437,8 +437,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-view .stv-cc{display:inline-block;padding:1px 7px;border-radius:99px;background:#eef1f4;color:#2a3340;font-size:.8em;font-weight:700;white-space:nowrap}
 #stRevDlg .st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* ---- Error detected (#stErr, the top-level card above the Sanitization Center) ----
-   Markup from sanitization-view.js errorSectionHtml: one <details data-stvdate> per upload date
-   (newest open, one open at a time), one block per agent inside it, and a table of
+   Markup from sanitization-view.js errorSectionHtml: one <details data-stverrag> per AGENT (the
+   first open, one open at a time, the same shape as #stApv below) holding that agent's table of
    Closure Code | Ticket ID | Missing Fields with the owner's [Rework] / [Accept Sanitized error].
    The table reuses the .stv-* / .tb-san-* cells, so the rules below only add what is new. */
 #stErr details.st-err-d{border:1px solid #f2c4c4;border-radius:10px;background:#fdf0f0;margin-bottom:10px}
@@ -450,14 +450,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 #stErr details.st-err-d[open]>summary::before{transform:rotate(90deg)}
 #stErr details.st-err-d>summary:focus-visible{outline:3px solid #f0a35a;outline-offset:2px}
 #stErr details.st-err-d>summary b{padding:1px 9px;border-radius:99px;background:#fff;border:1px solid #f2c4c4;color:#a61b1b;font-size:.84em;font-weight:800}
-#stErr .st-err-da{margin-left:auto;font-size:.8em;font-weight:600;color:#8a4034}
-#stErr .st-err-in{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
-#stErr .st-err-ag{padding:10px 12px;border:1px solid #e2e6ea;border-radius:10px;background:#fff}
-#stErr .st-err-agh{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin:0 0 8px;
-  font-size:.95em!important;font-weight:800;line-height:1.3;color:#1b2026!important}
+#stErr .st-err-in{padding:0 12px 12px}
+#stErr .st-err-agh{text-transform:none}
 #stErr .st-err-agn{font-size:.9em;font-weight:600;color:#5c6773}
-#stErr .st-err-agh b{padding:1px 9px;border-radius:99px;background:#fdecec;border:1px solid #f5c2c2;color:#8a1c12;font-size:.84em;font-weight:800}
-#stErr table.st-err-t{width:100%;border-collapse:collapse;font-size:.86em}
+#stErr table.st-err-t{width:100%;border-collapse:collapse;background:#fff;font-size:.86em}
 #stErr table.st-err-t thead th{padding:7px 10px;text-align:left;background:#f5f6f8;border-bottom:1px solid #e2e6ea;
   font-size:.86em;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#5c6773}
 #stErr table.st-err-t td{padding:8px 10px;border-bottom:1px solid #eef1f4;vertical-align:middle;color:#1b2026}
@@ -528,7 +524,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 .st-con .st-sec{margin-bottom:0}
 </style>
 <link rel="stylesheet" href="sanitization-tools.css?v=3">
-<link rel="stylesheet" href="sanitization-checklist.css?v=6">
+<link rel="stylesheet" href="sanitization-checklist.css?v=7">
 </head>
 <body data-nav-active="sanitization-tracker" data-back-href="index.html" data-back-label="Home">
 <div class="top-bar" style="visibility:hidden">
@@ -543,10 +539,10 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
   <h3 class="st-info-h">How it works</h3>
   <p>Every ticket in <b>Tickets to sanitize</b> carries three buttons. <b>Mark error</b> asks why and sends the ticket to harisss for approval. <b>Sanitized</b> and <b>Duplicate</b> say how you closed it in SIM; either way the ticket goes to <b>Temporarily sanitized</b> and waits for the next upload.</p>
   <p>The closure code the <em>upload</em> carries &mdash; not the button you pressed &mdash; picks the checks: <b>Immediately Resolved</b> &mdash; the 3 title checks (country code, issue type, severity) and nothing else; <b>Successful</b> &mdash; those 3 plus the ten Sim Root Cause Details fields, where Issue, Date and Res must have a real value (N/A does not count), Cnt must be a number or N/A, and the other six may be a value or N/A; <b>Duplicate</b> &mdash; nothing is checked. So a ticket you marked Duplicate that uploads as Successful is still checked against the Successful rules, and passes quietly when the work is there.</p>
-  <p>Nothing missing: the ticket is sanitized. Something missing: it is listed in <b>Error detected</b>, the section above the Sanitization Center, under the date of the upload that found it and the agent it belongs to, with every missing field named. Everyone sees that section &mdash; contractors their own tickets &mdash; but only harisss gets the two buttons on each row: <b>Accept Sanitized error</b> counts the whole ticket as sanitized and never validates it again, and <b>Rework</b> sends it back to <b>Tickets to sanitize</b> with a note naming what is missing. Until one of the two, the ticket counts as neither sanitized nor to sanitize.</p>
-  <p>A ticket you marked <b>Error</b> is not checked at all: it waits in <b>Error tickets that need approval</b>, the section directly below Error detected, grouped by agent and showing your reason and the date you marked it. Everyone sees that section too, and only harisss gets the buttons: <b>Approve</b> counts the ticket as sanitized (tagged Approved error) and leaves it out of the scores, <b>Send back</b> returns it to <b>Tickets to sanitize</b> with a message. harisss can tick several rows and approve them together.</p>
+  <p>Nothing missing: the ticket is sanitized. Something missing: it is listed in <b>Error detected</b>, the section above the Sanitization Center, under the agent it belongs to, with every missing field named. Everyone sees that section &mdash; contractors their own tickets &mdash; but only harisss gets the two buttons on each row: <b>Accept Sanitized error</b> counts the whole ticket as sanitized and never validates it again, and <b>Rework</b> sends it back to <b>Tickets to sanitize</b> with a note naming what is missing. Until one of the two, the ticket counts as neither sanitized nor to sanitize.</p>
+  <p>A ticket you marked <b>Error</b> is not checked at all: it waits in <b>Error tickets that need approval</b>, the section directly below Error detected, grouped by agent and showing your reason and the date you marked it. Everyone sees that section too, and only harisss gets the buttons: <b>Approve</b> counts the ticket as sanitized and leaves it out of assignment picking, <b>Send back</b> returns it to <b>Tickets to sanitize</b> with a message. harisss can tick several rows and approve them together.</p>
   <p>An unmarked ticket is not checked at all: it stays in <b>Tickets to sanitize</b> until it is marked. The score is the raw score out of 11, lowest first, then oldest assigned.</p>
-  <p>One date is open at a time in Error detected, one agent at a time in Error tickets that need approval, and one section at a time in a contractor&rsquo;s tickets. Ticket links open in a new tab.</p>
+  <p>One agent is open at a time in Error detected, one agent at a time in Error tickets that need approval, and one section at a time in a contractor&rsquo;s tickets. Ticket links open in a new tab.</p>
 </div>
 
 <!-- Add-check pop-up (editors): the shared .tbl-* dialog shell from topbar-auth.js. -->
@@ -657,11 +653,11 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t)
 
 <script src="icons.js?v=3"></script>
 <script src="api-config.js"></script>
-<script src="topbar-auth.js?v=242"></script>
-<script src="sanitization-view.js?v=29"></script>
+<script src="topbar-auth.js?v=244"></script>
+<script src="sanitization-view.js?v=30"></script>
 <script src="sanitization-tools.js?v=3"></script>
 <!-- Checklist / Copy prompt / Assignment Center / assignment log (uses the pop-ups above). -->
-<script src="sanitization-checklist.js?v=13"></script>
+<script src="sanitization-checklist.js?v=14"></script>
 <script>
 var A=window.PHDAuth, S=window.PHDSan, V=window.PHDSanView, TOOLS=window.PHDSanTools, CK=window.PHDSanCheck;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -685,12 +681,15 @@ var PG={need:0,ok:0};      // shown view: page per table (Needs correction / Cle
 var OPEN=V?V.DEFAULT_OPEN:'need';   // the one open section (accordion): 'need'|'wait'|'err'|'ok'|null; kept across re-renders
 // The top-level Error detected section (#stErr), loaded once per page load from
 // GET /api/sanitization-errors: the owner and the view-all logins get every agent, a contractor only
-// their own rows. {loading, data, error, busy:{shortId:true}, msg} - one variable, like VIEWS[login].
-var ERRSEC={loading:true, data:null, error:'', busy:{}, msg:''};
+// their own rows. {loading, data, error, busy:{shortId:true}, msg, open} - one variable, like
+// VIEWS[login]; open = the login of the agent whose table is open (null = none yet, so the first
+// agent opens), which survives the re-render every Rework / Accept causes.
+var ERRSEC={loading:true, data:null, error:'', busy:{}, msg:'', open:null};
 // The top-level "Error tickets that need approval" section (#stApv), loaded once per page load from
 // GET /api/my-sanitization/approvals: the owner and the view-all logins get every agent, a contractor
 // only their own rows. sel = the owner's selection (shortId -> true) for the bulk Approve, last =
-// {login, i} the last row clicked (Shift+click selects a range inside that agent), open = the login
+// {login, i} the last row clicked (Shift+click picks every row between the two, inside that agent
+// only), open = the login
 // of the agent whose table is open (null = none yet, so the first agent opens), which survives the
 // re-render every tick causes - the way OPEN survives the view's re-renders.
 var APVSEC={loading:true, data:null, error:'', msg:'', sel:{}, last:null, open:null};
@@ -858,34 +857,35 @@ function viewSecHtml(){
       '<div class="st-sec-b"><div class="st-view tb-asg-card tb-san-card" id="stViewBody"></div></div></section>';
 }
 // ---- Error detected (#stErr): a top-level card ABOVE the Sanitization Center ----
-// Fed by GET /api/sanitization-errors (one call per page load): upload date -> agent -> that agent's
-// failed tickets. Everyone sees it (a contractor only their own rows); the two whole-ticket actions
-// are the owner's. The dates are their own one-open-at-a-time accordion, newest open.
-// The calendar day of an upload in the viewer's timezone (IST / MST), the same basis as S.when:
-// grouping in UTC on the server would file a late-evening upload under the previous day for an IST
-// viewer.
-function dayLabel(iso){
-  var d=new Date(iso); if(!iso||isNaN(d)) return 'Unknown date';
-  try{ return d.toLocaleDateString('en-US',{timeZone:S.tz()==='MST'?'America/Denver':'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',year:'numeric'}); }
-  catch(e){ return String(iso).slice(0,10); }
-}
+// Fed by GET /api/sanitization-errors (one call per page load): agent -> that agent's failed
+// tickets. Everyone sees it (a contractor only their own rows); the two whole-ticket actions are the
+// owner's. The agents are their own one-open-at-a-time accordion, the first one open - the same
+// shape as the approvals section (#stApv) below, on the owner's instruction: the agent name and
+// their ticket list, with no upload-date grouping.
 // The two buttons are owner-only; the server says so too (canReview) and enforces it.
 function errCanReview(){ var d=ERRSEC.data; return !!(S.isOwner()&&(!d||d.canReview!==false)); }
 function errSecCount(){ var d=ERRSEC.data; return (d&&d.tickets&&d.tickets.length)||0; }
+// The open agent may have had their last detected error reviewed: fall back to the first agent.
+function errSecKeepOpen(){
+  if(!ERRSEC.open) return;
+  var d=ERRSEC.data, ts=(d&&d.tickets)||[];
+  for(var i=0;i<ts.length;i++) if(String(ts[i].login||'')===ERRSEC.open) return;
+  ERRSEC.open=null;
+}
 function errSecSum(){ return (ERRSEC.loading||ERRSEC.error)?'':CK.topSum(V.plural(errSecCount(),'ticket'),errSecCount()?'is-bad':''); }
 function errSecBody(){
   if(ERRSEC.loading&&!ERRSEC.data) return '<p class="tb-asg-empty">Loading the errors detected on the last upload\u2026</p>';
   if(ERRSEC.error) return '<div class="st-err" role="alert">'+esc(ERRSEC.error)+'<button type="button" class="st-btn is-ghost" id="stErrRetry">Try again</button></div>';
   return '<p class="st-err-msg" role="alert">'+esc(ERRSEC.msg)+'</p>'+
     '<p class="st-err-note">'+(errCanReview()
-      ? 'Everything the last data upload found missing, by upload date and then by agent. <b>Accept Sanitized error</b> counts the whole ticket as sanitized and never validates it again; <b>Rework</b> sends it back to the agent with a note naming what is missing. Until one of the two, the ticket counts as neither sanitized nor to sanitize.'
-      : 'Everything the last data upload found missing on your tickets, by upload date. harisss either accepts a ticket as a sanitized error or sends it back to you for rework, which returns it to Tickets to sanitize with a note.')+'</p>'+
-    V.errorSectionHtml(ERRSEC.data,{review:errCanReview(),busy:ERRSEC.busy,h:{ic:ic,when:S.when,url:S.url,day:dayLabel}});
+      ? 'Everything the last data upload found missing, by agent. <b>Accept Sanitized error</b> counts the whole ticket as sanitized and never validates it again; <b>Rework</b> sends it back to the agent with a note naming what is missing. Until one of the two, the ticket counts as neither sanitized nor to sanitize.'
+      : 'Everything the last data upload found missing on your tickets. harisss either accepts a ticket as a sanitized error or sends it back to you for rework, which returns it to Tickets to sanitize with a note.')+'</p>'+
+    V.errorSectionHtml(ERRSEC.data,{review:errCanReview(),busy:ERRSEC.busy,openAgent:ERRSEC.open,h:{ic:ic,when:S.when,url:S.url}});
 }
 function errSecHtml(){
   return '<section class="'+CK.topCls('stErr')+'" id="stErr" aria-labelledby="stErrHead">'+
     CK.topHead('stErr',{icon:ic('alert-triangle',17),title:'Error detected',sum:'<span id="stErrSum">'+errSecSum()+'</span>',
-      sub:'What the last data upload found missing, by upload date and then by agent.'})+
+      sub:'What the last data upload found missing, by agent.'})+
     // tb-asg-card / tb-san-card: the shared table, .tb-san-btn, .tb-asg-id / .tb-asg-sr / .tb-asg-empty
     // base styles from topbar-auth.js, which are all scoped under those two classes.
     CK.topBody('stErr')+'<div class="tb-asg-card tb-san-card" id="stErrIn">'+errSecBody()+'</div></div></section>';
@@ -902,7 +902,7 @@ function loadErrSec(force){
   ERRSEC.loading=true; ERRSEC.error=''; renderErrSec();
   A.api('GET','/api/sanitization-errors').then(function(r){ return r; },function(){ return null; }).then(function(r){
     ERRSEC.loading=false;
-    if(r&&r.ok&&r.data&&Array.isArray(r.data.tickets)){ ERRSEC.data=r.data; ERRSEC.error=''; }
+    if(r&&r.ok&&r.data&&Array.isArray(r.data.tickets)){ ERRSEC.data=r.data; ERRSEC.error=''; errSecKeepOpen(); }
     else ERRSEC.error=(r&&r.status===401)?'Your session has expired. Please log in again.':((r&&r.data&&r.data.error)||'Could not load the errors detected on the last upload.');
     renderErrSec();
     announce(ERRSEC.error||('Error detected: '+V.plural(errSecCount(),'ticket')+'.'));
@@ -925,6 +925,7 @@ function errReview(sid,action){
     // The row leaves the section at once (the server deleted / replaced its record), then the section
     // and the affected agent's tickets are refetched.
     var d=ERRSEC.data; if(d&&d.tickets) d.tickets=d.tickets.filter(function(t){ return t.shortId!==sid; });
+    errSecKeepOpen();
     renderErrSec(); loadErrSec(true);
     if(login){
       delete VIEWS[login];
@@ -1180,7 +1181,7 @@ function revOpen(action,ids,logins){
     '<div class="tbl-head"><span class="tbl-head-ic" aria-hidden="true">'+ic(ap?'check-circle':'alert-triangle',20)+'</span>'+
       '<div class="tbl-head-tx"><div class="tbl-eyebrow">Sanitization Tracker \u00b7 Error review</div><h2 class="tbl-title" id="stRevT">'+esc(title)+'</h2></div>'+
       '<button type="button" class="tbl-x" data-strevx="1" aria-label="Close">'+ic('close',18)+'</button>'+
-      '<p class="tbl-sub" id="stRevD">'+(ap?('Approve '+V.plural(n,'error ticket')+'? '+(n===1?'It counts':'They count')+' as sanitized on the tracker (tagged Approved error) and '+(n===1?'leaves':'leave')+' the sanitization scores and assignment picking. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
+      '<p class="tbl-sub" id="stRevD">'+(ap?('Approve '+V.plural(n,'error ticket')+'? '+(n===1?'It counts':'They count')+' as sanitized on the tracker with the Approved error tag and '+(n===1?'leaves':'leave')+' the Assignment Center and assignment picking. You can restore '+(n===1?'it':'them')+' later from Approved errors.')
         :('The '+(n===1?'ticket goes':'tickets go')+' back to '+esc(who)+'\u2019s Tickets to sanitize with your message.'))+'</p></div>'+
     '<div class="tbl-body">'+
       '<p class="st-rev-ids"><span class="st-sr">Tickets: </span>'+esc(ids.slice(0,12).join(', '))+(n>12?' and '+(n-12)+' more':'')+'</p>'+
@@ -1394,9 +1395,13 @@ document.addEventListener('click',function(e){
 // (paging, marking, refresh). A re-render's open section fires 'toggle' too, which keeps OPEN the same.
 document.addEventListener('toggle',function(e){
   var d=e.target; if(!d||!d.getAttribute||!d.closest) return;
-  // Error detected: the same rule over the upload dates (the newest opens on the first paint).
-  if(d.hasAttribute('data-stvdate')){
-    if(d.open){ var es=document.querySelectorAll('#stErrIn details[data-stvdate]'); for(var j=0;j<es.length;j++) if(es[j]!==d&&es[j].open) es[j].open=false; }
+  // Error detected: the same rule over its agents (the first opens on the first paint). The open
+  // agent is kept in ERRSEC.open so a Rework / Accept, which re-renders the whole section, leaves
+  // the agent being worked in open instead of jumping back to the first.
+  if(d.hasAttribute('data-stverrag')){
+    var eg=d.getAttribute('data-stverrag');
+    if(d.open){ ERRSEC.open=eg; var es=document.querySelectorAll('#stErrIn details[data-stverrag]'); for(var j=0;j<es.length;j++) if(es[j]!==d&&es[j].open) es[j].open=false; }
+    else if(ERRSEC.open===eg) ERRSEC.open=null;
     return;
   }
   // Error tickets that need approval: the same rule over the agents (the first opens on the first

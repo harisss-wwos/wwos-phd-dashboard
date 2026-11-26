@@ -1,10 +1,10 @@
 // Sanitization Tracker ticket view (sanitization-tracker.html): one contractor's tickets from
 // GET /api/my-sanitization, split into 1 Tickets to sanitize / 2 Temporarily cleared / 3 Tickets
 // sanitized successfully, plus the page's two top-level error sections - errorSectionHtml
-// ("Error detected", GET /api/sanitization-errors, grouped by upload date then agent) and
-// approvalSectionHtml ("Error tickets that need approval", GET /api/my-sanitization/approvals,
-// grouped by agent). Pure string builders (no DOM, no network), so they also run under node for unit
-// tests.
+// ("Error detected", GET /api/sanitization-errors, grouped by agent) and
+// approvalSectionHtml ("Error tickets that need approval", GET /api/my-sanitization/approvals).
+// Both of those two group BY AGENT. Pure string builders (no DOM, no network), so they also run
+// under node for unit tests.
 // The server sets each ticket's status: 'needs-correction' (to sanitize) | 'awaiting' (temporarily
 // cleared) | 'error-detected' | 'error-ticket' | 'cleared' (sanitized) | 'not-found' | 'excluded'
 // (sanitization-assign.js evalTicket). After every data upload the server validates each ticket on its
@@ -349,7 +349,7 @@
   function approvedHtml(list, o, h) {
     list = list || []; var busy = o.busy || {};
     return '<details class="stv-appr" data-stvappr="1"' + (o.apprOpen ? ' open' : '') + '><summary>Approved errors <b>' + list.length + '</b></summary>'
-      + (list.length ? '<p class="stv-help">Counted as sanitized on the tracker (Tickets sanitized successfully, tagged Approved error) and left out of the sanitization scores, assignment picking and Errors in Resolved. Restore puts a ticket back under review.</p>'
+      + (list.length ? '<p class="stv-help">Counted as sanitized on the tracker (Tickets sanitized successfully, with the Approved error tag) and left out of the Assignment Center, assignment picking and Errors in Resolved. Restore puts a ticket back under review.</p>'
         + '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Approved errors" tabindex="0"><table class="stv-tbl is-flat is-line">'
         + '<caption class="tb-asg-sr">Error tickets you approved, most recent first</caption>'
         + '<thead><tr><th scope="col" class="stv-fit">Ticket ID</th><th scope="col" class="stv-ttl">Title</th><th scope="col" class="stv-mc">Reason</th>'
@@ -375,67 +375,63 @@
   // ---- The page's top-level "Error detected" section (above the Sanitization Center) ----
   // payload = GET /api/sanitization-errors: { owner, viewer, canReview, dataAsOf, tickets:[{ shortId,
   // url, title, login, displayName, closureCode, detectedAt, missing:[{key,label,message}] }] }, the
-  // rows already flat and sorted detectedAt DESC. Grouped here, in the viewer's timezone: upload date
-  // (newest first, the newest <details> open, one open at a time) -> agent (by login, listed only when
-  // that date has rows for them) -> a table of Closure Code | Ticket ID | Missing Fields. The owner
-  // (o.review, the server's canReview) also gets the two whole-ticket actions per row: [Rework]
-  // (data-stvfix) sends it back naming everything missing, [Accept Sanitized error] (data-stvacc)
-  // counts it as sanitized for good.
-  // One agent's table for one date is CAPPED at ERR_ROW_CAP rows, the way needTable and the other
-  // ticket tables stop at a page: the section has no pager of its own and is built as one string, and
-  // a single upload can flag thousands of tickets (a closure code outside the three is an error, and
+  // rows already flat and sorted detectedAt DESC. Grouped BY AGENT, exactly like its sibling
+  // approvalSectionHtml below: one <details> per agent (logins A-Z, the first open, one open at a
+  // time) holding that agent's table of Closure Code | Ticket ID | Missing Fields. The upload-date
+  // accordion this section used to carry is gone on the owner's instruction - they want the agent
+  // name and that agent's ticket list, the way the approvals section reads. The owner (o.review, the
+  // server's canReview) also gets the two whole-ticket actions per row: [Rework] (data-stvfix) sends
+  // it back naming everything missing, [Accept Sanitized error] (data-stvacc) counts it as sanitized
+  // for good.
+  // One agent's table is CAPPED at ERR_ROW_CAP rows, the way needTable and the other ticket tables
+  // stop at a page: the section has no pager of its own and is built as one string, and a single
+  // upload can flag thousands of tickets (a closure code outside the three is an error, and
   // 'Automatically Closed' alone is common in the data). The hidden rows surface here as soon as the
-  // shown ones are reviewed; the date's summary still counts every ticket.
+  // shown ones are reviewed; the agent's summary still counts every ticket.
   var ERR_ROW_CAP = 100;
-  // o = { review, busy:{shortId:true}, h:{ ic, when, url, day(iso) -> the calendar day label } }.
+  // openAgent = the agent the viewer has open (the tracker keeps it, the way APVSEC.open keeps the
+  // approvals section's), so that acting on a row - which re-renders the whole section - does not
+  // throw the viewer back to the first agent. Nothing open yet: the first agent.
+  // o = { review, busy:{shortId:true}, openAgent, h:{ ic, when, url } }.
   function errorSectionHtml(payload, o) {
     o = o || {}; var h = o.h || {}, rev = !!o.review, busy = o.busy || {};
-    var day = h.day || function (iso) { return iso ? String(iso).slice(0, 10) : 'Unknown date'; };
+    var openAg = o.openAgent ? String(o.openAgent) : '';
     var rows = (payload && payload.tickets) || [];
     if (!rows.length) return '<p class="tb-asg-empty">No errors were detected on the last data upload.</p>';
-    // Group by day, then by agent; each group remembers its newest detectedAt so the dates can be
-    // ordered without parsing the label back.
-    var dates = [], byDate = {};
+    // Group by agent, keeping the server's row order (detectedAt DESC) inside each agent.
+    var logins = [], by = {};
     rows.forEach(function (t) {
-      var key = String(day(t.detectedAt) || 'Unknown date'), at = String(t.detectedAt || '');
-      var g = byDate[key];
-      if (!g) { g = byDate[key] = { key: key, at: at, logins: [], by: {}, n: 0 }; dates.push(g); }
-      if (at > g.at) g.at = at;
       var lg = String(t.login || '');
-      if (!g.by[lg]) { g.by[lg] = { login: lg, name: t.displayName || lg, rows: [] }; g.logins.push(lg); }
-      g.by[lg].rows.push(t); g.n++;
+      if (!by[lg]) { by[lg] = { login: lg, name: t.displayName || lg, rows: [] }; logins.push(lg); }
+      by[lg].rows.push(t);
     });
-    dates.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)) || String(b.key).localeCompare(String(a.key)); });
-    return dates.map(function (g, i) {
-      return '<details class="st-err-d" data-stvdate="' + esc(g.key) + '"' + (i === 0 ? ' open' : '') + '>'
-        + '<summary><span class="st-err-dt">' + esc(g.key) + '</span><b>' + plural(g.n, 'ticket') + '</b>'
-        + '<span class="st-err-da">' + plural(g.logins.length, 'agent') + '</span></summary>'
-        + '<div class="st-err-in">' + g.logins.slice().sort(function (a, b) { return a.localeCompare(b); }).map(function (lg) {
-          var ag = g.by[lg];
-          return '<section class="st-err-ag"><h4 class="st-err-agh">' + esc(ag.login)
-            + (ag.name && ag.name !== ag.login ? ' <span class="st-err-agn">' + esc(ag.name) + '</span>' : '')
-            + ' <b>' + plural(ag.rows.length, 'error') + '</b></h4>'
-            + '<div class="tb-asg-scroll stv-scroll" role="region" aria-label="Errors detected for ' + esc(ag.login) + ' on ' + esc(g.key) + '" tabindex="0">'
-            + '<table class="stv-tbl is-flat is-line st-err-t">'
-            + '<caption class="tb-asg-sr">Tickets of ' + esc(ag.login) + ' the upload of ' + esc(g.key) + ' found incomplete</caption>'
-            + '<thead><tr><th scope="col" class="stv-fit">Closure Code</th><th scope="col" class="stv-fit">Ticket ID</th>'
-            + '<th scope="col" class="stv-mc">Missing Fields</th>'
-            + (rev ? '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th>' : '') + '</tr></thead><tbody>'
-            + ag.rows.slice(0, ERR_ROW_CAP).map(function (t) {
-              var sid = esc(t.shortId), ms = t.missing || [], b = !!busy[t.shortId];
-              return '<tr><td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
-                + '<td class="stv-mc">' + (ms.length ? '<ul class="stv-items">' + ms.map(function (f) {
-                  return '<li title="' + esc(f.message || '') + '"><b>' + esc(f.label) + '</b></li>';
-                }).join('') + '</ul>' : '\u2014') + '</td>'
-                + (rev ? '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to ' + esc(ag.login) + '</span></button> '
-                  + '<button type="button" class="tb-san-btn stv-save" data-stvacc="' + sid + '"' + (b ? ' disabled' : '') + '>Accept Sanitized error<span class="tb-asg-sr"> on ' + sid + '</span></button></td>' : '')
-                + '</tr>';
-            }).join('')
-            + (ag.rows.length > ERR_ROW_CAP ? '<tr class="st-err-more"><td colspan="' + (rev ? 4 : 3) + '">'
-              + '<p class="tb-asg-empty">Showing the first ' + ERR_ROW_CAP + ' of ' + ag.rows.length
-              + ' errors for ' + esc(ag.login) + ' on ' + esc(g.key) + ' \u00b7 the rest appear here once these are reviewed.</p></td></tr>' : '')
-            + '</tbody></table></div></section>';
-        }).join('') + '</div></details>';
+    logins.sort(function (a, b) { return a.localeCompare(b); });
+    return logins.map(function (lg, i) {
+      var ag = by[lg];
+      return '<details class="st-err-d" data-stverrag="' + esc(lg) + '"' + (openAg === lg || (!openAg && i === 0) ? ' open' : '') + '>'
+        + '<summary><span class="st-err-agh">' + esc(ag.login)
+        + (ag.name && ag.name !== ag.login ? ' <span class="st-err-agn">' + esc(ag.name) + '</span>' : '') + '</span>'
+        + '<b>' + plural(ag.rows.length, 'ticket') + '</b></summary>'
+        + '<div class="st-err-in"><div class="tb-asg-scroll stv-scroll" role="region" aria-label="Errors detected for ' + esc(ag.login) + '" tabindex="0">'
+        + '<table class="stv-tbl is-flat is-line st-err-t">'
+        + '<caption class="tb-asg-sr">Tickets of ' + esc(ag.login) + ' the last data upload found incomplete</caption>'
+        + '<thead><tr><th scope="col" class="stv-fit">Closure Code</th><th scope="col" class="stv-fit">Ticket ID</th>'
+        + '<th scope="col" class="stv-mc">Missing Fields</th>'
+        + (rev ? '<th scope="col" class="stv-fit"><span class="tb-asg-sr">Actions</span></th>' : '') + '</tr></thead><tbody>'
+        + ag.rows.slice(0, ERR_ROW_CAP).map(function (t) {
+          var sid = esc(t.shortId), ms = t.missing || [], b = !!busy[t.shortId];
+          return '<tr><td class="stv-fit">' + codeTag(t.closureCode) + '</td>' + idCell(t, h)
+            + '<td class="stv-mc">' + (ms.length ? '<ul class="stv-items">' + ms.map(function (f) {
+              return '<li title="' + esc(f.message || '') + '"><b>' + esc(f.label) + '</b></li>';
+            }).join('') + '</ul>' : '\u2014') + '</td>'
+            + (rev ? '<td class="stv-act stv-fit"><button type="button" class="tb-san-btn" data-stvfix="' + sid + '"' + (b ? ' disabled aria-busy="true"' : '') + '>Rework<span class="tb-asg-sr"> ' + sid + ', send it back to ' + esc(ag.login) + '</span></button> '
+              + '<button type="button" class="tb-san-btn stv-save" data-stvacc="' + sid + '"' + (b ? ' disabled' : '') + '>Accept Sanitized error<span class="tb-asg-sr"> on ' + sid + '</span></button></td>' : '')
+            + '</tr>';
+        }).join('')
+        + (ag.rows.length > ERR_ROW_CAP ? '<tr class="st-err-more"><td colspan="' + (rev ? 4 : 3) + '">'
+          + '<p class="tb-asg-empty">Showing the first ' + ERR_ROW_CAP + ' of ' + ag.rows.length
+          + ' errors for ' + esc(ag.login) + ' \u00b7 the rest appear here once these are reviewed.</p></td></tr>' : '')
+        + '</tbody></table></div></div></details>';
     }).join('');
   }
   // ---- The page's top-level "Error tickets that need approval" section ----

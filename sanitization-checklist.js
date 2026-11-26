@@ -576,7 +576,7 @@ window.tsDelConfirm=tsDelConfirm;
 //     collapsible group per SIM closure code (server: groups, sanitization-assign.js closureGroups),
 //     each row showing only the chevron, the closure-code label, '(N tickets)', 'N available' and
 //     'Assign to sanitize'. No points, no summary line, no chart and no missing-field chips.
-//   Sanitized tickets (#tsSanitized) - Tickets with clear data (rule A pass: the server's clr flag),
+//   Sanitized tickets (#tsSanitized) - the tickets that already pass rule A (the server's clr flag),
 //     counted per closure code in one chip row, then the created-quarter sub-sections directly.
 //   Approved errors & agent-marked duplicates (#tsMarked, last) - two tables; Restore per approved error.
 // Appeal / test / Duplicate / AUTO-SIM tickets and Cnt > 0 are ignored (the server leaves them out).
@@ -609,7 +609,7 @@ function scQuarterSelect(){
   return '<div class="ts-sc-ctl ts-top-acts"><span class="ts-own" title="Only tickets created on or after 1 Jan 2026 (Pacific time) are scored">Created 1 Jan 2026 \u2013 latest</span></div>';
 }
 // Sub-group keys: 'g<i>' = closure-code group i of SC.data.groups (tickets NOT passing rule A; the
-// index, never the code, goes into inline handlers), 'clear' (Tickets with clear data: the server's clr
+// index, never the code, goes into inline handlers), 'clear' (the sanitized tickets: the server's clr
 // flag = rule A pass), 'ae' / 'du' (approved errors / agent-marked duplicates, the last card).
 var SC_CLEAR_CODES=['Successful','Immediately Resolved','Automatically Closed'];
 function scArg(k){ return typeof k==='number'?String(k):'\''+k+'\''; }
@@ -620,7 +620,7 @@ function scGroup(k){ return scGroupOf(SC.data,k); }
 // Key of the group with this id in the current payload, or null.
 function scGroupKey(id){ var g=(SC.data&&SC.data.groups)||[]; for(var i=0;i<g.length;i++) if(g[i].id===id) return 'g'+i; return null; }
 function scName(k){
-  if(k==='clear') return 'Tickets with clear data';
+  if(k==='clear') return 'Sanitized tickets';
   if(k==='ae') return 'Approved errors';
   if(k==='du') return 'Agent-marked duplicates';
   var g=scGroup(k); return g?g.label:String(k);
@@ -722,7 +722,7 @@ function scGroupsHtml(d){
       body:function(){ var l=scList(k); return l.length?scQuartersHtml(l,k,crit):scEmpty(); }});
   }).join('')+'</div>';
 }
-// Sanitized tickets card body: Tickets with clear data (rule A passes: Successful 11 checks; eligible
+// Sanitized tickets card body: the tickets that already pass rule A (Successful 11 checks; eligible
 // Immediately Resolved / Automatically Closed: 3 title checks), counted per closure code in one chip
 // row, then the created-quarter sub-sections directly (no group row in between).
 function scClearHtml(d){
@@ -764,11 +764,16 @@ function scDuTableHtml(du){
     }).join('')+'</tbody></table></div>';
 }
 function scMarkedOf(d){ return (d&&d.marked)||{approvedErrors:[],duplicates:[],agents:[],simDuplicates:0}; }
-// Last card body: by-agent chips, the SIM-duplicates note, then the two separately headed tables.
+// Last card body: one count tile per agent, the SIM-duplicates note, then the two separately headed
+// tables. The tiles replace a row of bracketed red .ts-chip pills ('[login: errors N | duplicates
+// N]'): those reused the missing-criteria alert pill, so six agents read as six errors, their widths
+// never lined up, and the row sat 14px inside the two section rows under it.
 function scMarkedHtml(d){
   var mk=scMarkedOf(d), ae=mk.approvedErrors||[], du=mk.duplicates||[], simDup=Number(mk.simDuplicates)||0;
-  var chips=(mk.agents||[]).length?'<ul class="ts-sc-chiprow" aria-label="By agent">'+mk.agents.map(function(a){
-      return '<li class="ts-chip ts-chip-grp">['+esc(a.login)+': errors <b>'+Number(a.errors).toLocaleString()+'</b> <span class="ts-chip-sep" aria-hidden="true">|</span> duplicates <b>'+Number(a.duplicates).toLocaleString()+'</b>]</li>';
+  var chips=(mk.agents||[]).length?'<ul class="ts-sc-agents" aria-label="Approved errors and agent-marked duplicates by agent">'+mk.agents.map(function(a){
+      return '<li class="ts-sc-ag"><span class="ts-sc-ag-l">'+esc(a.login)+'</span>'+
+        '<span class="ts-sc-ag-n is-err">errors <b>'+Number(a.errors).toLocaleString()+'</b></span>'+
+        '<span class="ts-sc-ag-n is-dup">duplicates <b>'+Number(a.duplicates).toLocaleString()+'</b></span></li>';
     }).join('')+'</ul>':'';
   var note='<p class="ts-sc-tot">'+simDup.toLocaleString()+' '+(simDup===1?'ticket is':'tickets are')+' closed as Duplicate in SIM and left out of scoring; only the tickets an agent marked Duplicate are listed here.</p>';
   return chips+note+'<div class="ts-secs">'+
