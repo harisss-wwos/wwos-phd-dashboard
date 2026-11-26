@@ -3526,9 +3526,23 @@ app.put('/api/errors-in-resolved/settings', requirePhdResEditor, async (req, res
 // one doc per ShortId, newest quarter wins). Tickets whose Cnt: is a number > 0 are excluded (counted).
 // Issue types = eirIssueTypes() (issue-types-data.js, as issue-types.html); resolutions =
 // phd_resolutions (as phd-resolutions.html). ONLY harisss (case-insensitive) may read. Read-only.
-// Cached 5 min per (latest data upload, quarter, issue types, resolution list).
+// Cached per (latest data upload, quarter, issue types, resolution list) until the next data change
+// (invalidateReportCache), with SAN_CACHE_TTL_MS as the backstop.
 //   GET /api/sanitization-score?quarter=<since2026|YYYY-Qn|all>   (default since2026)
 const SAN_CACHE_PREFIX = 'san:v17:';   // v17: tickets carry ro (resolved-order rank: the closure-code groups' pick / display order, no score sort); v16: TEST / NON-PHD tickets (ticket-rules.js) left out of the report entirely (report.ruleExcluded); v15: the GET splits off "Tickets with clear data" (rule A pass: buckets / available exclude them, tickets carry clr, payload clear + marked); v14: Automatically Closed on an IR-eligible title = title checks only (grp 'auto-closed'); Successful: a valid RCD Issue covers a missing title issue type; v13: tickets carry irk (why Immediately Resolved is not eligible: the tracker's verification messages); v12: closure-code rule (tickets carry tgt / miss / def; IR eligibility by the title issue type's category); v11: tickets carry grp / need / pass / cc (required checks per closure code, pet); v5: tickets carry cq (created quarter, Pacific); v6: report keeps excludedTickets; v7: excludedBy['approved error']; v8: 11th point ClosureCode (0..11); v9: tickets carry rbi (raw ResolvedByIdentity)
+const SAN_MINE_CACHE_PREFIX = 'sanmine:v1:';   // the same report over the ASSIGNED tickets only (the Sanitization Tracker family; sanReportFor ids)
+// GET /api/my-sanitization bodies, one per (viewer, ?login). PER-USER and NOT keyed on the data stamp
+// on purpose: every sanitization write calls sanWriteDone(), which drops this whole prefix, and every
+// writer of ticket_docs calls invalidateReportCache(), which clears the cache outright - so a mark,
+// an error review, an accept, a rework, an assign, a revoke or an upload all show on the next read.
+// The 60 s TTL (the per-user TTL used by the assignment buckets) is the backstop for the one case a
+// drop cannot cover: a second API instance handling the write. 14 logins x the views they may ask for.
+const MYSAN_CACHE_PREFIX = 'mysan:v1:';
+const MYSAN_CACHE_TTL_MS = 60 * 1000;
+const MYSAN_CACHE_KEYS = 60;
+const sanNorm = v => String(v == null ? '' : v).trim().toLowerCase();
+// Both are keyed on the data stamp (+ the id set), and every writer of ticket_docs calls invalidateReportCache(): the TTL is only a backstop against a missed invalidation.
+const SAN_CACHE_TTL_MS = 12 * 3600 * 1000;
 const SAN_SINCE_CACHE_PREFIX = 'sanc:v2:';   // the 'Since 1 Jan 2026' selector count; v2: TEST / NON-PHD tickets left out
 const SAN_QUARTER_RE = /^\d{4}-Q[1-4]$/;
 const SAN_SINCE_ID = 'since2026', SAN_SINCE_LABEL = 'Since 1 Jan 2026';
@@ -3599,16 +3613,31 @@ async function sanScopeRows(quarter) {
   // Fewer bytes over the wire: IssueUrl comes back as `true` when it is exactly SAN_URL_BASE + ShortId
   // (restored below, before anything reads it), and IssueId is dropped when ShortId is a non-empty
   // string (every reader uses ShortId || IssueId, so it is never read then).
-  const shortIsStr = { $eq: [{ $type: '$ShortId' }, 'string'] };
-  const projection = { _id: 0, q: 1, ShortId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1,
-    IssueId: { $cond: [{ $and: [shortIsStr, { $ne: ['$ShortId', ''] }] }, '$$REMOVE', '$IssueId'] },
-    IssueUrl: { $cond: [{ $and: [shortIsStr, { $eq: ['$IssueUrl', { $cond: [shortIsStr, { $concat: [SAN_URL_BASE, '$ShortId'] }, null] }] }] }, true, '$IssueUrl'] } };
-  let docs = await coll.find(match, { projection }).toArray();
+  let docs = await coll.find(match, { projection: sanScopeProjection() }).toArray();
   for (const d of docs) if (d.IssueUrl === true) d.IssueUrl = SAN_URL_BASE + d.ShortId;
   if (since) docs = pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
   else if (quarter === 'all') docs = pzDedupeTickets(docs.sort(sanNewestFirst));
   else if (!docs.length) docs = await loadQuarterTickets(quarter);   // legacy quarter not split into ticket_docs
   return docs;
+}
+function sanScopeProjection() {
+  const shortIsStr = { $eq: [{ $type: '$ShortId' }, 'string'] };
+  return { _id: 0, q: 1, ShortId: 1, Title: 1, RootCauseDetails: 1, Status: 1, ResolvedDate: 1, ClosureCode: 1, Tags: 1, CreateDate: 1, ResolvedByIdentity: 1,
+    IssueId: { $cond: [{ $and: [shortIsStr, { $ne: ['$ShortId', ''] }] }, '$$REMOVE', '$IssueId'] },
+    IssueUrl: { $cond: [{ $and: [shortIsStr, { $eq: ['$IssueUrl', { $cond: [shortIsStr, { $concat: [SAN_URL_BASE, '$ShortId'] }, null] }] }] }, true, '$IssueUrl'] } };
+}
+// The same rows as sanScopeRows(SAN_SINCE_ID) for ONE set of shortIds (the Sanitization Tracker's
+// assigned tickets): an index seek per id on ShortId_1 instead of the whole since-2026 window, then
+// the same JS since-filter and newest-quarter dedupe. Every ticket_docs doc has a non-empty string
+// ShortId (80,461 of 80,461), and an assignment's shortId IS the report ticket's shortId, so the $in
+// reaches every ticket an assignment can name. On the shared cluster: 2,624 documents / 0.97 MB
+// instead of 27,337 / 14.1 MB.
+async function sanScopeRowsForIds(ids) {
+  if (!ids || !ids.length) return [];
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const docs = await coll.find({ ShortId: { $in: ids }, ...sanSinceMatch() }, { projection: sanScopeProjection() }).toArray();
+  for (const d of docs) if (d.IssueUrl === true) d.IssueUrl = SAN_URL_BASE + d.ShortId;
+  return pzDedupeTickets(docs.filter(sanIsSince).sort(sanNewestFirst));
 }
 const _sanInflight = new Map();   // cache key -> pending promise (one scan per key at a time)
 // { issue type: category } (issue-types-data.js IZ_CATS, the seed when the file is not deployed) for the closure-code rule.
@@ -3620,17 +3649,32 @@ function sanIssueCategories() {
   }
   return _sanIssueCats;
 }
+// Cheap signature of a shortId set (sorted) for the cache key: the ids themselves are far too long
+// for one, and the key must change the moment the set does (an assign or a revoke).
+function sanIdsSig(ids) {
+  let h = 0x811c9dc5;
+  for (const id of ids) for (let i = 0; i < id.length; i++) h = ((h ^ id.charCodeAt(i)) * 0x01000193) >>> 0;
+  return ids.length + '-' + h.toString(36);
+}
 // The cached 'since2026' score report for one data stamp (shared by the scores and the assignments).
-async function sanReportFor(data, resNames, quarter) {
+// `ids` (the Sanitization Tracker family) scores ONLY those shortIds: see sanScopeRowsForIds.
+// The key carries everything the report depends on - the data stamp, the quarter (or the id set), the
+// issue types, their categories and the resolution names - and every writer of ticket_docs calls
+// invalidateReportCache(), so a cached report cannot be stale while its key still matches:
+// SAN_CACHE_TTL_MS is only a backstop against a missed invalidation. (It used to expire after 5
+// minutes, which handed the next reader the whole scan again - 161 s on the shared cluster - every
+// time a page load happened to fall outside that window.)
+async function sanReportFor(data, resNames, quarter, ids) {
   const types = eirIssueTypes(), cats = sanIssueCategories();
   const catSig = Object.keys(cats).map(k => k + '=' + cats[k]).join('|').toLowerCase();
-  const key = SAN_CACHE_PREFIX + (data.stamp || '-') + ':' + quarter + ':' + types.join('|').toLowerCase() + ':' + catSig + ':' + resNames.join('|').toLowerCase();
-  let report = getCachedReport(key);
+  const prefix = ids ? SAN_MINE_CACHE_PREFIX : SAN_CACHE_PREFIX;
+  const key = prefix + (data.stamp || '-') + ':' + quarter + (ids ? ':' + sanIdsSig(ids) : '') + ':' + types.join('|').toLowerCase() + ':' + catSig + ':' + resNames.join('|').toLowerCase();
+  let report = getCachedReportTtl(key, SAN_CACHE_TTL_MS);
   if (!report) {
     let p = _sanInflight.get(key);
     if (!p) {
       p = (async () => {
-        const rows = await sanScopeRows(quarter);
+        const rows = ids ? await sanScopeRowsForIds(ids) : await sanScopeRows(quarter);
         // The 'Since 1 Jan 2026' selector count (GET /api/sanitization-score) is the deduped row count:
         // cache it here instead of a second scan of the same tickets (sanSinceCount stays the fallback).
         // Cached together with the report (same age), so it never expires before it.
@@ -3638,9 +3682,9 @@ async function sanReportFor(data, resNames, quarter) {
         // TEST / NON-PHD tickets (ticket-rules.js) are not counted anywhere, the selector count included.
         const sinceN = rows.length - (rep.ruleExcluded || []).length;
         rep.computedAt = new Date().toISOString();
-        pruneCachedReports(SAN_CACHE_PREFIX, 3);
+        pruneCachedReports(prefix, ids ? 2 : 3);
         setCachedReport(key, rep);
-        if (quarter === SAN_SINCE_ID) { setCachedReport(SAN_SINCE_CACHE_PREFIX + (data.stamp || '-'), sinceN); pruneCachedReports('sanc:', 1); }
+        if (!ids && quarter === SAN_SINCE_ID) { setCachedReport(SAN_SINCE_CACHE_PREFIX + (data.stamp || '-'), sinceN); pruneCachedReports('sanc:', 1); }
         return rep;
       })();
       _sanInflight.set(key, p);
@@ -3707,11 +3751,38 @@ async function sanContractors() {
 }
 // In-flight sharing of the small reads the four heavy GETs repeat (score, assign, my-sanitization,
 // resolved-errors): concurrent callers share one query; nothing is kept after it settles (no cache,
-// no poisoning). Every sanitization write route calls _sanReads.bump(). Shared arrays are read-only.
+// no poisoning). Every sanitization write route calls sanWriteDone(). Shared arrays are read-only.
 // The assignment docs leave out history (never read) and verification (read only by handleGet).
 const _sanReads = createSingleFlight();
 const SAN_ASG_LIGHT = { projection: { history: 0, verification: 0 } };
-const sanActiveAsgShared = () => _sanReads.run('asg:active', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }, SAN_ASG_LIGHT).toArray());
+// The ACTIVE assignment docs - 20 docs but ~740 kB of ticket lists (shortId / url / title / cq /
+// scoreAtAssign / missingAtAssign per assigned ticket), which every Sanitization Tracker request
+// needs in full. They change ONLY on an assign or a revoke, and both end in sanWriteDone(), which
+// drops this key: so they are kept between writes instead of being transferred again per request
+// (0.74 MB and ~11 s per call on the shared cluster - the whole cost of a warm tracker read).
+// SAN_CACHE_TTL_MS is the backstop. The verification snapshot handleGet persists is not in the
+// projection, so it cannot go stale through this. Callers treat the docs as read-only, as they
+// already had to while sharing one in-flight read.
+const SAN_ASG_CACHE_PREFIX = 'sanasg:v1:';
+const sanActiveAsgShared = () => {
+  const hit = getCachedReportTtl(SAN_ASG_CACHE_PREFIX + 'active', SAN_CACHE_TTL_MS);
+  if (hit) return Promise.resolve(hit);
+  return _sanReads.run('asg:active', async () => {
+    const docs = await (await getCollection(COLLECTIONS.sanitizationAssignments)).find({ status: 'active' }, SAN_ASG_LIGHT).toArray();
+    setCachedReport(SAN_ASG_CACHE_PREFIX + 'active', docs);
+    return docs;
+  });
+};
+// The distinct shortIds of the ACTIVE assignments (~2,700 strings, ~30 kB): the scope of the
+// Sanitization Tracker's score report (sanReportFor ids). Read as ONE document per assignment so it
+// stays cheap even while the assignment docs themselves are still being transferred in parallel.
+const sanAssignedIdsShared = () => _sanReads.run('asg:ids', async () => {
+  const rows = await (await getCollection(COLLECTIONS.sanitizationAssignments))
+    .aggregate([{ $match: { status: 'active' } }, { $project: { _id: 0, ids: '$tickets.shortId' } }]).toArray();
+  const set = new Set();
+  rows.forEach(r => (r.ids || []).forEach(id => { if (typeof id === 'string' && id) set.add(id); }));
+  return Array.from(set).sort();
+});
 const sanAsgMetaShared = () => _sanReads.run('asg:meta', async () => (await getCollection(COLLECTIONS.sanitizationAssignments)).find({}, { projection: { _id: 0, 'tickets.shortId': 1, 'tickets.url': 1, 'tickets.title': 1 } }).toArray());
 const sanMarksShared = () => _sanReads.run('marks', sanMarks);
 const sanApprovedShared = () => _sanReads.run('approved', sanApproved);
@@ -3724,6 +3795,15 @@ const sanValidations = () => getCollection(COLLECTIONS.sanitizationValidations)
   .then(c => c.find({}, { projection: { _id: 0, shortId: 1, closureCode: 1, scope: 1, detectedAt: 1, dataStamp: 1, failures: 1, fields: 1 } }).toArray());
 const sanValidationsShared = () => _sanReads.run('validations', sanValidations);
 const sanContractorsShared = () => _sanReads.run('contractors', sanContractors);
+// Every sanitization write ends with this: a new generation of the shared in-flight reads (so a read
+// issued before the write is never joined afterwards) AND the cached GET /api/my-sanitization bodies
+// dropped. That is what keeps the cache correct: a contractor's mark, the owner's approve / send back
+// / accept / rework, an assign and a revoke all land here, so the very next read rebuilds instead of
+// serving the payload from before the write.
+function sanWriteDone() { _sanReads.bump(); dropCachedReports(MYSAN_CACHE_PREFIX); }
+// An assign or a revoke changes the assignment docs themselves (and so the assigned-ticket set the
+// tracker's report is built from), which a mark or a review never does.
+function sanAsgWriteDone() { sanWriteDone(); dropCachedReports(SAN_ASG_CACHE_PREFIX); }
 app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
   try {
     // Scope is fixed: only tickets created on/after 1 Jan 2026 (Pacific). Any ?quarter= value is ignored.
@@ -3737,7 +3817,7 @@ app.get('/api/sanitization-score', requireSanScores, async (req, res) => {
     // The report first: building it also caches the since count (sanReportFor), so no second scan.
     const base = await sanReportFor(data, resNames, quarter), approved = await sanApprovedShared();
     const sinceKey = SAN_SINCE_CACHE_PREFIX + (data.stamp || '-');
-    let sinceCount = getCachedReport(sinceKey);
+    let sinceCount = getCachedReportTtl(sinceKey, SAN_CACHE_TTL_MS);   // same upload-keyed life as the report it was counted from
     if (sinceCount == null) { sinceCount = await sanSinceCount(); setCachedReport(sinceKey, sinceCount); pruneCachedReports('sanc:', 1); }
     // Selector: 'Since 1 Jan 2026' (default), the live quarter, then every previous quarter with Resolved / Closed tickets, then 'all'.
     const ids = counts.map(c => c.id).filter(id => id <= live);
@@ -3804,7 +3884,7 @@ app.get('/api/sanitization-assign', requireSanOwner, async (req, res) => {
 app.post('/api/sanitization-assign', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleAssign(req.body, await sanAssignDeps(req));
-    _sanReads.bump();
+    sanAsgWriteDone();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('sanitization-assign POST error:', e && (e.stack || e.message));
@@ -3817,7 +3897,7 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
       coll: await getCollection(COLLECTIONS.sanitizationAssignments), user: req.user,
       toId: s => (/^[a-f0-9]{24}$/i.test(s) ? new ObjectId(s) : null),
     });
-    _sanReads.bump();
+    sanAsgWriteDone();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('sanitization-assign revoke error:', e && (e.stack || e.message));
@@ -3827,21 +3907,27 @@ app.post('/api/sanitization-assign/revoke', requireSanOwner, async (req, res) =>
 // GET /api/my-sanitization[?login=]: top-bar "My sanitization tickets" (logic in sanAssign.handleMine).
 // The owner and every contractor get the same data, scored live: the contractor
 // list (or ?login=<contractor>); anyone else 403. STRICTLY READ-ONLY: never persists verification
-// snapshots. The score report comes from the shared data-stamp cache (sanReportFor), loaded only
-// after the access check.
+// snapshots. The score report covers the ASSIGNED tickets only (sanAssignedIdsShared ->
+// sanReportFor ids), which is every ticket this endpoint can show.
+// The body is cached per (viewer, ?login) for MYSAN_CACHE_TTL_MS and dropped by sanWriteDone() on
+// every sanitization write, so a mark is visible on the next read (see MYSAN_CACHE_TTL_MS).
 app.get('/api/my-sanitization', requireRole('user'), async (req, res) => {
   try {
     // BLR / AZA / WFH may view every contractor; assigning and approving stay owner-only.
     const sanCanViewAll = sanIsOwner(req.user.username) || SAN_VIEW_GROUPS.indexOf(grpOf(req.user.username)) >= 0;
+    const mineKey = MYSAN_CACHE_PREFIX + sanNorm(req.user.username) + '|' + sanNorm((req.query || {}).login);
+    const cached = getCachedReportTtl(mineKey, MYSAN_CACHE_TTL_MS);
+    if (cached) return res.json(cached);
     const out = await sanAssign.handleMine(req.query || {}, {
       user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
-        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
-        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+        const [data, resNames, ids] = await Promise.all([eirDataStamp(), sanResNames(), sanAssignedIdsShared()]);
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID, ids), sanActiveAsgShared(),
           sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
       },
     });
+    if (out.status === 200) { setCachedReport(mineKey, out.body); pruneCachedReports(MYSAN_CACHE_PREFIX, MYSAN_CACHE_KEYS); }
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization error:', e && (e.stack || e.message));
@@ -3858,13 +3944,17 @@ app.post('/api/my-sanitization/mark', requireRole('user'), async (req, res) => {
     const out = await sanAssign.handleMark(req.body, {
       user: req.user, contractors: await sanContractors(),
       coll: await getCollection(COLLECTIONS.sanitizationMarks),
+      // Same reads as the tracker GET (the assigned-ticket report, the light assignment docs), so a
+      // mark costs what a read costs instead of a full since-2026 scan plus the unprojected
+      // assignment docs. The mark itself is decided on the ticket's CURRENT mark (handleMark reads it
+      // with findOne), not on anything shared here, and sanWriteDone() below bumps the shared reads.
       load: async () => {
-        const [data, resNames, coll, approved] = await Promise.all([eirDataStamp(), sanResNames(), getCollection(COLLECTIONS.sanitizationAssignments), sanApproved()]);
-        const [base, docs] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), coll.find({ status: 'active' }).toArray()]);
+        const [data, resNames, ids] = await Promise.all([eirDataStamp(), sanResNames(), sanAssignedIdsShared()]);
+        const [base, docs, approved] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID, ids), sanActiveAsgShared(), sanApprovedShared()]);
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp };
       },
     });
-    _sanReads.bump();
+    sanWriteDone();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('my-sanitization mark error:', e && (e.stack || e.message));
@@ -3933,8 +4023,8 @@ app.get('/api/my-sanitization/approvals', requireRole('user'), async (req, res) 
     const out = await sanAssign.handleApprovals(req.query || {}, {
       user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
-        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
-        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+        const [data, resNames, ids] = await Promise.all([eirDataStamp(), sanResNames(), sanAssignedIdsShared()]);
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID, ids), sanActiveAsgShared(),
           sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
       },
@@ -3952,7 +4042,7 @@ app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) 
       marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
       exclColl: await getCollection(COLLECTIONS.sanitizationExcluded),
     });
-    _sanReads.bump();
+    sanWriteDone();
     if (out.status === 200) ieDropCache();   // an approval leaves the ticket out of the Incident Explorer
     res.status(out.status).json(out.body);
   } catch (e) {
@@ -3963,7 +4053,7 @@ app.post('/api/my-sanitization/error-review', requireSanOwner, async (req, res) 
 app.post('/api/my-sanitization/restore', requireSanOwner, async (req, res) => {
   try {
     const out = await sanAssign.handleRestore(req.body, { user: req.user, exclColl: await getCollection(COLLECTIONS.sanitizationExcluded) });
-    _sanReads.bump();
+    sanWriteDone();
     if (out.status === 200) ieDropCache();   // a restored ticket is back on the Incident Explorer
     res.status(out.status).json(out.body);
   } catch (e) {
@@ -3983,8 +4073,8 @@ app.get('/api/sanitization-errors', requireRole('user'), async (req, res) => {
     const out = await sanAssign.handleErrors(req.query || {}, {
       user: req.user, canViewAll: sanCanViewAll, contractors: await sanContractorsShared(),
       load: async () => {
-        const [data, resNames] = await Promise.all([eirDataStamp(), sanResNames()]);
-        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID), sanActiveAsgShared(),
+        const [data, resNames, ids] = await Promise.all([eirDataStamp(), sanResNames(), sanAssignedIdsShared()]);
+        const [base, docs, marks, approved, validations, accepts] = await Promise.all([sanReportFor(data, resNames, SAN_SINCE_ID, ids), sanActiveAsgShared(),
           sanMarksShared(), sanApprovedShared(), sanValidationsShared(), sanErrorAcceptsShared()]);
         return { docs, report: sanLiveReport(base, approved), stamp: data.stamp, marks, approved, validations, accepts };
       },
@@ -4010,7 +4100,7 @@ app.post('/api/sanitization-validation/review', requireSanOwner, async (req, res
       acceptColl: await getCollection(COLLECTIONS.sanitizationErrorAccepts),
       marksColl: await getCollection(COLLECTIONS.sanitizationMarks),
     });
-    _sanReads.bump();
+    sanWriteDone();
     res.status(out.status).json(out.body);
   } catch (e) {
     console.error('sanitization-validation review error:', e && (e.stack || e.message));
