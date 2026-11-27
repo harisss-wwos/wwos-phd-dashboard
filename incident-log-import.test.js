@@ -289,6 +289,106 @@ test('withApi() binds the editor once and parse() then needs no api argument', (
   assert.equal(bound.review(r).blank.length > 0, true);
 });
 
+// ---- the shared cross-agent prompt (.agents/tasks/incident-log-import/agent-prompt.md) ----
+// The worked example at the end of that document, verbatim. The prompt's own output must import
+// clean: if this ever stops parsing with an empty blank list and an empty unmapped list, the
+// document is telling the seven agents to write something the importer cannot read.
+const AGENT_PROMPT_EXAMPLE = [
+  'SIM Title: US Customer Incident Escalation - Account ID: A14WM8TT7J4YTQ - Sev 5 - Verbal abuse',
+  'Root Cause: Driving Behavior - Other',
+  'PHD Related Link: https://t.corp.amazon.com/issues/V2459642680',
+  'EMT Link: https://app.emt.amazon.dev/incidents/incidentId?accountId=account_amazongsoc&incidentId=1798060&tabV=&tabValue=Overview',
+  '',
+  'SIM Root Cause Details:',
+  'Issue: Verbal abuse',
+  'SID: WET1',
+  'Driv: DSP DA',
+  'Date: 11/15/26',
+  'TID: A12N3FXQOLGVDA',
+  'Zip: 39365-7802',
+  'Cnt: 0',
+  'CID: A14WM8TT7J4YTQ',
+  'UPID: USC4877729422',
+  'Res: Driver Follow-up',
+  '',
+  'PHD Investigation for mitigation:',
+  '- Does current ticket have any duplicate: No',
+  '- Is POI the CX: Yes',
+  '- CX Account suspension requested from GSOC?: No',
+  '- Negative Delivery Feedbacks reported in SIM against the Transporter: 0',
+  '- Historical incidents against CX in SIM [If CX is POI]: 0',
+  '- Location Historical incidents in SIM records (UPID): 0',
+  '- Cortex Driver Trace added to SIM & EMT: Yes',
+  '- Location Historical incidents in EMT records (Physical address): 0',
+  '- CLEAR history of POI (Any violent/related charges exists?): No',
+  '- Station request made: No',
+  '- Netradyne footage exists: No',
+  '- Additional packages delivered after incident?: No',
+  '- Delivery instructions present: Yes',
+  '- Delivery instructions updated after incident?: No',
+  '- AUSTIN Investigation Findings: No',
+  '',
+  'PHD Findings:',
+  "- A DSP DA out of WET1 was delivering at a CX residence on 15NOV'26.",
+  '- The CX came out of the residence and shouted at the DA about the parking position of the van.',
+  '- No physical contact occurred, no weapon was involved and the DA left the area safely.',
+  '- Cortex driver trace and heat map place the DA at the delivery location at the reported time.',
+  '',
+  'PHD Resolution: Driver Follow-up',
+  '',
+  'PHD notes:',
+  '- The DA was coached on parking and on disengaging from a verbal escalation.',
+  "- The CX confirmed on 15NOV'26 that future deliveries may continue to the address.",
+  '',
+  'Determination:',
+  'The material allegation that the CX shouted at the DA is Substantiated.',
+  '',
+  'Evidence Details:',
+  'Cortex driver trace and heat map substantiate the incident location and time.',
+  'Netradyne footage was checked, and no video of the incident was found.',
+  'All substantiated evidence has been attached to the PHD SIM ticket and EMT.',
+  '',
+  'Risk Assessment:',
+  'Likelihood of Repeat: LOW.',
+  'Likelihood of Impact: LOW.',
+  'Matrix pathway: LOW Repeat + LOW Impact = Low / Accept',
+  'Treatment Rationale: Driver coaching is the least restrictive effective action.',
+  '',
+  'Primary Case Tag:',
+  '#contradictory-statement-no-proof',
+  ''
+].join('\n');
+
+test("the shared prompt's worked example imports clean: nothing blank, nothing unmapped", () => {
+  const r = parse(AGENT_PROMPT_EXAMPLE);
+  const rv = review(r);
+  assert.deepEqual(rv.blank, []);
+  assert.deepEqual(rv.unmapped, []);
+
+  assert.equal(r.format, 'harisss');
+  assert.equal(r.blocks, 1);
+  // The five fixed opening sections.
+  assert.equal(r.rootCause.value, 'Driving Behavior - Other');
+  assert.equal(r.phdSimLink, 'https://t.corp.amazon.com/issues/V2459642680');
+  assert.equal(r.emtId, '1798060');
+  assert.equal(r.emtLink, ED.IL_EMT_URL_PRE + '1798060' + ED.IL_EMT_URL_POST);
+  assert.equal(r.severity, '5');
+  // All ten SIM Root Cause Details keys, in the fixed order, every one from a closed catalogue.
+  assert.deepEqual(r.sim.fields, {
+    Issue: 'Verbal abuse', SID: 'WET1', Driv: 'DSP DA', Date: '11/15/26', TID: 'A12N3FXQOLGVDA',
+    Zip: '39365-7802', Cnt: '0', CID: 'A14WM8TT7J4YTQ', UPID: 'USC4877729422', Res: 'Driver Follow-up'
+  });
+  assert.ok(CAT.issues.indexOf(r.sim.fields.Issue) >= 0);
+  assert.ok(CAT.rootCauses.indexOf(r.rootCause.value) >= 0);
+  assert.ok(CAT.res.indexOf(r.res) >= 0);
+  // All fifteen investigation questions answered, none guessed.
+  IMP.IL_IMP_INVEST_KEYS.forEach(k => assert.ok(r.invest[k] !== undefined && r.invest[k] !== '', 'unanswered: ' + k));
+  // The optional sections the importer understands, plus the copyable tag.
+  assert.ok(r.findings && r.determination && r.evidence && r.risk && r.notes && r.reference);
+  assert.match(r.risk, /Matrix pathway/);
+  assert.deepEqual(r.tags, ['#contradictory-statement-no-proof']);
+});
+
 test('normalise() strips box drawing, bullets and non-breaking spaces without losing content', () => {
   const n = IMP.normalise('OVERVIEW\n\u2500\u2500\u2500\u2500\u2500\u2500\n\n    \u2022 Primary Mitigation Actioned:\u00a0Delivery Hint\n\n\n\n    \u2022 POI Identified: Yes\n');
   assert.equal(n.indexOf('\u2500'), -1);
