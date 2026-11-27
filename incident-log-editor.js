@@ -4385,6 +4385,12 @@ var IncidentLogEditor=(function(){
     cmtRichText:_ilCmtRich, cmtMdText:_ilCmtMdEsc, cmtPlainText:_ilCmtPlain,
     renderLogBody:ilRenderLogBody, renderLogEntry:ilRenderLogEntry,
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
+    // Pure helpers the whole-log importer (incident-log-import.js) is handed as its `api` object.
+    _ilsExact:_ilsExact, _ilfInvestKey:_ilfInvestKey, _ilfAnswer:_ilfAnswer, _ilfHeadKind:_ilfHeadKind,
+    IL_EMT_URL_PRE:IL_EMT_URL_PRE, IL_EMT_URL_POST:IL_EMT_URL_POST, IL_EXTRA_SECS:IL_EXTRA_SECS, IL_REF_HEAD:IL_REF_HEAD,
+    IL_SIM_FIELDS:IL_SIM_FIELDS, IL_INVEST_QS:IL_INVEST_QS, ilSimFmtDate:ilSimFmtDate, ilSimParseDate:ilSimParseDate,
+    ilSimDriv:ilSimDriv, ilSimHiCount:ilSimHiCount, ilSimImport:ilSimImport, ilParseSim:ilParseSim,
+    ilEmtNumber:ilEmtNumber, ilSevFromText:ilSevFromText,
     setInvestigation:ilSetInvestigation, getInvestigation:ilGetInvestigation,
     setHistorical:ilSetHistorical, getHistorical:ilGetHistorical, setSim:ilSetSim, getSim:ilGetSim };
 })();
@@ -4399,6 +4405,8 @@ if(typeof module!=='undefined' && module.exports) module.exports={ parseIncident
   ilSerializeSim:ilSerializeSim, ilSimImport:ilSimImport, ilSimParseDate:ilSimParseDate, ilSimFmtDate:ilSimFmtDate, ilSimDriv:ilSimDriv,
   IL_SIM_HI_MAX:IL_SIM_HI_MAX, ilSimHiCount:ilSimHiCount, ilSimHiMissing:ilSimHiMissing,
   ilParseFullLog:ilParseFullLog, ilFullLogSummary:ilFullLogSummary,
+  _ilsExact:_ilsExact, _ilfInvestKey:_ilfInvestKey, _ilfAnswer:_ilfAnswer, _ilfHeadKind:_ilfHeadKind,
+  IL_EMT_URL_PRE:IL_EMT_URL_PRE, IL_EMT_URL_POST:IL_EMT_URL_POST, IL_EXTRA_SECS:IL_EXTRA_SECS, IL_REF_HEAD:IL_REF_HEAD,
   ilInvestDecidedFromSaved:ilInvestDecidedFromSaved, ilInvestDefaultKeys:ilInvestDefaultKeys,
   ilCopySimTitle:ilCopySimTitle, ilEmtNumber:ilEmtNumber, ilEmtUrlOf:ilEmtUrlOf, ilEmtNormalize:ilEmtNormalize, ilTitleKey:ilTitleKey, ilSavedIsComplete:ilSavedIsComplete, ilCopyNotes:ilCopyNotes, ilCopyResExtra:ilCopyResExtra,
   ilSevFromText:ilSevFromText, ilNormSeverity:ilNormSeverity, ilSplitCopyNotesRes:ilSplitCopyNotesRes,
