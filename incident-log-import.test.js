@@ -389,6 +389,73 @@ test("the shared prompt's worked example imports clean: nothing blank, nothing u
   assert.deepEqual(r.tags, ['#contradictory-statement-no-proof']);
 });
 
+// ---- text before the opening heading ----
+// A preamble (a greeting, an "Incident 1:" header, a section written out of order) is not an
+// incident: it stays with the first block, so the paste is still ONE incident and the whole log is
+// imported, instead of a phantom first block that carries only the preamble.
+test('text before the opening heading stays with the first block and is not a second incident', () => {
+  const r = parse('Hi team, sharing the log below for the import.\nIncident 1:\n\n' + AGENT_PROMPT_EXAMPLE);
+  assert.equal(r.blocks, 1);
+  assert.equal(r.incidents.length, 1);
+  assert.equal(review(r).multi.warning, '');
+  assert.deepEqual(r.sim.fields, {
+    Issue: 'Verbal abuse', SID: 'WET1', Driv: 'DSP DA', Date: '11/15/26', TID: 'A12N3FXQOLGVDA',
+    Zip: '39365-7802', Cnt: '0', CID: 'A14WM8TT7J4YTQ', UPID: 'USC4877729422', Res: 'Driver Follow-up'
+  });
+  assert.equal(r.rootCause.value, 'Driving Behavior - Other');
+  assert.equal(r.res, 'Driver Follow-up');
+  assert.equal(r.emtId, '1798060');
+  assert.equal(r.severity, '5');
+  assert.deepEqual(r.tags, ['#contradictory-statement-no-proof']);
+  IMP.IL_IMP_INVEST_KEYS.forEach(k => assert.ok(r.invest[k] !== undefined && r.invest[k] !== '', 'unanswered: ' + k));
+  assert.ok(r.findings && r.notes && r.determination && r.evidence && r.risk);
+});
+
+test('a section written before the opening heading does not split the log in two', () => {
+  const r = parse(["PHD Findings:\n- A DSP DA was delivering at a CX residence on 26NOV'26.",
+    'Determination:\nThe material allegation that the CX blocked the vehicle is Substantiated.',
+    'Root Cause:\n\nNot following delivery instructions',
+    'PHD Resolution:\n\nCustomer Reassurance (Primary).'].join('\n\n') + '\n');
+  assert.equal(r.blocks, 1);
+  assert.equal(review(r).multi.warning, '');
+  assert.equal(r.sim.fields.Date, '11/26/26');
+  assert.equal(r.rootCause.value, 'Not following delivery instructions');
+  assert.equal(r.res, 'Customer Reassurance');
+  assert.ok(r.findings.indexOf('DSP DA') >= 0);
+});
+
+// ---- why a field is blank ----
+// A value the agent stated that the catalogue rejects is the one case the owner must act on: it is
+// reported as rejected, never as a field the log is silent about.
+test('an off-catalogue value reads as rejected in the blank group, not as unstated', () => {
+  const r = parse('Root Cause: Being very rude\n\nSIM Root Cause Details:\nIssue: Shouting at the driver\nRes: Driver Education\n');
+  const rv = review(r);
+  const why = f => (rv.blank.filter(b => b.field === f)[0] || {}).why;
+  [SIM + 'Issue', SIM + 'Res', 'Root Cause', 'PHD Resolution'].forEach(f =>
+    assert.equal(why(f), 'the pasted value is not an allowed option', f));
+  assert.equal(why(SIM + 'SID'), 'the log does not state it');
+  assert.ok(rv.unmapped.some(u => u.field === SIM + 'Issue' && u.raw === 'Shouting at the driver'));
+  assert.ok(rv.unmapped.some(u => u.field === 'Root Cause' && u.raw === 'Being very rude'));
+  assert.ok(rv.unmapped.some(u => u.field === 'PHD Resolution' && u.raw === 'Driver Education'));
+});
+
+test('an unstated historical count is marked as a default, a stated zero is not', () => {
+  const a = review(parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDate: 11/15/26\n')).filled.filter(f => f.field === SIM + 'Cnt')[0];
+  assert.equal(a.value, '0');
+  assert.match(a.source, /defaulted/);
+  const b = review(parse('SIM Root Cause Details:\nIssue: Verbal abuse\nCnt: 0\n')).filled.filter(f => f.field === SIM + 'Cnt')[0];
+  assert.equal(b.value, '0');
+  assert.equal(/defaulted/.test(b.source), false);
+});
+
+test('a Created / Last modified trailer is dropped on the label alone, with no alias on the line', () => {
+  const n = IMP.normalise('PHD Notes:\n- The CX was reassured.\nCreated: 11/20/2026\nLast modified: 11/21/2026\n');
+  assert.equal(n.indexOf('11/20/2026'), -1);
+  assert.equal(n.indexOf('11/21/2026'), -1);
+  const r = parse('PHD Notes:\n- The CX was reassured.\nCreated: 11/20/2026\n');
+  assert.equal((r.notes + r.reference).indexOf('11/20/2026'), -1);
+});
+
 test('normalise() strips box drawing, bullets and non-breaking spaces without losing content', () => {
   const n = IMP.normalise('OVERVIEW\n\u2500\u2500\u2500\u2500\u2500\u2500\n\n    \u2022 Primary Mitigation Actioned:\u00a0Delivery Hint\n\n\n\n    \u2022 POI Identified: Yes\n');
   assert.equal(n.indexOf('\u2500'), -1);

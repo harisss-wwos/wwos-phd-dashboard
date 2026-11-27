@@ -2329,6 +2329,7 @@ function ilSimImportClose(apply){
 var _ilfiOpener=null;
 var _ilfiResult=null;   // the reviewed PHDIncidentImport.parse() result, applied by Apply
 var _ilfiReview=null;   // its PHDIncidentImport.review() report (dialog step + the panel)
+var _ilfiNoReview='';   // why the review stage was skipped, said out loud with the status line
 function _ilfiBuild(){
   var bg=document.getElementById('ilLogImport'); if(bg) return bg;
   bg=document.createElement('div'); bg.id='ilLogImport'; bg.className='ilc-bg'; bg.hidden=true;
@@ -2386,14 +2387,21 @@ function ilLogImportReview(){
   var ta=document.getElementById('ilLogImportText'), er=document.getElementById('ilLogImportErr');
   var txt=String(ta.value||'');
   var P=(typeof window!=='undefined') ? window.PHDIncidentImport : null;
-  // No parser module (script failed to load): keep the old one-step import rather than break Import.
-  if(!(P && typeof P.parse==='function' && typeof P.review==='function')){ ilLogImportClose(true); return; }
+  // No parser module (script failed to load): keep the old one-step import rather than break Import,
+  // but never let a skipped review look like a reviewed one — say which one ran.
+  if(!(P && typeof P.parse==='function' && typeof P.review==='function')){
+    _ilfiNoReview='The review step was unavailable (incident-log-import.js did not load), so the import was applied straight to the form \u2014 check every field.';
+    ilLogImportClose(true); return;
+  }
   var L=_ilsLists(), r=null, failed=false;
   if(txt.trim()){
     try{ r=P.parse(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res, api:IncidentLogEditor}); }
     catch(e){ failed=true; }
   }
-  if(failed){ ilLogImportClose(true); return; }   // guarded fallback to ilParseFullLog
+  if(failed){   // guarded fallback to ilParseFullLog
+    _ilfiNoReview='The review step could not read this paste, so the import was applied straight to the form \u2014 check every field.';
+    ilLogImportClose(true); return;
+  }
   if(!r || !r.known){
     er.textContent=txt.trim() ? 'No incident log sections found in the pasted text.' : 'Paste the full incident log first.';
     er.hidden=false; try{ ta.focus(); }catch(e){} return;
@@ -2435,7 +2443,7 @@ function ilLogImportOpen(btn){
     document.getElementById('ilLogImportRepWrap_'+x.id).hidden=!(el && String(el.value||'').trim());
     document.getElementById('ilLogImportRep_'+x.id).checked=true;
   });
-  _ilfiResult=null; _ilfiReview=null;
+  _ilfiResult=null; _ilfiReview=null; _ilfiNoReview='';
   _ilfiStage(false);
   bg.hidden=false;
   try{ ta.focus(); }catch(e){}
@@ -2451,7 +2459,8 @@ function _ilfiUnlock(id){
 }
 // apply=true writes the reviewed import into the form fields (nothing is saved). The result is the
 // one the review stage parsed (_ilfiResult); without it (no parser module / a parse that threw) the
-// old one-step ilParseFullLog path runs, including its 5-second status line.
+// old one-step ilParseFullLog path runs and the status line says the review was skipped
+// (_ilfiNoReview), which — unlike a plain summary — does not auto-hide.
 function ilLogImportClose(apply){
   var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
   if(apply){
@@ -2531,14 +2540,16 @@ function ilLogImportClose(apply){
     else {
       var st=document.getElementById('ilLogImportStatus');
       if(st){
-        st.textContent=summary; st.hidden=false;
+        st.textContent=_ilfiNoReview ? _ilfiNoReview+' '+summary : summary;
+        st.hidden=false;
         clearTimeout(st._ilfHide);
-        st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+        // The skipped-review notice stays until the next import; a plain summary still auto-hides.
+        if(!_ilfiNoReview) st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
       }
     }
-    _ileToast(summary);
+    _ileToast(_ilfiNoReview ? _ilfiNoReview : summary);
   } else bg.hidden=true;
-  _ilfiResult=null; _ilfiReview=null;
+  _ilfiResult=null; _ilfiReview=null; _ilfiNoReview='';
   var op=_ilfiOpener; _ilfiOpener=null;
   if(op && op.focus) try{ op.focus(); }catch(e){}
 }

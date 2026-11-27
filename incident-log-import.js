@@ -65,6 +65,9 @@ function _label(line){
 // characters and a leading "*" become "-", the Created / Last modified trailer is dropped (metadata,
 // never content), separator-only lines go and runs of blank lines collapse to one.
 var IL_IMP_TRAILER=/^(?:created|last\s*modified)\s*:.*\bby\s+[A-Za-z0-9._-]+@/i;
+// The same trailer with its "by <alias>@" tail cut off by the agent: still metadata, never content,
+// so normalise drops it on the label alone. Detection keeps the stricter form above.
+var IL_IMP_TRAILER_BARE=/^(?:created|last\s*modified)\s*:/i;
 function normalise(text){
   var s=String(text==null?'':text).replace(/\r\n?/g,'\n').replace(/\u00A0/g,' ').replace(/[\u2500-\u257F]/g,'');
   var out=[];
@@ -72,7 +75,7 @@ function normalise(text){
     var l=String(raw).replace(/\s+$/,'');
     l=l.replace(/^([ \t]*)[\u2022\u2023\u25AA\u25CF\u00B7](\s*)/,'$1- ').replace(/^([ \t]*)\*(?!\*)(\s+)/,'$1- ');
     var bare=l.replace(/\s/g,'');
-    if(IL_IMP_TRAILER.test(_clean(l))) return;                       // metadata trailer
+    if(IL_IMP_TRAILER_BARE.test(_clean(l))) return;                  // metadata trailer
     if(!bare) { out.push(''); return; }
     if(/^(?:-{3,}|={3,}|_{3,}|\*{3,}|~{3,})$/.test(bare)) return;     // separator run
     out.push(l);
@@ -130,15 +133,18 @@ function _openRe(format){
 
 // ---- 3. splitIncidents ----
 // One block per incident, cut at the detected format's opening heading. Returns
-// [{index, heading, text}]; a paste with no repeated opening heading is one block.
+// [{index, heading, text}]; a paste with no repeated opening heading is one block. Text BEFORE the
+// first opening heading (a greeting, an "Incident 1:" header, a reordered first section) is a
+// preamble, not an incident: it stays with the first block, so the block count only ever rises on a
+// genuine repeat of the opening heading.
 function splitIncidents(text){
   var norm=normalise(text), open=_openRe(detect(text).format), lines=norm.split('\n'), at=[];
   lines.forEach(function(l,i){ if(open.test(_clean(l)) || open.test(l)) at.push(i); });
   if(!at.length) return norm.trim() ? [{index:0, heading:_cut(lines[0]||'',90), text:norm}] : [];
-  if(at[0]>0) at.unshift(0);
   var out=[];
   at.forEach(function(from,i){
-    var to=i+1<at.length ? at[i+1] : lines.length, body=lines.slice(from,to).join('\n').trim();
+    var start=i===0 ? 0 : from;
+    var to=i+1<at.length ? at[i+1] : lines.length, body=lines.slice(start,to).join('\n').trim();
     if(body) out.push({index:out.length, heading:_cut(_clean(lines[from]),90), text:body});
   });
   return out;
@@ -678,12 +684,23 @@ function review(r,o){
   o=o||{}; var api=o.api||{}, defs=_investDefs(api), filled=[], blank=[], unmapped=[];
   r=r||{};
   var sv=r.simValues||{}, sf=(r.sim&&r.sim.fields)||{}, src=r.sources||{};
+  // What the LOG said for a SIM key, not what survived validation: simValues already holds the
+  // blanked Issue / Res, so an off-catalogue value has to be read from the raw capture or the owner
+  // is told "the log does not state it" about a value the log does state.
+  var rawOf=function(k){
+    if(k==='Issue') return (r.issue&&r.issue.raw)||'';
+    if(k==='Res') return r.resRaw||'';
+    return String(sv[k]==null?'':sv[k]);
+  };
   var simKeys=((api.IL_SIM_FIELDS||[]).map(function(f){ return f.key; }));
   if(!simKeys.length) simKeys=['Issue','SID','Driv','Date','TID','Zip','Cnt','CID','UPID','Res'];
   simKeys.forEach(function(k){
     var val=String(sf[k]==null?'':sf[k]).trim(), label=IL_IMP_LABEL_TEXT[k]||k;
+    // Cnt: ilSimImport defaults an unstated count to 0, so say so — a stated zero and an assumed
+    // zero must not read the same in a panel whose whole job is to separate them.
+    if(k==='Cnt' && val==='0' && !rawOf('Cnt') && !src.Cnt){ filled.push({field:label, value:val, source:'not stated \u2014 defaulted to 0'}); return; }
     if(val) filled.push({field:label, value:val, source:src[k]||''});
-    else blank.push({field:label, why: sv[k] ? 'the pasted value is not an allowed option' : 'the log does not state it'});
+    else blank.push({field:label, why: rawOf(k) ? 'the pasted value is not an allowed option' : 'the log does not state it'});
   });
   [['rootCause', r.rootCause&&r.rootCause.value], ['res', r.res], ['phdSimLink', r.phdSimLink],
    ['emtLink', r.emtLink], ['severity', r.severity], ['findings', r.findings&&'(filled)'],
@@ -691,8 +708,9 @@ function review(r,o){
    ['risk', r.risk&&'(filled)'], ['notes', r.notes&&'(filled)'], ['reference', r.reference&&'(filled)']
   ].forEach(function(p){
     var label=IL_IMP_LABEL_TEXT[p[0]];
+    var stated=p[0]==='rootCause' ? ((r.rootCause&&r.rootCause.raw)||'') : (p[0]==='res' ? (r.resRaw||'') : '');
     if(p[1]) filled.push({field:label, value:String(p[1]), source:src[p[0]]||''});
-    else blank.push({field:label, why:'the log does not state it'});
+    else blank.push({field:label, why: stated ? 'the pasted value is not an allowed option' : 'the log does not state it'});
   });
   if(r.issue && r.issue.raw && !r.issue.value) unmapped.push({field:'SIM \u2014 Issue', raw:r.issue.raw, catalogue:'Issue types (issue-types.html)'});
   if(r.rootCause && r.rootCause.raw && !r.rootCause.value) unmapped.push({field:'Root Cause', raw:r.rootCause.raw, catalogue:'RC_ROOT_CAUSES'});
