@@ -1487,7 +1487,9 @@ function ilLayoutSync(){
   if(ps) ps.hidden=!full;
   _ilLinksSync();
   // Title block (Title + Severity) right below Comments; its visibility: _ilTitleSync.
-  var order=[tb, lr].concat(['ilRootCause','ilSimRcd','ilPhdInvestigation'].map(_ilWrapOf),
+  // Import review panel first, then the Title block with its Primary Case Tag chips under it.
+  var order=[document.getElementById('ilImportReview'), tb, document.getElementById('ilTags'), lr]
+    .concat(['ilRootCause','ilSimRcd','ilPhdInvestigation'].map(_ilWrapOf),
     _ilOptSecs().map(function(s){ return _ilWrapOf(s.id); }),
     [document.getElementById('ilAddSec'), _ilWrapOf('ilReference')]);
   var ref=anchor;
@@ -2320,34 +2322,88 @@ function ilSimImportClose(apply){
 }
 
 // ---- Whole-log Import pop-up (modal header button; same dialog style as the SIM Import) ----
+// Two stages, so no import is ever silent: paste -> Review (what gets filled, what stays blank, what
+// could not be mapped to an allowed value, plus the Primary Case Tag chips) -> Apply. Nothing is
+// written to the form before Apply. The parse comes from incident-log-import.js
+// (window.PHDIncidentImport); when that script is absent the old one-step ilParseFullLog path runs.
 var _ilfiOpener=null;
+var _ilfiResult=null;   // the reviewed PHDIncidentImport.parse() result, applied by Apply
+var _ilfiReview=null;   // its PHDIncidentImport.review() report (dialog step + the panel)
 function _ilfiBuild(){
   var bg=document.getElementById('ilLogImport'); if(bg) return bg;
   bg=document.createElement('div'); bg.id='ilLogImport'; bg.className='ilc-bg'; bg.hidden=true;
   bg.innerHTML='<div class="ilc-dlg ils-dlg" role="dialog" aria-modal="true" aria-labelledby="ilLogImportTitle" aria-describedby="ilLogImportHint">'+
       '<h3 class="ilc-title" id="ilLogImportTitle">Import incident log</h3>'+
       '<div class="ilc-body">'+
-        '<label class="ils-lbl" for="ilLogImportText">Paste the full incident log</label>'+
-        '<textarea id="ilLogImportText" class="ils-ta" rows="14" spellcheck="false" placeholder="**Determination:**&#10;- \u2026&#10;**PHD Findings:**&#10;- \u2026&#10;**Root Cause:**&#10;- \u2026&#10;**SIM Root Cause Details:**&#10;- Issue: \u2026"></textarea>'+
-        '<p class="ils-hint" id="ilLogImportHint">SIM Root Cause Details, Root Cause, PHD Findings, Determination, Evidence Details, Risk Assessment and matching checklist answers fill their fields; the intro text, Primary Case Tag and checklists go to the PHD reference (not copied); other sections go to PHD Notes.</p>'+
-        IL_EXTRA_SECS.map(function(x){
-          return '<label class="ilfi-rep" id="ilLogImportRepWrap_'+x.id+'" hidden><input type="checkbox" id="ilLogImportRep_'+x.id+'" checked> Replace existing '+x.label+'</label>';
-        }).join('')+
-        '<label class="ilfi-rep" id="ilLogImportRepWrap" hidden><input type="checkbox" id="ilLogImportRep" checked> Replace existing PHD Notes</label>'+
-        '<label class="ilfi-rep" id="ilLogImportRefRepWrap" hidden><input type="checkbox" id="ilLogImportRefRep" checked> Replace existing Reference</label>'+
-        '<p class="ils-err" id="ilLogImportErr" role="alert" hidden></p>'+
+        // Stage 1: the paste.
+        '<div class="ilfi-stage" id="ilLogImportPaste">'+
+          '<label class="ils-lbl" for="ilLogImportText">Paste the full incident log</label>'+
+          '<textarea id="ilLogImportText" class="ils-ta" rows="14" spellcheck="false" placeholder="**Determination:**&#10;- \u2026&#10;**PHD Findings:**&#10;- \u2026&#10;**Root Cause:**&#10;- \u2026&#10;**SIM Root Cause Details:**&#10;- Issue: \u2026"></textarea>'+
+          '<p class="ils-hint" id="ilLogImportHint">Review first: the next step lists what will be filled, what stays blank for you and what could not be mapped to an allowed value \u2014 nothing is written to the form until you apply it. SIM Root Cause Details, Root Cause, PHD Findings, Determination, Evidence Details, Risk Assessment and matching checklist answers fill their fields; the intro text, Primary Case Tag and checklists go to the PHD reference (not copied); other sections go to PHD Notes.</p>'+
+          '<p class="ils-err" id="ilLogImportErr" role="alert" hidden></p>'+
+        '</div>'+
+        // Stage 2: the review of that paste + the "replace existing" options Apply obeys.
+        '<div class="ilfi-stage ilrv ilrv-dlg" id="ilLogImportReviewPane" hidden>'+
+          '<div class="ilrv-body" id="ilLogImportReviewBody"></div>'+
+          '<div class="ilfi-reps">'+
+            IL_EXTRA_SECS.map(function(x){
+              return '<label class="ilfi-rep" id="ilLogImportRepWrap_'+x.id+'" hidden><input type="checkbox" id="ilLogImportRep_'+x.id+'" checked> Replace existing '+x.label+'</label>';
+            }).join('')+
+            '<label class="ilfi-rep" id="ilLogImportRepWrap" hidden><input type="checkbox" id="ilLogImportRep" checked> Replace existing PHD Notes</label>'+
+            '<label class="ilfi-rep" id="ilLogImportRefRepWrap" hidden><input type="checkbox" id="ilLogImportRefRep" checked> Replace existing Reference</label>'+
+          '</div>'+
+        '</div>'+
       '</div>'+
       '<div class="ilc-actions">'+
         '<button type="button" class="ilc-btn sec" id="ilLogImportCancel">Cancel</button>'+
-        '<button type="button" class="ilc-btn go" id="ilLogImportGo">Import</button>'+
+        '<button type="button" class="ilc-btn sec" id="ilLogImportBack" hidden>Back to the paste</button>'+
+        '<button type="button" class="ilc-btn go" id="ilLogImportGo">Review import</button>'+
+        '<button type="button" class="ilc-btn go" id="ilLogImportApply" hidden>Apply import</button>'+
       '</div>'+
     '</div>';
   (document.getElementById('incidentModal')||document.body).appendChild(bg);
   document.getElementById('ilLogImportCancel').addEventListener('click',function(){ ilLogImportClose(false); });
-  document.getElementById('ilLogImportGo').addEventListener('click',function(){ ilLogImportClose(true); });
+  document.getElementById('ilLogImportGo').addEventListener('click',function(){ ilLogImportReview(); });
+  document.getElementById('ilLogImportBack').addEventListener('click',function(){ _ilfiStage(false); });
+  document.getElementById('ilLogImportApply').addEventListener('click',function(){ ilLogImportClose(true); });
   bg.addEventListener('click',function(e){ e.stopPropagation(); if(e.target===bg) ilLogImportClose(false); });
   window.addEventListener('keydown',_ilfiKeydown,true);
   return bg;
+}
+// review=true shows the review stage (Back + Apply), false the paste stage (Review import).
+function _ilfiStage(review){
+  var p=document.getElementById('ilLogImportPaste'), rv=document.getElementById('ilLogImportReviewPane');
+  if(!p || !rv) return;
+  p.hidden=!!review; rv.hidden=!review;
+  var set=function(id,hide){ var b=document.getElementById(id); if(b) b.hidden=hide; };
+  set('ilLogImportGo',!!review); set('ilLogImportApply',!review); set('ilLogImportBack',!review);
+  var t=document.getElementById('ilLogImportTitle');
+  if(t) t.textContent=review ? 'Review this import' : 'Import incident log';
+}
+// Stage 1 -> stage 2: parse the paste and show the review. Nothing is written to the form here.
+function ilLogImportReview(){
+  var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
+  var ta=document.getElementById('ilLogImportText'), er=document.getElementById('ilLogImportErr');
+  var txt=String(ta.value||'');
+  var P=(typeof window!=='undefined') ? window.PHDIncidentImport : null;
+  // No parser module (script failed to load): keep the old one-step import rather than break Import.
+  if(!(P && typeof P.parse==='function' && typeof P.review==='function')){ ilLogImportClose(true); return; }
+  var L=_ilsLists(), r=null, failed=false;
+  if(txt.trim()){
+    try{ r=P.parse(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res, api:IncidentLogEditor}); }
+    catch(e){ failed=true; }
+  }
+  if(failed){ ilLogImportClose(true); return; }   // guarded fallback to ilParseFullLog
+  if(!r || !r.known){
+    er.textContent=txt.trim() ? 'No incident log sections found in the pasted text.' : 'Paste the full incident log first.';
+    er.hidden=false; try{ ta.focus(); }catch(e){} return;
+  }
+  er.hidden=true; er.textContent='';
+  _ilfiResult=r; _ilfiReview=P.review(r,{api:IncidentLogEditor});
+  var body=document.getElementById('ilLogImportReviewBody');
+  if(body) body.innerHTML=_ilrvHtml(_ilfiReview,r,false);
+  _ilfiStage(true);
+  var ap=document.getElementById('ilLogImportApply'); if(ap) try{ ap.focus(); }catch(e){}
 }
 function _ilfiOpen(){ var bg=document.getElementById('ilLogImport'); return !!(bg && !bg.hidden); }
 function _ilfiKeydown(e){
@@ -2379,6 +2435,8 @@ function ilLogImportOpen(btn){
     document.getElementById('ilLogImportRepWrap_'+x.id).hidden=!(el && String(el.value||'').trim());
     document.getElementById('ilLogImportRep_'+x.id).checked=true;
   });
+  _ilfiResult=null; _ilfiReview=null;
+  _ilfiStage(false);
   bg.hidden=false;
   try{ ta.focus(); }catch(e){}
 }
@@ -2391,14 +2449,18 @@ function _ilfiUnlock(id){
   else { was=el.readOnly; el.readOnly=false; }
   if(was && pen) pen.classList.add('editing');
 }
-// apply=true parses the pasted log into the form fields (nothing is saved).
+// apply=true writes the reviewed import into the form fields (nothing is saved). The result is the
+// one the review stage parsed (_ilfiResult); without it (no parser module / a parse that threw) the
+// old one-step ilParseFullLog path runs, including its 5-second status line.
 function ilLogImportClose(apply){
   var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
   if(apply){
     var ta=document.getElementById('ilLogImportText'), er=document.getElementById('ilLogImportErr');
     var txt=String(ta.value||''), L=_ilsLists();
-    var r=txt.trim() ? ilParseFullLog(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res}) : null;
+    var r=_ilfiResult;
+    if(!r) r=txt.trim() ? ilParseFullLog(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res}) : null;
     if(!r || !r.known){
+      _ilfiStage(false);
       er.textContent=txt.trim() ? 'No incident log sections found in the pasted text.' : 'Paste the full incident log first.';
       er.hidden=false; try{ ta.focus(); }catch(e){} return;
     }
@@ -2460,19 +2522,150 @@ function ilLogImportClose(apply){
     if(r.res) ilSetSavedResolution(r.res);   // PHD Resolution fallback when the SIM has no "Res:" line
     _ilLayout='full';        // complete incident log layout (applied by ilRefreshEmptyMarks -> ilLayoutSync)
     ilRefreshEmptyMarks();
+    ilTagsSync();            // Primary Case Tag chips from the imported reference text
     _ilfiOpener=document.getElementById('ilSimTitleOut')||_ilfiOpener;   // focus moves to the Title block
     var summary=ilFullLogSummary(r,n);
-    // Import summary line at the top of the form: shown for 5 seconds, then hidden.
-    var st=document.getElementById('ilLogImportStatus');
-    if(st){
-      st.textContent=summary; st.hidden=false;
-      clearTimeout(st._ilfHide);
-      st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+    // The reviewed import leaves its report on screen (dismissible, no auto-hide): a silent partial
+    // import is the failure mode being designed out. The old path keeps its 5-second status line.
+    if(_ilfiReview) ilImportReviewShow(_ilfiReview,r,summary);
+    else {
+      var st=document.getElementById('ilLogImportStatus');
+      if(st){
+        st.textContent=summary; st.hidden=false;
+        clearTimeout(st._ilfHide);
+        st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+      }
     }
     _ileToast(summary);
   } else bg.hidden=true;
+  _ilfiResult=null; _ilfiReview=null;
   var op=_ilfiOpener; _ilfiOpener=null;
   if(op && op.focus) try{ op.focus(); }catch(e){}
+}
+
+// ---- Import review (the dialog's stage 2 and the persistent #ilImportReview panel) ----
+// Both render the same PHDIncidentImport.review(result) object in three groups: what was filled,
+// what is blank and needs the owner, and what could not be mapped to an allowed catalogue value.
+// goto=true adds the "Go to field" buttons (panel only — in the dialog the form is behind it) and
+// they are rendered only for a control that exists and is visible right now.
+var IL_RV_GROUPS=[
+  {k:'filled',   cls:'ok',  title:'Filled'},
+  {k:'blank',    cls:'gap', title:'Blank \u2014 needs you'},
+  {k:'unmapped', cls:'bad', title:'Not mapped to an allowed value'}
+];
+// Review field label -> the form control to focus. SIM rows go through the SIM form's own controls
+// (_ilsEl / the Driv radios, falling back to _ilsMissTarget), questionnaire rows through _ilqFocusRow.
+function _ilrvFieldIds(){
+  var o={'Root Cause':'ilRootCause','PHD Findings':'ilPhdFindings','PHD notes':'ilPhdNotes',
+    'PHD reference (not copied)':'ilReference','PHD Related Link':'ilPhdSimOut','EMT Link':'ilEmtOut'};
+  IL_EXTRA_SECS.forEach(function(x){ o[x.label]=x.id; });
+  return o;
+}
+function _ilrvInvestKeys(){ var o={}; _ilqAllDefs().forEach(function(d){ if(d.label) o[d.label]=d.key; }); return o; }
+function _ilrvTarget(field){
+  var f=String(field==null?'':field).trim(), m=/^SIM \u2014 (\w+)$/.exec(f);
+  if(m) return {kind:'sim', key:m[1]};
+  if(f==='PHD Resolution') return {kind:'sim', key:'Res'};
+  if(f==='Severity') return {kind:'sev', key:''};
+  var ids=_ilrvFieldIds(); if(ids[f]) return {kind:'el', key:ids[f]};
+  var q=_ilrvInvestKeys()[f]; if(q) return {kind:'q', key:q};
+  return null;
+}
+// The element a target points at, or null when it is not on screen (hidden optional section).
+function _ilrvEl(t){
+  if(!t || typeof document==='undefined') return null;
+  var el=null;
+  if(t.kind==='sim') el=(t.key==='Driv') ? _ilsDrivRadios()[0] : (_ilsEl(t.key)||_ilsMissTarget({label:t.key+':'}));
+  else if(t.kind==='q') el=_ilqCb(t.key)||_ilqEl(t.key);
+  else if(t.kind==='sev'){ var g=document.getElementById('ilSevGroup'); el=g ? g.querySelector('.ail-qnb') : null; }
+  else el=document.getElementById(t.key);
+  return (el && el.offsetParent!==null) ? el : null;
+}
+function ilImportGoto(btn){
+  if(!btn) return;
+  var t={kind:btn.getAttribute('data-kind')||'', key:btn.getAttribute('data-key')||''};
+  if(t.kind==='q'){ _ilqFocusRow(t.key); return; }
+  var el=_ilrvEl(t); if(!el) return;
+  if(el.scrollIntoView) try{ el.scrollIntoView({block:'center'}); }catch(e){}
+  try{ el.focus(); }catch(e){}
+}
+function _ilrvCut(v,n){ v=String(v==null?'':v).replace(/\s+/g,' ').trim(); return v.length>n ? v.slice(0,n-1)+'\u2026' : v; }
+function _ilrvRow(g,x,goto){
+  var t=goto ? _ilrvTarget(x.field) : null, el=t ? _ilrvEl(t) : null;
+  var tail='';
+  if(g.k==='filled') tail='<span class="ilrv-val">'+_ileEsc(_ilrvCut(x.value,140))+'</span>'+(x.source?'<span class="ilrv-src">'+_ileEsc(_ilrvCut(x.source,100))+'</span>':'');
+  else if(g.k==='blank') tail='<span class="ilrv-why">'+_ileEsc(x.why||'')+'</span>';
+  else tail='<span class="ilrv-raw">'+_ileEsc(_ilrvCut(x.raw,120))+'</span>'+(x.catalogue?'<span class="ilrv-src">not in '+_ileEsc(_ilrvCut(x.catalogue,80))+'</span>':'');
+  return '<li class="ilrv-row"><span class="ilrv-f">'+_ileEsc(x.field||'')+'</span>'+tail+
+    (el ? '<button type="button" class="ilrv-go" data-kind="'+t.kind+'" data-key="'+_ileEsc(t.key)+'" onclick="ilImportGoto(this)">Go to field</button>' : '')+'</li>';
+}
+function _ilrvHtml(rv,r,goto){
+  rv=rv||{};
+  var h='';
+  if(rv.multi && rv.multi.warning) h+='<p class="ilrv-warn">'+_ileEsc(rv.multi.warning)+'</p>';
+  var tags=rv.tags||[];
+  if(tags.length) h+='<div class="ilrv-tags"><span class="ilrv-tags-lbl">Primary Case Tag \u2014 click a tag to copy it</span>'+
+    '<span class="ail-tagrow ail-tagrow-in">'+tags.map(_ilTagChip).join('')+'</span></div>';
+  var extra=[];
+  if(r && r.format) extra.push('Format read as '+r.format);
+  if(r && r.additionalResolutions && r.additionalResolutions.length) extra.push('Additional resolution stated: '+r.additionalResolutions.join(', ')+' (the SIM "Res:" keeps the primary only)');
+  if(r && r.dateSource) extra.push('Date read from: '+_ilrvCut(r.dateSource,90));
+  if(extra.length) h+='<p class="ilrv-note">'+extra.map(function(x){ return _ileEsc(x); }).join('<br>')+'</p>';
+  IL_RV_GROUPS.forEach(function(g){
+    var rows=rv[g.k]||[];
+    h+='<details class="ilrv-g ilrv-'+g.cls+'"'+((g.k!=='filled' && rows.length)?' open':'')+'>'+
+      '<summary class="ilrv-sum">'+g.title+' <span class="ilrv-n">'+rows.length+'</span></summary>'+
+      (rows.length ? '<ul class="ilrv-list">'+rows.map(function(x){ return _ilrvRow(g,x,goto); }).join('')+'</ul>'
+                   : '<p class="ilrv-none">Nothing in this group.</p>')+
+    '</details>';
+  });
+  return h;
+}
+// The panel under the modal head: stays until the owner dismisses it.
+function ilImportReviewShow(rv,r,summary){
+  if(typeof document==='undefined') return;
+  var sec=document.getElementById('ilImportReview'), body=document.getElementById('ilImportReviewBody');
+  if(!sec || !body || !rv) return;
+  var t=document.getElementById('ilImportReviewTitle');
+  if(t) t.textContent=summary ? 'Import review \u2014 '+summary : 'Import review';
+  body.innerHTML=_ilrvHtml(rv,r,true);
+  sec.hidden=false;
+}
+function ilImportReviewDismiss(){
+  if(typeof document==='undefined') return;
+  var sec=document.getElementById('ilImportReview'), body=document.getElementById('ilImportReviewBody');
+  if(sec) sec.hidden=true;
+  if(body) body.innerHTML='';
+}
+
+// ---- Primary Case Tag chips (#ilTags): one individually copyable chip per tag ----
+// Source: the pure PHDIncidentImport.ilCaseTags() over the reference text the import writes, so the
+// chips follow the saved entry (save -> reopen) with no change to the saved or copied format.
+// "No Hashtag Applicable" is a chip too. Rebuilt on open, on a reference edit and after an import.
+function ilCaseTagList(){
+  if(typeof document==='undefined') return [];
+  var ref=document.getElementById('ilReference'), txt=ref ? String(ref.value||'') : '';
+  var P=(typeof window!=='undefined') ? window.PHDIncidentImport : null;
+  if(!txt.trim() || !(P && typeof P.ilCaseTags==='function')) return [];
+  try{ return P.ilCaseTags(txt)||[]; }catch(e){ return []; }
+}
+// data-keepcase: the shared app-light.css capitalizes every <button>, and a hashtag is case-sensitive
+// (the chip must read exactly what it copies).
+function _ilTagChip(t){
+  var e=_ileEsc(t);
+  return '<button type="button" class="ail-tag" data-keepcase data-tag="'+e+'" onclick="ilCopyTag(this)" title="Copy '+e+'" aria-label="Copy '+e+'">'+e+'</button>';
+}
+function ilTagsSync(){
+  if(typeof document==='undefined') return;
+  var row=document.getElementById('ilTags'); if(!row) return;
+  var tags=ilCaseTagList();
+  row.innerHTML=tags.length ? '<span class="ail-tagrow-lbl">Primary Case Tag</span>'+tags.map(_ilTagChip).join('') : '';
+  row.hidden=!tags.length;
+}
+// Each chip copies exactly its own tag text (the editor's clipboard idiom: _ilCopyText).
+function ilCopyTag(btn){
+  var t=btn ? String(btn.getAttribute('data-tag')||'') : '';
+  if(t) _ilCopyText(t,btn,'Copied '+t);
 }
 
 // ---- DOM helpers (fixed element ids from the shared markup) ----
@@ -3643,7 +3836,7 @@ var IncidentLogEditor=(function(){
       '<label class="ail-flabel" for="'+id+'"><span class="ail-flabel-tx">'+label+'</span> <span class="ail-ref-pill">Not copied</span>'+
         '<button type="button" class="ail-fedit" data-for="'+id+'" onclick="ilEditField(this)" title="Edit this field" aria-label="Edit '+label+'" style="display:none"></button></label>'+
       '<p class="ail-ref-hint" id="ilReferenceHint">For reference only. This section is never copied to SIM or EMT.</p>'+
-      '<textarea id="'+id+'" class="ail-f" aria-describedby="ilReferenceHint" placeholder="Intro notes, Primary Case Tag, Investigation / Evidence Checklist \u2026"></textarea>'+
+      '<textarea id="'+id+'" class="ail-f" oninput="ilTagsSync()" aria-describedby="ilReferenceHint" placeholder="Intro notes, Primary Case Tag, Investigation / Evidence Checklist \u2026"></textarea>'+
     '</div>';
   }
   // Read-only row of the complete layout (Title / PHD SIM / EMT Link): label + "Read-only" pill +
@@ -3728,7 +3921,15 @@ var IncidentLogEditor=(function(){
             '</div>'+
             '<p class="ail-tools-note" id="ilToolsNote" role="status" aria-live="polite"></p>'+
           '</div>'+
+          // Status line of the old one-step import (also ilLayoutSync's insertion anchor).
           '<p class="ail-log-status" id="ilLogImportStatus" role="status" aria-live="polite" hidden></p>'+
+          // Import review panel: filled in by ilImportReviewShow after an Import and kept on screen
+          // until dismissed (no auto-hide), each row with a "Go to field" button.
+          '<section class="ilrv" id="ilImportReview" aria-labelledby="ilImportReviewTitle" hidden>'+
+            '<div class="ilrv-head"><h3 class="ilrv-ttl" id="ilImportReviewTitle">Import review</h3>'+
+              '<button type="button" class="ilrv-x" onclick="ilImportReviewDismiss()" title="Dismiss the import review" aria-label="Dismiss the import review">&times;</button></div>'+
+            '<div class="ilrv-body" id="ilImportReviewBody"></div>'+
+          '</section>'+
           // Markup order = default layout; ilLayoutSync re-orders (moves the nodes) for the complete
           // layout and hides / shows the optional sections. PHD Related Link (hidden input, filled by
           // the page with the ticket URL) and PHD Resolution (the SIM "Res:" value) are not form
@@ -3737,6 +3938,8 @@ var IncidentLogEditor=(function(){
           // saved severity is set (_ilTitleSync). Read-only PHD SIM + EMT Link: complete layout only.
           // ilLayoutSync orders / shows every section.
           titleBlock()+
+          // Primary Case Tag chips (ilTagsSync): hidden with no tags; each chip copies its own tag.
+          '<div class="ail-tagrow" id="ilTags" role="group" aria-label="Primary Case Tag" hidden></div>'+
           '<div class="ail-linkrow" id="ilLinksRow" role="group" aria-label="PHD SIM and EMT Link" hidden>'+
             roField('ilPhdSimOut','PHD SIM','ilPhdSimField',true)+emtField()+
           '</div>'+
@@ -3814,6 +4017,8 @@ var IncidentLogEditor=(function(){
       var open=getComputedStyle(node).display!=='none';
       if(open && !_ilLock){
         _ilBodyLock(true);
+        ilImportReviewDismiss();   // a previous ticket's import review never carries over to this open
+        ilTagsSync();              // Primary Case Tag chips of the entry being opened
         _ilScrollBodyTop();   // open at the top (Comments/Title in view), not a leftover scroll
         var raf=window.requestAnimationFrame||function(f){ return setTimeout(f,16); };
         raf(function(){ if(_ilLock){ ilAutosizeAll(); _ilScrollBodyTop(); } });
@@ -3916,6 +4121,7 @@ var IncidentLogEditor=(function(){
     '.ilc-btn.go{background:#ec7211;border-color:#ec7211;color:#fff}',
     '.ilc-btn.go:hover{filter:brightness(1.06)}',
     '.ilc-btn:focus-visible,.ilc-list:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ilc-btn[hidden]{display:none!important}',   // the two-stage Import swaps Review / Back + Apply
     // Incident-log modal width (Add + Edit, both pages): 90vw, 96vw under 700px. Scoped to
     // #incidentModal so it wins over the pages' older .ail-modal width rules.
     '#incidentModal .ail-modal{width:90vw;max-width:90vw}',
@@ -4029,6 +4235,54 @@ var IncidentLogEditor=(function(){
     '.ilfi-rep input:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
     '.ilfi-rep[hidden],.ail-log-status[hidden]{display:none!important}',
     '.ail-log-status{margin:0 0 12px;font-size:.8em;font-weight:600;color:#1f6f43}',
+    // Two-stage Import dialog: the paste stage and the review stage fill the dialog body in turn.
+    '.ilfi-stage{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}',
+    '.ilfi-stage[hidden]{display:none!important}',
+    '.ilrv-dlg{overflow-y:auto}',
+    '.ilfi-reps{display:flex;flex-direction:column;align-items:flex-start;gap:2px}',
+    // Import review: the dialog's review step and the persistent panel under the modal head.
+    '.ilrv{margin:0 0 14px;padding:10px 12px;border:1px solid #d4dce4;border-left:3px solid #ec7211;border-radius:10px;background:#fff;color:#1b2026}',
+    '.ilrv[hidden]{display:none!important}',
+    '.ilrv-head{display:flex;align-items:center;gap:8px}',
+    '#incidentModal h3.ilrv-ttl{margin:0!important;padding:0;flex:1 1 auto;min-width:0;font-size:.82em!important;font-weight:800!important;color:#1b2026!important;line-height:1.45;background:none!important;border:0!important;text-transform:none}',
+    '#incidentModal button.ilrv-x{flex:0 0 auto;width:24px;height:24px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4dce4!important;border-radius:6px!important;background:#fff!important;color:#5c6773!important;font-size:1.1em;line-height:1;cursor:pointer;box-shadow:none!important}',
+    '#incidentModal button.ilrv-x:hover{border-color:#ec7211!important;color:#1b2026!important}',
+    '.ilrv-body{margin-top:8px;max-height:42vh;overflow:auto}',
+    '.ilrv-warn{margin:0 0 8px;padding:6px 10px;font-size:.78em;font-weight:700;color:#8a5a00;background:#fff3e0;border:1px solid #f6ddb8;border-radius:7px}',
+    '.ilrv-note{margin:0 0 8px;font-size:.76em;line-height:1.5;color:#5c6773}',
+    '.ilrv-tags{margin:0 0 8px}',
+    '.ilrv-tags-lbl{display:block;margin-bottom:5px;font-size:.72em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a4100}',
+    '.ilrv-g{margin:0 0 6px;border:1px solid #e6eaee;border-radius:8px;background:#f7f9fb}',
+    '.ilrv-g:last-child{margin-bottom:0}',
+    '.ilrv-sum{padding:6px 10px;font-size:.78em;font-weight:800;color:#2a3340;cursor:pointer;list-style:none}',
+    '.ilrv-sum::-webkit-details-marker{display:none}',
+    '.ilrv-sum::before{content:"\\25B8";display:inline-block;width:12px;color:#8793a0}',
+    '.ilrv-g[open]>.ilrv-sum::before{content:"\\25BE"}',
+    '.ilrv-sum:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '.ilrv-n{display:inline-block;margin-left:4px;padding:0 7px;border-radius:999px;font-size:.92em;font-weight:800;background:#e3e8ed;color:#3d4753}',
+    '.ilrv-ok>.ilrv-sum{color:#1f6f43}.ilrv-ok .ilrv-n{background:#e3f3e9;color:#1f6f43}',
+    '.ilrv-gap>.ilrv-sum{color:#8a5a00}.ilrv-gap .ilrv-n{background:#fff3e0;color:#8a5a00}',
+    '.ilrv-bad>.ilrv-sum{color:#b42318}.ilrv-bad .ilrv-n{background:#fdeaea;color:#b42318}',
+    '.ilrv-list{margin:0;padding:0 10px 8px;list-style:none}',
+    '.ilrv-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:5px 0;border-top:1px solid #e9edf1;font-size:.78em;line-height:1.45}',
+    '.ilrv-row:first-child{border-top:0}',
+    '.ilrv-f{font-weight:700;color:#1b2026}',
+    '.ilrv-val{color:#2a3340;word-break:break-word}',
+    '.ilrv-raw{color:#b42318;word-break:break-word}',
+    '.ilrv-why{color:#5c6773}',
+    '.ilrv-src{color:#8793a0;font-size:.92em;font-style:italic;word-break:break-word}',
+    '.ilrv-none{margin:0;padding:0 10px 8px;font-size:.76em;color:#8793a0}',
+    '#incidentModal button.ilrv-go{margin:0 0 0 auto;padding:2px 9px!important;border:1px solid #d4dce4!important;border-radius:999px!important;background:#fff!important;color:#1577a0!important;font-family:inherit;font-size:.92em;font-weight:700;cursor:pointer;box-shadow:none!important;flex:0 0 auto}',
+    '#incidentModal button.ilrv-go:hover{border-color:#1577a0!important;background:rgba(21,119,160,.08)!important}',
+    // Primary Case Tag chips (#ilTags + the review's own row): one copyable chip per tag.
+    '.ail-tagrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 14px;padding:8px 10px;border:1px solid #d4dce4;border-radius:10px;background:#f7f9fb}',
+    '.ail-tagrow[hidden]{display:none!important}',
+    '.ail-tagrow.ail-tagrow-in{display:inline-flex;margin:0;padding:0;border:0;background:none}',
+    '.ail-tagrow-lbl{font-size:.72em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a4100;margin-right:2px}',
+    '#incidentModal button.ail-tag{display:inline-flex;align-items:center;min-height:28px;margin:0;padding:0 12px!important;border:1px solid #d4dce4!important;border-radius:999px!important;background:#fff!important;color:#2a3340!important;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78em;font-weight:700;text-transform:none!important;cursor:pointer;box-shadow:none!important;transition:border-color .12s,background .12s,color .12s}',
+    '#incidentModal button.ail-tag:hover{border-color:#ec7211!important;background:#fff7f0!important;color:#1b2026!important}',
+    '#incidentModal button.ail-tag:focus-visible{outline:2px solid #1577a0;outline-offset:2px}',
+    '#incidentModal button.ail-tag.copied{border-color:#1f9d57!important;background:#e3f3e9!important;color:#1f6f43!important}',
     // "Reference — not copied" field: muted, dashed frame + "NOT COPIED" pill (no copy icon).
     '#incidentModal .ail-field.ail-ref{background:#f4f6f8!important;border:1px dashed #b8c2cc!important;border-radius:10px;padding:12px 14px}',
     '#incidentModal .ail-field.ail-ref .ail-flabel-tx{color:#4a5560!important}',
