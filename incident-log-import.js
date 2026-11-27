@@ -28,8 +28,12 @@
 //   - The PHD SIM is never a "Source Ticket:", an "LMIR Source Ticket:" or an
 //     "Address Exclusion SIM raised:" link; the EMT id is read from incidentId=<digits> even when the
 //     URL is truncated mid-querystring ("&tabV") and the canonical URL is rebuilt from it.
-//   - Several incidents in one paste are never silently merged: every block is reported (blocks,
-//     incidents[]) and only the first is applied.
+//   - Several incidents in one paste are never silently merged, whether the two logs come from the
+//     same agent or from two different ones: splitIncidents cuts on a repeated heading from ANY
+//     format, every block is reported (blocks, incidents[]) and only the first is applied.
+//   - The review never asks for an answer the editor would not ask for: a question hidden for the
+//     ticket's region or for a Flex DP transporter is left out of the report, and a question that is
+//     already reported as unmappable is not also reported as blank.
 //
 // Injected api (the deps-injection pattern the server modules use; pass IncidentLogEditor, or bind it
 // once with withApi(api)). Used at call time, never at load time, so there is no load-order coupling:
@@ -37,9 +41,16 @@
 //   ilSimImport, ilParseSim, ilEmtNumber, ilSevFromText, IL_SIM_FIELDS, IL_INVEST_QS,
 //   IL_EMT_URL_PRE, IL_EMT_URL_POST.
 //
-// Exports one global (window.PHDIncidentImport) / module.exports: normalise, detect, splitIncidents,
-// splitSections, IL_IMP_LABELS, extractFields, resolveDate, mapResolution, IL_EVIDENCE_RULES,
-// investFromProse, routeExtras, ilCaseTags, parse, review, withApi.
+// The owner's final shared prompt (approved 27 Nov) is accepted ALONGSIDE the seven agent formats,
+// never instead of them: "Incident Findings:" is a full synonym of "PHD Findings:", "PHD Mitigation:"
+// replaces "PHD notes:" (which, like "Determination:", is no longer required), the two "Outreaches
+// to …" items are kept under their own label in the reference block, the new
+// "- Likelihood: <High|Low>," risk shape needs no tier line, and nothing anywhere keys off section
+// ORDER — only off the headings.
+//
+// Exports one global (window.PHDIncidentImport) / module.exports: normalise, detect, detectFamilies,
+// splitIncidents, splitSections, IL_IMP_LABELS, extractFields, resolveDate, mapResolution,
+// IL_EVIDENCE_RULES, investFromProse, routeExtras, ilCaseTags, parse, review, withApi.
 // ====================================================================================
 (function (root) {
 
@@ -65,17 +76,31 @@ function _label(line){
 // characters and a leading "*" become "-", the Created / Last modified trailer is dropped (metadata,
 // never content), separator-only lines go and runs of blank lines collapse to one.
 var IL_IMP_TRAILER=/^(?:created|last\s*modified)\s*:.*\bby\s+[A-Za-z0-9._-]+@/i;
-// The same trailer with its "by <alias>@" tail cut off by the agent: still metadata, never content,
-// so normalise drops it on the label alone. Detection keeps the stricter form above.
+// The same trailer with its "by <alias>@" tail cut off by the agent: still metadata, never content.
+// Dropped on the label alone ONLY in the trailing metadata block (see _trailerFrom), so a content
+// line that happens to start "Created: …" in the middle of a log is kept. Detection keeps the
+// stricter form above.
 var IL_IMP_TRAILER_BARE=/^(?:created|last\s*modified)\s*:/i;
+// Index of the first line of the trailing run of blank / bare-trailer lines (lines.length = none).
+function _trailerFrom(lines){
+  var from=lines.length;
+  for(var i=lines.length-1;i>=0;i--){
+    var c=_clean(lines[i]);
+    if(!c.replace(/\s/g,'')){ from=i; continue; }
+    if(IL_IMP_TRAILER_BARE.test(c)){ from=i; continue; }
+    break;
+  }
+  return from;
+}
 function normalise(text){
   var s=String(text==null?'':text).replace(/\r\n?/g,'\n').replace(/\u00A0/g,' ').replace(/[\u2500-\u257F]/g,'');
-  var out=[];
-  s.split('\n').forEach(function(raw){
+  var out=[], src=s.split('\n'), tail=_trailerFrom(src);
+  src.forEach(function(raw,i){
     var l=String(raw).replace(/\s+$/,'');
     l=l.replace(/^([ \t]*)[\u2022\u2023\u25AA\u25CF\u00B7](\s*)/,'$1- ').replace(/^([ \t]*)\*(?!\*)(\s+)/,'$1- ');
     var bare=l.replace(/\s/g,'');
-    if(IL_IMP_TRAILER_BARE.test(_clean(l))) return;                  // metadata trailer
+    // Metadata trailer: the "by <alias>@" form anywhere, the bare label only in the trailing block.
+    if(IL_IMP_TRAILER_BARE.test(_clean(l)) && (IL_IMP_TRAILER.test(_clean(l)) || i>=tail)) return;
     if(!bare) { out.push(''); return; }
     if(/^(?:-{3,}|={3,}|_{3,}|\*{3,}|~{3,})$/.test(bare)) return;     // separator run
     out.push(l);
@@ -86,37 +111,56 @@ function normalise(text){
 // ---- 2. detect ----
 // Marker scoring, not author names. The format only selects pre-normalisation quirks (which heading
 // opens an incident, which trailer to strip); it never gates extraction.
+// A marker row is [regex, score, label, signature?]. A SIGNATURE marker belongs to one agent's shape
+// only — never a heading several formats share (PHD Notes:, Determination:, Matrix pathway:,
+// Treatment Rationale:, EMT Incident Report:) — so two signature families in one paste mean two
+// logs even when they share no heading to cut on (see detectFamilies / parse().multiSuspect).
 var IL_IMP_FORMATS=[
   {format:'harisss',  open:/^\s*(?:\*\*)?SIM Title\s*:/i, markers:[
-    [/SIM Root Cause Details\s*:/i, 2, 'SIM Root Cause Details:'],
-    [/PHD Investigation for mitigation/i, 2, 'PHD Investigation for mitigation:'],
-    [/^\s*(?:\*\*)?PHD Related Link\s*:/im, 1, 'PHD Related Link:']]},
+    [/SIM Root Cause Details\s*:/i, 2, 'SIM Root Cause Details:', 1],
+    [/PHD Investigation for mitigation/i, 2, 'PHD Investigation for mitigation:', 1],
+    [/^\s*(?:\*\*)?PHD Related Link\s*:/im, 1, 'PHD Related Link:', 1]]},
   {format:'mellanej', open:/^\s*OVERVIEW\s*$/m, markers:[
-    [/[\u2500-\u257F]{3,}/, 2, 'box-drawing separator'],
-    [/^\s*OVERVIEW\s*$/m, 2, 'OVERVIEW banner'],
-    [/Evidence Checklist\s*:/i, 1, 'Evidence Checklist:'],
-    [/Primary Mitigation Actioned\s*:/i, 1, 'Primary Mitigation Actioned:']]},
+    [/[\u2500-\u257F]{3,}/, 2, 'box-drawing separator', 1],
+    [/^\s*OVERVIEW\s*$/m, 2, 'OVERVIEW banner', 1],
+    [/Evidence Checklist\s*:/i, 1, 'Evidence Checklist:', 1],
+    [/Primary Mitigation Actioned\s*:/i, 1, 'Primary Mitigation Actioned:', 1]]},
   {format:'arunkzn',  open:/^\s*(?:\*\*)?PHD Notes\s*:/im, markers:[
     [/^\s*(?:\*\*)?PHD Notes\s*:/im, 2, 'PHD Notes:'],
-    [IL_IMP_TRAILER, 2, 'Created / Last modified trailer'],
-    [/Address Exclusion SIM raised\s*:/i, 1, 'Address Exclusion SIM raised:']]},
+    [IL_IMP_TRAILER, 2, 'Created / Last modified trailer', 1],
+    [/Address Exclusion SIM raised\s*:/i, 1, 'Address Exclusion SIM raised:', 1]]},
   {format:'punithsd', open:/^\s*(?:\*\*)?PHD note\s*:/im, markers:[
-    [/^\s*(?:\*\*)?PHD note\s*:/im, 2, 'PHD note:'],
-    [/PHD ticket id\s*:/i, 2, 'PHD ticket id :'],
+    [/^\s*(?:\*\*)?PHD note\s*:/im, 2, 'PHD note:', 1],
+    [/PHD ticket id\s*:/i, 2, 'PHD ticket id :', 1],
     [/Matrix Pathway\s*:/i, 1, 'Matrix Pathway:']]},
   {format:'mboized',  open:/^\s*(?:\*\*)?Determination\s*:/im, markers:[
-    [/^\s*(?:\*\*)?EMT\s*:/im, 2, 'EMT:'],
+    [/^\s*(?:\*\*)?EMT\s*:/im, 2, 'EMT:', 1],
     [/Matrix pathway\s*:/i, 1, 'Matrix pathway:']]},
   {format:'nobregak', open:/^\s*(?:\*\*)?Determination\s*:/im, markers:[
     [/Treatment Rationale\s*:/i, 2, 'Treatment Rationale:'],
-    [/EMT Incident Report\s*:/i, 2, 'EMT Incident Report:'],
+    [/EMT Incident Report\s*:/i, 2, 'EMT Incident Report:', 1],
     [/^\s*(?:\*\*)?Determination\s*:/im, 1, 'Determination:']]},
-  {format:'flofalgu', open:/The PHD Team has concluded/i, markers:[
-    [/Incident as reported\s*:/i, 2, 'Incident as reported:'],
-    [/Why this resolution\s*:/i, 2, 'Why this resolution:'],
-    [/Re-?trigger\s*:/i, 1, 'Re-trigger:'],
-    [/Customer statement\s*:/i, 1, 'Customer statement:']]}
+  // flofalgu's incident boundary is a heading, not its "The PHD Team has concluded" opening sentence
+  // (that sentence is often absent, and a prose sentence is no boundary): its first heading is
+  // "Incident as reported:" and its own section order starts at "Resolution:".
+  {format:'flofalgu', open:/^\s*(?:\*\*)?(?:Incident as reported|Resolution)\s*:/im, markers:[
+    [/Incident as reported\s*:/i, 2, 'Incident as reported:', 1],
+    [/Why this resolution\s*:/i, 2, 'Why this resolution:', 1],
+    [/Re-?trigger\s*:/i, 1, 'Re-trigger:', 1],
+    [/Customer statement\s*:/i, 1, 'Customer statement:', 1]]}
 ];
+// The agent shapes whose OWN signature markers appear in the paste, in table order. Two of them in
+// one paste is evidence of two logs: parse() warns when it could not also split them apart, because
+// a silent merge is the one failure the review panel cannot show.
+function detectFamilies(text){
+  var s=String(text==null?'':text), out=[];
+  IL_IMP_FORMATS.forEach(function(f){
+    for(var i=0;i<f.markers.length;i++){
+      if(f.markers[i][3] && f.markers[i][0].test(s)){ out.push(f.format); return; }
+    }
+  });
+  return out;
+}
 function detect(text){
   var s=String(text==null?'':text), best={format:'generic', score:0, markers:[]};
   IL_IMP_FORMATS.forEach(function(f){
@@ -126,26 +170,103 @@ function detect(text){
   });
   return best;
 }
-function _openRe(format){
-  for(var i=0;i<IL_IMP_FORMATS.length;i++) if(IL_IMP_FORMATS[i].format===format) return IL_IMP_FORMATS[i].open;
-  return /^\s*(?:\*\*)?Determination\s*:/i;
+// True when a line opens an incident in ANY of the seven formats (not just the detected one): a real
+// paste mixes agents, so the detected format's own opening heading can appear exactly once while a
+// second incident starts on somebody else's heading.
+function _isOpenHead(line){
+  var c=_clean(line);
+  for(var i=0;i<IL_IMP_FORMATS.length;i++){
+    var re=IL_IMP_FORMATS[i].open;
+    if(re.test(c) || re.test(line)) return true;
+  }
+  return false;
 }
 
 // ---- 3. splitIncidents ----
-// One block per incident, cut at the detected format's opening heading. Returns
-// [{index, heading, text}]; a paste with no repeated opening heading is one block. Text BEFORE the
-// first opening heading (a greeting, an "Incident 1:" header, a reordered first section) is a
-// preamble, not an incident: it stays with the first block, so the block count only ever rises on a
-// genuine repeat of the opening heading.
-function splitIncidents(text){
-  var norm=normalise(text), open=_openRe(detect(text).format), lines=norm.split('\n'), at=[];
-  lines.forEach(function(l,i){ if(open.test(_clean(l)) || open.test(l)) at.push(i); });
-  if(!at.length) return norm.trim() ? [{index:0, heading:_cut(lines[0]||'',90), text:norm}] : [];
-  var out=[];
-  at.forEach(function(from,i){
-    var start=i===0 ? 0 : from;
-    var to=i+1<at.length ? at[i+1] : lines.length, body=lines.slice(start,to).join('\n').trim();
-    if(body) out.push({index:out.length, heading:_cut(_clean(lines[from]),90), text:body});
+// One block per incident. A boundary candidate is any line that opens an incident in one of the seven
+// formats OR that splitSections reads as a known section heading, and a candidate whose heading
+// ALREADY appeared in the current block starts a new incident. That catches the three shapes:
+//   - two logs from the same agent  (the opening heading repeats),
+//   - two logs from DIFFERENT agents (the opening heading appears once each, but ordinary section
+//     headings — Root Cause, PHD Findings, PHD Resolution — repeat),
+//   - a prose log with no opening sentence at all (its own headings repeat).
+// Text BEFORE the first boundary (a greeting, an "Incident 1:" header, a reordered first section) is
+// a preamble, not an incident: it stays with the first block, so the block count only ever rises on a
+// genuine repeat. Returns [{index, heading, text}].
+// How many preceding new headings a repeat may look back over for the real start of the second
+// incident ("Determination:" sitting one heading before the repeated "PHD Findings:").
+var IL_IMP_BOUND_BACK=2;
+// The boundary key of a line: '' when the line can open neither an incident nor a known section.
+function _boundKey(line,api){
+  var c=_clean(line);
+  if(!c || IL_IMP_BULLET.test(c)) return '';
+  var lb=_label(c), name=lb ? lb.label : (/^[A-Z][A-Z /&-]{3,}$/.test(c) ? c : '');
+  if(!name) return '';
+  if(_isOpenHead(line)) return _nk(name);
+  return _headKind(name,api) ? _nk(name) : '';
+}
+// The "Created: … / Last modified: …" trailer CLOSES an incident (arunkzn's shape, a log that is one
+// prose section and shares no heading with any other format). Anything after it belongs to the next
+// incident, whatever heading that one opens with — so the raw paste is cut there before the heading
+// scan runs. A trailer with nothing after it is just the end of the paste.
+// -> {lines, cuts:[line index where a new incident starts]}
+function _trailerCuts(text){
+  var lines=String(text==null?'':text).replace(/\r\n?/g,'\n').split('\n'), cuts=[];
+  for(var i=0;i<lines.length;i++){
+    // Only the alias-stamped form opens a trailer run: a content line that merely starts "Created:"
+    // must never cut an incident in two.
+    if(!IL_IMP_TRAILER.test(_clean(lines[i]))) continue;
+    var j=i;                                   // walk to the end of this trailer / blank run
+    while(j+1<lines.length){
+      var n=_clean(lines[j+1]);
+      if(!n.replace(/\s/g,'') || IL_IMP_TRAILER_BARE.test(n)){ j++; continue; }
+      break;
+    }
+    if(j+1<lines.length) cuts.push(j+1);
+    i=j;
+  }
+  return {lines:lines, cuts:cuts};
+}
+function splitIncidents(text,api){
+  var t=_trailerCuts(text), starts=[0].concat(t.cuts), out=[];
+  starts.forEach(function(from,i){
+    var to=i+1<starts.length ? starts[i+1] : t.lines.length;
+    _splitRepeats(t.lines.slice(from,to).join('\n'),api).forEach(function(b){
+      out.push({index:out.length, heading:b.heading, text:b.text});
+    });
+  });
+  return out;
+}
+// One paste segment -> its blocks, cut on a repeated heading (the scan described above).
+function _splitRepeats(text,api){
+  var norm=normalise(text), units=[];
+  // Inline headings count too (flofalgu writes a whole log as one paragraph), so the scan runs over
+  // the same parts splitSections sees, not over raw lines.
+  norm.split('\n').forEach(function(l){ _splitInline(l).forEach(function(p){ units.push(String(p).replace(/\s+$/,'')); }); });
+  var keys=units.map(function(u){ return _boundKey(u,api); });
+  var at=[], seen={}, run=[];
+  units.forEach(function(u,i){
+    var k=keys[i]; if(!k) return;
+    if(!seen[k]){ seen[k]=1; run.push(i); return; }
+    // A repeated heading = a second incident. When the repeat is itself an opening heading it IS the
+    // start; otherwise the start is the nearest opening heading just before it (within a short
+    // look-back), so a mixed-format paste cuts where the second agent's log really begins.
+    var cut=i;
+    if(!_isOpenHead(units[i])){
+      for(var j=run.length-1, back=0; j>=0 && back<IL_IMP_BOUND_BACK; j--, back++){
+        if(_isOpenHead(units[run[j]])){ cut=run[j]; break; }
+      }
+    }
+    at.push(cut);
+    seen={}; run=[];
+    for(var m=cut;m<=i;m++){ if(keys[m] && !seen[keys[m]]){ seen[keys[m]]=1; run.push(m); } }
+  });
+  if(!at.length) return norm.trim() ? [{index:0, heading:_cut(units[0]||'',90), text:norm}] : [];
+  var out=[], starts=[0].concat(at);
+  starts.forEach(function(from,i){
+    var to=i+1<starts.length ? starts[i+1] : units.length;
+    var body=units.slice(from,to).join('\n').trim();
+    if(body) out.push({index:out.length, heading:_cut(_clean(units[from]),90), text:body});
   });
   return out;
 }
@@ -157,6 +278,11 @@ function splitIncidents(text){
 // 'unknown' = an unrecognised "Something:" heading (kept, routed to the notes bucket).
 var IL_IMP_HEADS=[
   {re:/^phd investigation(?: for mitigation)?$/, kind:'invest'},
+  // The owner's final prompt: "Incident Findings:" is a full synonym of "PHD Findings:", and
+  // "PHD Mitigation:" replaces "PHD notes:" (both are also in the editor's IL_FULL_HEADS, this table
+  // keeps the parser readable on its own).
+  {re:/^incident findings$/, kind:'findings'},
+  {re:/^phd mitigation$/, kind:'notes'},
   {re:/^evidence$/, kind:'evidence'},
   {re:/^(?:matrix pathway|likelihood of (?:repeat|impact)|treatment rationale)$/, kind:'risk'},
   {re:/^(?:overview|assessment process|phd assessment notes|additional information)$/, kind:'notes'},
@@ -422,9 +548,16 @@ function _resKey(v){ return String(v==null?'':v).toLowerCase().replace(/[^a-z0-9
 function _resOne(piece,list){
   var t=_sq(String(piece).replace(/\*\*/g,'').replace(/\(\s*primary\s*\)/ig,' ').replace(/^[-*\u2022\s]+/,'')).replace(/[\s.]+$/,'');
   if(!t) return null;
-  var k=_resKey(t);
-  if(IL_IMP_RES_MAP[k]) return {value:IL_IMP_RES_MAP[k], raw:t};
-  for(var i=0;i<(list||[]).length;i++) if(_resKey(list[i])===k) return {value:list[i], raw:t};
+  var k=_resKey(t), i;
+  // The spec's one mapping is checked against the injected catalogue like any other value: a mapping
+  // target that is not in the 12 is reported, never trusted because it is hardcoded here.
+  if(IL_IMP_RES_MAP[k]){
+    var mapped=IL_IMP_RES_MAP[k];
+    if(!(list||[]).length) return {value:mapped, raw:t};
+    for(i=0;i<list.length;i++) if(_resKey(list[i])===_resKey(mapped)) return {value:list[i], raw:t};
+    return {value:'', raw:t};
+  }
+  for(i=0;i<(list||[]).length;i++) if(_resKey(list[i])===k) return {value:list[i], raw:t};
   return {value:'', raw:t};
 }
 // raw (+ o.additional raw, o.text for arunkzn's prose) -> {primary, additional:[], unmapped:[], raw}.
@@ -510,7 +643,9 @@ function investFromProse(text,o){
     var def=defs[r.key];
     if(!_investOk(def,val)){
       done[r.key]=true;
-      unmapped.push({field:(def&&def.label)||r.key, raw:_sq(m[0]), catalogue:(def&&def.opts)||[]});
+      // The key travels with the report so review() can tell this is the SAME question it would
+      // otherwise list as blank, and can drop it when the editor hides that question entirely.
+      unmapped.push({key:r.key, field:(def&&def.label)||r.key, raw:_sq(m[0]), catalogue:(def&&def.opts)||[]});
       return;
     }
     done[r.key]=true; out[r.key]=val;
@@ -545,6 +680,54 @@ var IL_IMP_REF_LINES=['geopins accurate','geopin update requested','geopin ids u
   'dp wellness check','secondary root causes','secondary root cause','additional mitigations actioned',
   'source ticket','lmir source ticket','address exclusion sim raised','related emt report',
   'photo video evidence','incomplete action item outreach conducted','evidence checklist','transporter records'];
+// ---- the final prompt's two outreach items (appended to the investigation list) ----
+// They are NOT questionnaire questions — IL_INVEST_QS is a closed list and this file never adds to
+// it — so their text is kept in the reference block under the agent's own label instead of being
+// dropped with the rest of the unmatched investigation lines. The transporter label varies with
+// "Driv:" (DA / DP / Transporter); all four spellings read into one field, and a label that
+// disagrees with Driv is imported as written and reported as a mismatch.
+var IL_IMP_OUTREACH=[
+  {key:'outreachCx', re:/^outreach(?:es)?\s+to\s+(?:the\s+)?cx\s*\/?\s*poi$/i, who:''},
+  {key:'outreachTr', re:/^outreach(?:es)?\s+to\s+(?:the\s+)?da$/i, who:'DA'},
+  {key:'outreachTr', re:/^outreach(?:es)?\s+to\s+(?:the\s+)?dp$/i, who:'DP'},
+  {key:'outreachTr', re:/^outreach(?:es)?\s+to\s+(?:the\s+)?transporter$/i, who:'Transporter'}
+];
+// "Driv:" -> the transporter-outreach label the final prompt asks for.
+var IL_IMP_OUTREACH_WHO={dspda:'DA', hubda:'DA', flexdp:'DP', na:'Transporter'};
+function _outreachOf(label){
+  var n=_sq(String(label==null?'':label)).replace(/\s*:$/,'');
+  for(var i=0;i<IL_IMP_OUTREACH.length;i++) if(IL_IMP_OUTREACH[i].re.test(n)) return IL_IMP_OUTREACH[i];
+  return null;
+}
+// The lines belonging to an outreach label: its own value plus the bullets under it, up to the next
+// unbulleted label or a blank line. -> {end: last line index used, lines}
+function _outreachBody(lines,at){
+  var lb=_label(lines[at]), body=(lb && lb.rest) ? [lb.rest] : [], i=at+1;
+  for(;i<lines.length;i++){
+    var c=String(lines[i]);
+    if(!c.trim()) break;
+    var l2=_label(c);
+    if(l2 && (!IL_IMP_BULLET.test(c) || _outreachOf(l2.label))) break;
+    body.push(c);
+  }
+  return {end:i-1, lines:body};
+}
+// sections -> {items, cx, transporter, label, who}: the outreach values as the log states them.
+function _outreachFrom(secs){
+  var out={items:[], cx:'', transporter:'', label:'', who:''};
+  (secs||[]).forEach(function(s){
+    for(var i=0;i<s.lines.length;i++){
+      var lb=_label(s.lines[i]); if(!lb) continue;
+      var d=_outreachOf(lb.label); if(!d) continue;
+      var b=_outreachBody(s.lines,i), txt=b.lines.join('\n').trim();
+      out.items.push({key:d.key, who:d.who, label:lb.label, text:txt});
+      if(d.key==='outreachCx'){ if(!out.cx) out.cx=txt; }
+      else if(!out.transporter){ out.transporter=txt; out.label=lb.label; out.who=d.who; }
+      i=b.end;
+    }
+  });
+  return out;
+}
 function _isRefLine(label){
   var n=_sq(String(label).toLowerCase()).replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ');
   for(var i=0;i<IL_IMP_REF_LINES.length;i++) if(n.indexOf(IL_IMP_REF_LINES[i])===0) return true;
@@ -555,18 +738,23 @@ function _block(title,lines){
   if(!body && !title) return '';
   return (title ? '**'+_sq(title).replace(/\s*:$/,'')+':**\n' : '')+body;
 }
-// sections -> {findings, determination, evidence, risk, notes, reference, invest:[lines], known}
+// sections -> {findings, determination, evidence, risk, notes, reference, rootCauseBody,
+//              invest:[lines], known}
+// rootCauseBody is the Root Cause section as the agent wrote it, with no heading: parse() keeps it
+// only when the wording does not match the catalogue, so an off-catalogue root cause is not lost.
 function routeExtras(secs){
-  var fin=[], extra={determination:[], evidence:[], risk:[]}, notes=[], ref=[], inv=[], known=0;
+  var fin=[], extra={determination:[], evidence:[], risk:[]}, notes=[], ref=[], inv=[], rcBody=[], known=0;
   var bullet=function(l){ return String(l).replace(/^(\s*)[*\u2022]\s+/,'$1- '); };
   secs.forEach(function(s){
     if(s.known) known++;
     var keep=[], pulled=[];
-    s.lines.forEach(function(l){
-      var lb=_label(l);
-      if(lb && lb.rest && _isRefLine(lb.label)){ pulled.push(_block(lb.label,[lb.rest])); return; }
+    for(var li=0;li<s.lines.length;li++){
+      var l=s.lines[li], lb=_label(l), od=lb ? _outreachOf(lb.label) : null;
+      // An outreach item takes its own bullets with it, so a multi-attempt list is kept whole.
+      if(od){ var ob=_outreachBody(s.lines,li); pulled.push(_block(lb.label,ob.lines)); li=ob.end; continue; }
+      if(lb && lb.rest && _isRefLine(lb.label)){ pulled.push(_block(lb.label,[lb.rest])); continue; }
       keep.push(l);
-    });
+    }
     var body=keep.map(bullet).join('\n').replace(/\n{3,}/g,'\n\n').trim();
     var head=_sq(s.title).replace(/\s*:$/,'').toLowerCase();
     if(s.kind==='findings'){ if(body) fin.push(body); }
@@ -584,7 +772,8 @@ function routeExtras(secs){
       if(fi>=0) rl.splice(fi,1);
       var rb=_block(s.title,rl.map(bullet)); if(rl.join('').trim() && rb) notes.push(rb);
     }
-    else if(s.kind==='sim' || s.kind==='rootCause' || s.kind==='drop'){ /* handled as fields */ }
+    else if(s.kind==='rootCause'){ var rcb=keep.map(bullet).join('\n').replace(/\n{3,}/g,'\n\n').trim(); if(rcb) rcBody.push(rcb); }
+    else if(s.kind==='sim' || s.kind==='drop'){ /* handled as fields */ }
     else if(s.kind==='tag' || s.kind==='ref' || s.kind==='checklist'){ var b=_block(s.title,keep); if(b) ref.push(b); }
     else if(s.kind==='links'){
       var left=keep.filter(function(l){ return !/t\.corp\.amazon\.com|app\.emt\.amazon\.dev/i.test(l) || _isRefLine((_label(l)||{}).label||''); });
@@ -596,7 +785,8 @@ function routeExtras(secs){
   });
   return {findings:fin.join('\n\n').trim(), determination:extra.determination.join('\n\n').trim(),
     evidence:extra.evidence.join('\n\n').trim(), risk:extra.risk.join('\n\n').trim(),
-    notes:notes.join('\n\n').trim(), reference:ref.join('\n\n').trim(), invest:inv, known:known};
+    notes:notes.join('\n\n').trim(), reference:ref.join('\n\n').trim(),
+    rootCauseBody:rcBody.join('\n\n').trim(), invest:inv, known:known};
 }
 
 // ---- 10. case tags ----
@@ -632,13 +822,30 @@ var IL_IMP_LABEL_TEXT={Issue:'SIM \u2014 Issue', SID:'SIM \u2014 SID', Driv:'SIM
   rootCause:'Root Cause', res:'PHD Resolution', phdSimLink:'PHD Related Link', emtLink:'EMT Link', severity:'Severity',
   findings:'PHD Findings', determination:'Determination', evidence:'Evidence Details', risk:'Risk Assessment',
   notes:'PHD notes', reference:'PHD reference (not copied)'};
+// "NEEDS HUMAN CHOICE: <field>" — the final prompt's own marker for a decision the agent must not
+// make. It is an explicit gap, so it joins the review's blank list instead of sitting in a bullet.
+var IL_IMP_NEEDS_RE=/NEEDS\s+HUMAN\s+CHOICE\s*:?[ \t]*([^\n]*)/ig;
+function _needsChoice(text){
+  var s=normalise(text), out=[], seen={}, m;
+  IL_IMP_NEEDS_RE.lastIndex=0;
+  while((m=IL_IMP_NEEDS_RE.exec(s))){
+    var f=_sq(String(m[1]||'').replace(/\*\*/g,'')).replace(/^[-\s]+/,'').replace(/[\s.,;:]+$/,'');
+    if(!f || seen[_nk(f)]) continue;
+    seen[_nk(f)]=1; out.push(f);
+  }
+  return out;
+}
 // The questionnaire keys the review reports on (the spec §3 table), in question order.
 var IL_IMP_INVEST_KEYS=['dup','poi','susp','negFb','histCx','locSim','cortex','locEmt','clear','station','netra','addPkg','di','diUpd','austin'];
+// Heading the reference block gets when the Root Cause wording is not one of the 45 allowed values.
+// Deliberately NOT the "Root Cause:" label, so re-importing the reference text never reads it back
+// into the Root Cause field.
+var IL_IMP_RC_RAW_HEAD='Root Cause as written (not an allowed value)';
 // text + {rootCauses, issues, res, api} -> the whole import. Several incidents: every block is
 // reported and only the first is applied.
 function parse(text,o){
   o=o||{}; var api=o.api||{}, raw=String(text==null?'':text);
-  var det=detect(raw), all=splitIncidents(raw);
+  var det=detect(raw), all=splitIncidents(raw,api);
   var block=all.length ? all[0].text : normalise(raw);
   var secs=splitSections(block,api);
   var ex=routeExtras(secs);
@@ -658,6 +865,13 @@ function parse(text,o){
   var exact=(typeof api._ilsExact==='function') ? api._ilsExact : function(){ return ''; };
   var rc={found:!!v.rootCause, raw:v.rootCause||'', value:exact(o.rootCauses, v.rootCause||'')};
   var issue={raw:v.Issue||'', value:exact(o.issues, v.Issue||'')};
+  // An off-catalogue Root Cause leaves the field blank (never guessed) — but the agent's own wording
+  // is kept in the reference block, so the owner can read it while picking the allowed value.
+  var reference=ex.reference;
+  if(!rc.value && (ex.rootCauseBody || rc.raw)){
+    var rcKeep=_block(IL_IMP_RC_RAW_HEAD,[ex.rootCauseBody || rc.raw]);
+    if(rcKeep) reference=reference ? reference+'\n\n'+rcKeep : rcKeep;
+  }
   var res=mapResolution(v.res||'', {res:o.res, additional:v.resAdd||'', text:block});
   // SIM Root Cause Details: the extracted values go back through the editor's own import rules
   // (exact-match-only Issue / Res, Driv / Date normalisation, Cnt default 0).
@@ -668,21 +882,59 @@ function parse(text,o){
   var emtId=v.emt || v.emtRelated || (typeof api.ilEmtNumber==='function' ? api.ilEmtNumber([block]) : '');
   var pre=api.IL_EMT_URL_PRE||'', post=api.IL_EMT_URL_POST||'';
   var tags=ilCaseTags(block);
+  // The two outreach items, and the label-vs-Driv mismatch the final prompt warns about.
+  var och=_outreachFrom(secs), wantWho=IL_IMP_OUTREACH_WHO[_nk(v.Driv||'')]||'';
+  var ochMiss=(och.who && wantWho && och.who!==wantWho)
+    ? '\u201c'+och.label+'\u201d was stated while \u201cDriv:\u201d is '+_sq(v.Driv)+', where the prompt asks for \u201cOutreaches to '+wantWho+'\u201d. The value was imported as written \u2014 check which one is right.'
+    : '';
+  // Two agent shapes in one paste that could NOT be split: say so rather than hand over a blended
+  // record. Failing loud beats merging silently.
+  var fams=detectFamilies(raw);
+  var suspect=(all.length<2 && fams.length>1)
+    ? 'Two agent formats appear in this paste ('+fams.join(', ')+') and it could not be split into separate incidents \u2014 import one incident at a time and check every field.'
+    : '';
   return {
     format:det.format, detect:det, blocks:all.length, incidents:all.map(function(b){ return {index:b.index, heading:b.heading, chars:b.text.length}; }),
+    families:fams, multiSuspect:suspect, outreach:och, outreachMismatch:ochMiss, needsChoice:_needsChoice(block),
     sim:sim, simValues:simVals, sources:src, rootCause:rc, issue:issue,
     findings:ex.findings, invest:inv, investQualifiers:quals, investUnmapped:pro.unmapped,
-    notes:ex.notes, determination:ex.determination, evidence:ex.evidence, risk:ex.risk, reference:ex.reference,
+    notes:ex.notes, determination:ex.determination, evidence:ex.evidence, risk:ex.risk, reference:reference,
     phdSimLink:v.phdSim||'', emtId:emtId, emtLink:emtId ? pre+emtId+post : '',
     res:res.primary, additionalResolutions:res.additional, resUnmapped:res.unmapped, resRaw:res.raw,
     tags:tags, severity:(typeof api.ilSevFromText==='function' ? api.ilSevFromText(block) : ''),
     dateSource:dr.source, dateCandidates:dr.candidates, known:ex.known
   };
 }
-// The single report both the dialog's review step and the panel render.
+// The question a key belongs to (a sub / poiWho key -> its parent), because only the top-level
+// question carries the usCa / noFlex / petOnly gating flags.
+function _investOwner(api){
+  var o={}, qs=(api&&api.IL_INVEST_QS)||[];
+  qs.forEach(function(q){ o[q.key]=q; if(q.sub) o[q.sub.key]=q; if(q.poiWho) o[q.poiWho.key]=q; });
+  return o;
+}
+// True when the editor would not ask this question at all for this incident: the review must not
+// demand an answer the form never shows. Same rule the questionnaire uses (api._ilqRegionHidden).
+function _investHidden(api,key,ro){
+  if(!ro) return false;
+  var own=_investOwner(api)[key];
+  if(!own) return false;
+  if(typeof api._ilqRegionHidden==='function') return !!api._ilqRegionHidden(own,ro);
+  return !!((own.usCa && ro.usca===false) || (own.noFlex && ro.flex===true) || (own.petOnly && ro.pet===false));
+}
+// The gating facts for this import: whatever the open ticket already knows (o.ro, the editor's
+// _ilqRO()) plus the driver type this very paste states, since a "Driv: Flex DP" import hides the
+// Flex-only questions the moment it is applied.
+function _investRO(r,ro){
+  ro=ro||{};
+  var driv=String((r.simValues||{}).Driv||'').replace(/[^A-Za-z]/g,'');
+  return {usca:ro.usca, flex:(ro.flex===true || /^flex/i.test(driv)), pet:ro.pet};
+}
+// The single report both the dialog's review step and the panel render. o.ro (optional) = the
+// {usca, flex, pet} gating of the open ticket; without it only what the paste states can gate.
 function review(r,o){
   o=o||{}; var api=o.api||{}, defs=_investDefs(api), filled=[], blank=[], unmapped=[];
   r=r||{};
+  var ro=_investRO(r,o.ro), reported={};
   var sv=r.simValues||{}, sf=(r.sim&&r.sim.fields)||{}, src=r.sources||{};
   // What the LOG said for a SIM key, not what survived validation: simValues already holds the
   // blanked Issue / Res, so an off-catalogue value has to be read from the raw capture or the owner
@@ -698,10 +950,15 @@ function review(r,o){
     var val=String(sf[k]==null?'':sf[k]).trim(), label=IL_IMP_LABEL_TEXT[k]||k;
     // Cnt: ilSimImport defaults an unstated count to 0, so say so — a stated zero and an assumed
     // zero must not read the same in a panel whose whole job is to separate them.
-    if(k==='Cnt' && val==='0' && !rawOf('Cnt') && !src.Cnt){ filled.push({field:label, value:val, source:'not stated \u2014 defaulted to 0'}); return; }
+    if(k==='Cnt' && val==='0' && !rawOf('Cnt') && !src.Cnt){ filled.push({field:label, value:val, source:'not stated \u2014 defaulted to 0', assumed:true}); return; }
     if(val) filled.push({field:label, value:val, source:src[k]||''});
     else blank.push({field:label, why: rawOf(k) ? 'the pasted value is not an allowed option' : 'the log does not state it'});
   });
+  // Determination, Evidence Details, PHD notes and the reference are OPTIONAL sections: the owner's
+  // final prompt no longer emits Determination or PHD notes at all (PHD Mitigation carries what used
+  // to be in notes), so a missing one is not a gap the owner has to fill. They are listed when
+  // filled and otherwise left out.
+  var optional={determination:1, evidence:1, notes:1, reference:1};
   [['rootCause', r.rootCause&&r.rootCause.value], ['res', r.res], ['phdSimLink', r.phdSimLink],
    ['emtLink', r.emtLink], ['severity', r.severity], ['findings', r.findings&&'(filled)'],
    ['determination', r.determination&&'(filled)'], ['evidence', r.evidence&&'(filled)'],
@@ -710,20 +967,46 @@ function review(r,o){
     var label=IL_IMP_LABEL_TEXT[p[0]];
     var stated=p[0]==='rootCause' ? ((r.rootCause&&r.rootCause.raw)||'') : (p[0]==='res' ? (r.resRaw||'') : '');
     if(p[1]) filled.push({field:label, value:String(p[1]), source:src[p[0]]||''});
-    else blank.push({field:label, why: stated ? 'the pasted value is not an allowed option' : 'the log does not state it'});
+    else if(!optional[p[0]]) blank.push({field:label, why: stated ? 'the pasted value is not an allowed option' : 'the log does not state it'});
+  });
+  // The two outreach items are kept as stated (they are not questionnaire questions).
+  [['outreachCx','Outreaches to CX/POI',(r.outreach&&r.outreach.cx)||''],
+   ['outreachTr',(r.outreach&&r.outreach.label)||'Outreaches to the transporter',(r.outreach&&r.outreach.transporter)||'']
+  ].forEach(function(p){
+    if(p[2]) filled.push({field:p[1], value:p[2], source:'kept in the PHD reference (not a questionnaire question)'});
   });
   if(r.issue && r.issue.raw && !r.issue.value) unmapped.push({field:'SIM \u2014 Issue', raw:r.issue.raw, catalogue:'Issue types (issue-types.html)'});
   if(r.rootCause && r.rootCause.raw && !r.rootCause.value) unmapped.push({field:'Root Cause', raw:r.rootCause.raw, catalogue:'RC_ROOT_CAUSES'});
   (r.resUnmapped||[]).forEach(function(x){ unmapped.push({field:'PHD Resolution', raw:x, catalogue:'RC_RESOLUTIONS (12)'}); });
-  (r.investUnmapped||[]).forEach(function(x){ unmapped.push({field:x.field, raw:x.raw, catalogue:(x.catalogue||[]).join(' / ')}); });
+  (r.investUnmapped||[]).forEach(function(x){
+    if(x.key && _investHidden(api,x.key,ro)) return;      // the editor does not ask this question
+    var got=(r.invest||{})[x.key];
+    if(x.key && got!=null && got!=='') return;            // a checklist line answered it after all
+    if(x.key) reported[x.key]=1;                          // reported here, so never ALSO as blank
+    unmapped.push({field:x.field, raw:x.raw, catalogue:(x.catalogue||[]).join(' / ')});
+  });
   IL_IMP_INVEST_KEYS.forEach(function(k){
     var def=defs[k], label=(def&&def.label)||k, a=(r.invest||{})[k];
-    if(a!=null && a!=='') filled.push({field:label, value:String(a)+((r.investQualifiers||{})[k] ? ' \u2014 '+(r.investQualifiers||{})[k] : ''), source:'PHD Investigation for mitigation'});
-    else blank.push({field:label, why:'no evidence in the paste supports an answer'});
+    if(a!=null && a!==''){ filled.push({field:label, value:String(a)+((r.investQualifiers||{})[k] ? ' \u2014 '+(r.investQualifiers||{})[k] : ''), source:'PHD Investigation for mitigation'}); return; }
+    if(reported[k]) return;                               // already under "not mapped to an allowed value"
+    if(_investHidden(api,k,ro)) return;                   // hidden for this driver type / region
+    blank.push({field:label, why:'no evidence in the paste supports an answer'});
   });
-  var n=r.blocks||0;
-  return {filled:filled, blank:blank, unmapped:unmapped, tags:r.tags||[],
-    multi:{count:n, warning: n>1 ? n+' incidents were pasted \u2014 only the first was imported. Import the others one at a time.' : ''}};
+  // "NEEDS HUMAN CHOICE: <field>" lines are gaps the agent flagged on purpose. They merge into the
+  // row for the same field when there already is one, so one gap is never reported twice.
+  (r.needsChoice||[]).forEach(function(f){
+    var k=_nk(f), hit=null;
+    if(k.length>=4) blank.forEach(function(b){
+      var bk=_nk(b.field);
+      if(!hit && (bk.indexOf(k)>=0 || k.indexOf(bk)>=0)) hit=b;
+    });
+    if(hit){ if(hit.why.indexOf('NEEDS HUMAN CHOICE')<0) hit.why=hit.why+' \u2014 the log marks it NEEDS HUMAN CHOICE'; return; }
+    blank.push({field:_sq(f), why:'the log marks it NEEDS HUMAN CHOICE'});
+  });
+  var n=r.blocks||0, warnings=[];
+  if(r.outreachMismatch) warnings.push(r.outreachMismatch);
+  return {filled:filled, blank:blank, unmapped:unmapped, tags:r.tags||[], warnings:warnings,
+    multi:{count:n, warning: n>1 ? n+' incidents were pasted \u2014 only the first was imported. Import the others one at a time.' : (r.multiSuspect||'')}};
 }
 
 // ---- api ----
@@ -732,7 +1015,7 @@ function withApi(api){
   var b={};
   Object.keys(IMP).forEach(function(k){ b[k]=IMP[k]; });
   b.parse=function(t,o){ o=o||{}; return parse(t, {rootCauses:o.rootCauses, issues:o.issues, res:o.res, api:o.api||api}); };
-  b.review=function(r,o){ o=o||{}; return review(r, {api:o.api||api}); };
+  b.review=function(r,o){ o=o||{}; return review(r, {api:o.api||api, ro:o.ro}); };
   b.extractFields=function(t,o){ o=o||{}; o.api=o.api||api; return extractFields(t,o); };
   b.resolveDate=function(t,o){ o=o||{}; o.api=o.api||api; return resolveDate(t,o); };
   b.investFromProse=function(t,o){ o=o||{}; o.api=o.api||api; return investFromProse(t,o); };
@@ -740,7 +1023,8 @@ function withApi(api){
   b.withApi=withApi;
   return b;
 }
-var IMP={ normalise:normalise, detect:detect, splitIncidents:splitIncidents, splitSections:splitSections,
+var IMP={ normalise:normalise, detect:detect, detectFamilies:detectFamilies,
+  splitIncidents:splitIncidents, splitSections:splitSections,
   IL_IMP_LABELS:IL_IMP_LABELS, IL_IMP_FORMATS:IL_IMP_FORMATS, IL_IMP_INVEST_KEYS:IL_IMP_INVEST_KEYS,
   extractFields:extractFields, resolveDate:resolveDate, mapResolution:mapResolution,
   IL_EVIDENCE_RULES:IL_EVIDENCE_RULES, investFromProse:investFromProse, routeExtras:routeExtras,

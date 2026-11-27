@@ -389,6 +389,200 @@ test("the shared prompt's worked example imports clean: nothing blank, nothing u
   assert.deepEqual(r.tags, ['#contradictory-statement-no-proof']);
 });
 
+// ---- the owner's FINAL shared prompt shape (spec change, 27 Nov) ----
+// Eleven sections, "Incident Findings:" instead of "PHD Findings:", no Determination and no
+// "PHD notes:" (PHD Mitigation carries what used to go there), the two "Outreaches to …" items
+// appended to the investigation list, the new "- Likelihood: Low," risk shape with no tier line, and
+// the investigation AFTER the findings. Kept in sync with
+// .agents/tasks/incident-log-import/fixtures/new-prompt.txt and with agent-prompt.md: if one is
+// edited, edit all three.
+const FINAL_PROMPT_EXAMPLE = [
+  'SIM Title: US Customer Incident Escalation - Account ID: A14WM8TT7J4YTQ - Sev 5 - Verbal abuse',
+  'Root Cause: Driving Behavior - Other',
+  'PHD Related Link: https://t.corp.amazon.com/issues/V2459642680',
+  'EMT Link: https://app.emt.amazon.dev/incidents/incidentId?accountId=account_amazongsoc&incidentId=1798060&tabV=&tabValue=Overview',
+  '',
+  'SIM Root Cause Details:',
+  'Issue: Verbal abuse',
+  'SID: WET1',
+  'Driv: DSP DA',
+  'Date: 11/15/26',
+  'TID: A12N3FXQOLGVDA',
+  'Zip: 39365-7802',
+  'Cnt: 0',
+  'CID: A14WM8TT7J4YTQ',
+  'UPID: USC4877729422',
+  'Res: Driver Follow-up',
+  '',
+  'Incident Findings:',
+  "- A DSP DA out of WET1 was delivering at a CX residence on 15NOV'26.",
+  '- The CX came out of the residence and shouted at the DA about the parking position of the van.',
+  '- No physical contact occurred, no weapon was involved and the DA left the area safely.',
+  '- Cortex driver trace and heat map place the DA at the delivery location at the reported time.',
+  '',
+  'PHD Investigation for mitigation:',
+  '- Does current ticket have any duplicate: No',
+  '- Is POI the CX: Yes',
+  '- CX Account suspension requested from GSOC?: No',
+  '- Negative Delivery Feedbacks reported in SIM against the Transporter: 0',
+  '- Historical incidents against CX in SIM [If CX is POI]: 0',
+  '- Location Historical incidents in SIM records (UPID): 0',
+  '- Cortex Driver Trace added to SIM & EMT: Yes',
+  '- Location Historical incidents in EMT records (Physical address): 0',
+  '- CLEAR history of POI (Any violent/related charges exists?): No',
+  '- Station request made: No',
+  '- Netradyne footage exists: No',
+  '- Additional packages delivered after incident?: No',
+  '- Delivery instructions present: Yes',
+  '- Delivery instructions updated after incident?: No',
+  '- AUSTIN Investigation Findings: No',
+  '- Outreaches to CX/POI:',
+  "    - 15NOV'26: called the CX, who confirmed that future deliveries may continue to the address.",
+  '- Outreaches to DA:',
+  "    - 15NOV'26: driver follow-up action item raised with the DSP for the parking position.",
+  '',
+  'Risk Assessment:',
+  '- Likelihood: Low,',
+  '    - The account has 22 prior orders with no earlier incident at this address.',
+  '- Impact: Low,',
+  '    - Verbal only, with no weapon, no physical contact and no injury.',
+  '',
+  'PHD Mitigation:',
+  "- Driver coaching was actioned with the DSP on 15NOV'26.",
+  '- Secondary Root Causes: None',
+  '- Source Ticket: https://t.corp.amazon.com/063e4007-675d-4060-86fb-122802237d95',
+  '- Risk tier: Low / Accept',
+  '',
+  'PHD Resolution: Driver Follow-up',
+  '',
+  'Primary Case Tag:',
+  '#contradictory-statement-no-proof',
+  ''
+].join('\n');
+
+test("the final prompt's example imports clean: nothing blank, nothing unmapped", () => {
+  const r = parse(FINAL_PROMPT_EXAMPLE);
+  const rv = review(r);
+  assert.deepEqual(rv.blank, []);
+  assert.deepEqual(rv.unmapped, []);
+  assert.deepEqual(rv.warnings, []);
+  assert.equal(rv.multi.warning, '');
+  assert.equal(r.blocks, 1);
+  assert.deepEqual(r.sim.fields, {
+    Issue: 'Verbal abuse', SID: 'WET1', Driv: 'DSP DA', Date: '11/15/26', TID: 'A12N3FXQOLGVDA',
+    Zip: '39365-7802', Cnt: '0', CID: 'A14WM8TT7J4YTQ', UPID: 'USC4877729422', Res: 'Driver Follow-up'
+  });
+  assert.equal(r.rootCause.value, 'Driving Behavior - Other');
+  assert.equal(r.res, 'Driver Follow-up');
+  assert.equal(r.severity, '5');
+  assert.equal(r.emtId, '1798060');
+  assert.equal(r.phdSimLink, 'https://t.corp.amazon.com/issues/V2459642680');
+  IMP.IL_IMP_INVEST_KEYS.forEach(k => assert.ok(r.invest[k] !== undefined && r.invest[k] !== '', 'unanswered: ' + k));
+  assert.deepEqual(r.tags, ['#contradictory-statement-no-proof']);
+});
+
+test('"Incident Findings:" is a full synonym of "PHD Findings:"', () => {
+  const body = "\n- A DSP DA was delivering at a CX residence on 26NOV'26.\n- The CX shouted at the DA.\n";
+  const neu = parse('Incident Findings:' + body);
+  const old = parse('PHD Findings:' + body);
+  assert.equal(neu.findings, old.findings);
+  assert.ok(neu.findings.indexOf('shouted at the DA') > 0);
+  assert.equal(neu.sim.fields.Date, '11/26/26');            // the narrative is read, not dropped
+  assert.ok(neu.known > 0);
+});
+
+test('"PHD Mitigation:" is read as a section, and its named metadata lines go to the reference', () => {
+  const r = parse(FINAL_PROMPT_EXAMPLE);
+  assert.match(r.notes, /\*\*PHD Mitigation:\*\*/);
+  assert.ok(r.notes.indexOf('Driver coaching was actioned') > 0);
+  assert.ok(r.notes.indexOf('Risk tier: Low / Accept') > 0);
+  assert.match(r.reference, /\*\*Secondary Root Causes:\*\*/);
+  assert.match(r.reference, /\*\*Source Ticket:\*\*/);
+  assert.equal(r.phdSimLink, 'https://t.corp.amazon.com/issues/V2459642680');   // never the Source Ticket
+});
+
+test('a log with no Determination and no PHD notes is not reported as missing them', () => {
+  const blank = blanks(parse(FINAL_PROMPT_EXAMPLE));
+  ['Determination', 'PHD notes', 'Evidence Details'].forEach(f =>
+    assert.equal(blank.indexOf(f), -1, 'demanded anyway: ' + f));
+});
+
+test('the new Risk Assessment shape is kept whole, tier line or not', () => {
+  const r = parse(FINAL_PROMPT_EXAMPLE);
+  assert.match(r.risk, /- Likelihood: Low,/);
+  assert.match(r.risk, /- Impact: Low,/);
+  assert.ok(r.risk.indexOf('no earlier incident at this address') > 0);
+  assert.equal(/Matrix pathway/i.test(r.risk), false);
+  // The legacy forms still read into the same field.
+  const legacy = parse('Risk Assessment:\nLikelihood of Repeat: LOW.\nLikelihood of Impact: LOW.\nMatrix pathway: LOW Repeat + LOW Impact = Low / Accept\n');
+  assert.match(legacy.risk, /Matrix pathway/);
+  assert.match(legacy.risk, /Likelihood of Repeat/);
+});
+
+test('the two outreach items are kept under their own label and never dropped', () => {
+  const r = parse(FINAL_PROMPT_EXAMPLE);
+  assert.match(r.reference, /\*\*Outreaches to CX\/POI:\*\*/);
+  assert.match(r.reference, /\*\*Outreaches to DA:\*\*/);
+  assert.ok(r.reference.indexOf('called the CX, who confirmed') > 0);
+  assert.ok(r.reference.indexOf('driver follow-up action item raised') > 0);
+  assert.equal(r.outreach.who, 'DA');
+  assert.ok(r.outreach.cx.indexOf('called the CX') > 0);
+  assert.ok(r.outreach.transporter.indexOf('action item raised') > 0);
+  assert.equal(r.outreachMismatch, '');
+  // All four spellings land in the one field.
+  ['Outreaches to DA', 'Outreaches to DP', 'Outreaches to Transporter'].forEach(lbl => {
+    const one = parse('SIM Root Cause Details:\nIssue: Verbal abuse\n\nPHD Investigation for mitigation:\n- ' + lbl + ': No outreaches performed\n');
+    assert.equal(one.outreach.transporter, 'No outreaches performed', lbl);
+  });
+});
+
+test('an outreach label that disagrees with "Driv:" is imported as written and the clash is reported', () => {
+  const r = parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDriv: Flex DP\n\nPHD Investigation for mitigation:\n- Outreaches to DA: No outreaches performed to DSP DA\n');
+  assert.equal(r.outreach.transporter, 'No outreaches performed to DSP DA');   // kept, not dropped
+  assert.match(r.outreachMismatch, /Outreaches to DA/);
+  assert.match(r.outreachMismatch, /Flex DP/);
+  assert.ok(review(r).warnings.some(w => /Outreaches to DA/.test(w)));
+});
+
+test('a "NEEDS HUMAN CHOICE" line is reported as a gap, once', () => {
+  const r = parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDate: 11/15/26\n\nPHD Mitigation:\n- NEEDS HUMAN CHOICE: PHD Resolution\n- NEEDS HUMAN CHOICE: Dog Risk Level\n');
+  const rv = review(r);
+  const res = rv.blank.filter(b => b.field === 'PHD Resolution');
+  assert.equal(res.length, 1);
+  assert.match(res[0].why, /NEEDS HUMAN CHOICE/);
+  const dog = rv.blank.filter(b => b.field === 'Dog Risk Level');
+  assert.equal(dog.length, 1);
+  assert.equal(dog[0].why, 'the log marks it NEEDS HUMAN CHOICE');
+});
+
+test('nothing keys off section order: the final shape reordered imports the same fields', () => {
+  const sections = FINAL_PROMPT_EXAMPLE.split('\n\n');
+  const head = sections.slice(0, 2);                       // the title block and SIM Root Cause Details
+  const rest = sections.slice(2).reverse();                // every other section, back to front
+  const r = parse(head.concat(rest).join('\n\n'));
+  const straight = parse(FINAL_PROMPT_EXAMPLE);
+  assert.deepEqual(r.sim.fields, straight.sim.fields);
+  assert.equal(r.rootCause.value, straight.rootCause.value);
+  assert.equal(r.res, straight.res);
+  assert.deepEqual(r.invest, straight.invest);
+  assert.equal(r.blocks, 1);
+  assert.deepEqual(review(r).blank, []);
+  assert.deepEqual(review(r).unmapped, []);
+});
+
+test('a paste that cannot be split but shows two agent shapes warns instead of merging silently', () => {
+  const flofalgu = ['Resolution: Customer Reassurance', '',
+    'Incident as reported:', "A DSP DA out of WMO4 saw the CX's dog running loose.", '',
+    'Why this resolution:', 'The CX secured the dog and gave written reassurance.'].join('\n');
+  const r = parse(flofalgu + '\n\n' + HARISSS_LOG);
+  assert.equal(r.blocks, 1);                               // no shared heading, no trailer to cut at
+  assert.deepEqual(r.families, ['harisss', 'flofalgu']);
+  assert.match(review(r).multi.warning, /Two agent formats appear in this paste/);
+  // A single log of either shape says nothing of the sort.
+  assert.equal(review(parse(flofalgu)).multi.warning, '');
+  assert.equal(review(parse(HARISSS_LOG)).multi.warning, '');
+});
+
 // ---- text before the opening heading ----
 // A preamble (a greeting, an "Incident 1:" header, a section written out of order) is not an
 // incident: it stays with the first block, so the paste is still ONE incident and the whole log is
@@ -443,9 +637,11 @@ test('an unstated historical count is marked as a default, a stated zero is not'
   const a = review(parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDate: 11/15/26\n')).filled.filter(f => f.field === SIM + 'Cnt')[0];
   assert.equal(a.value, '0');
   assert.match(a.source, /defaulted/);
+  assert.equal(a.assumed, true);          // the flag the panel renders open instead of collapsed
   const b = review(parse('SIM Root Cause Details:\nIssue: Verbal abuse\nCnt: 0\n')).filled.filter(f => f.field === SIM + 'Cnt')[0];
   assert.equal(b.value, '0');
   assert.equal(/defaulted/.test(b.source), false);
+  assert.equal(b.assumed, undefined);
 });
 
 test('a Created / Last modified trailer is dropped on the label alone, with no alias on the line', () => {
@@ -454,6 +650,149 @@ test('a Created / Last modified trailer is dropped on the label alone, with no a
   assert.equal(n.indexOf('11/21/2026'), -1);
   const r = parse('PHD Notes:\n- The CX was reassured.\nCreated: 11/20/2026\n');
   assert.equal((r.notes + r.reference).indexOf('11/20/2026'), -1);
+});
+
+// ---- two incidents from DIFFERENT agents in one paste ----
+// The likely real paste is two agents' formats back to back, and then the detected format's own
+// opening heading appears only once: the boundary has to come from any format's heading repeating.
+const HARISSS_LOG = [
+  'SIM Title: US Customer Incident Escalation - Sev 5 - Verbal abuse',
+  'PHD Related Link: https://t.corp.amazon.com/issues/V2459642680',
+  'Root Cause: Driving Behavior - Other',
+  '',
+  'SIM Root Cause Details:',
+  'Issue: Verbal abuse', 'SID: WET1', 'Driv: DSP DA', 'Date: 11/15/26', 'Res: Driver Follow-up',
+  '',
+  'PHD Findings:',
+  "- 15NOV'26: the CX shouted at the DA about the parking position of the van.",
+  '',
+  'PHD Resolution: Driver Follow-up',
+].join('\n');
+const NOBREGAK_LOG = [
+  'Determination:',
+  'The material allegation that the CX blocked the vehicle is Substantiated.',
+  '',
+  'PHD Findings:',
+  "A Flex DP was delivering at a CX residence on 26NOV'26.",
+  '',
+  'Root Cause:',
+  '',
+  'Not following delivery instructions',
+  '',
+  'PHD Resolution:',
+  '',
+  'Customer Reassurance (Primary).',
+].join('\n');
+
+test('two incidents written in two different formats are split, warned about and never blended', () => {
+  const r = parse(HARISSS_LOG + '\n\n' + NOBREGAK_LOG);
+  assert.equal(r.blocks, 2);
+  assert.equal(r.incidents.length, 2);
+  assert.match(review(r).multi.warning, /2 incidents were pasted/);
+  // Every field comes from the FIRST incident; nothing leaks in from the second.
+  assert.equal(r.sim.fields.Driv, 'DSP DA');
+  assert.equal(r.sim.fields.Date, '11/15/26');
+  assert.equal(r.sim.fields.SID, 'WET1');
+  assert.equal(r.rootCause.value, 'Driving Behavior - Other');
+  assert.equal(r.res, 'Driver Follow-up');
+});
+
+test('the same two formats in the other order split too, and then the first one wins', () => {
+  const r = parse(NOBREGAK_LOG + '\n\n' + HARISSS_LOG);
+  assert.equal(r.blocks, 2);
+  assert.match(review(r).multi.warning, /2 incidents were pasted/);
+  assert.equal(r.sim.fields.Driv, 'Flex DP');
+  assert.equal(r.sim.fields.Date, '11/26/26');
+  assert.equal(r.rootCause.value, 'Not following delivery instructions');
+  assert.equal(r.res, 'Customer Reassurance');
+  assert.equal(r.sim.fields.SID, undefined);          // WET1 belongs to the second incident
+});
+
+test('two prose logs with no opening sentence are still two incidents', () => {
+  const log = ['Resolution: Customer Reassurance',
+    '',
+    'Incident as reported:',
+    "A DSP DA out of WMO4 arrived to deliver and saw the CX's dog running loose.",
+    '',
+    'Why this resolution:',
+    'The CX secured the dog on request and gave written reassurance of driver safety.'].join('\n');
+  const r = parse(log + '\n\n' + log);
+  assert.equal(r.blocks, 2);
+  assert.match(review(r).multi.warning, /2 incidents were pasted/);
+});
+
+test('a log closed by a Created / Last modified trailer ends there: what follows is a second incident', () => {
+  const first = ['PHD Notes:',
+    '- No prior incidents for the customer.',
+    '- Since it is the first time incident, resolving the SIM as customer reassurance.',
+    '',
+    'Created: November 20, 2026 04:51 PM by arunkzn@',
+    'Last modified: November 20, 2026 04:51 PM by arunkzn@'].join('\n');
+  const r = parse(first + '\n\n' + NOBREGAK_LOG);
+  assert.equal(r.blocks, 2);
+  assert.match(review(r).multi.warning, /2 incidents were pasted/);
+  assert.equal(r.res, 'Customer Reassurance');          // the first incident's own prose resolution
+  assert.equal(r.rootCause.value, '');                  // it states none; the second one's is not borrowed
+  assert.equal(r.sim.fields.Date, undefined);
+});
+
+test('a "Created:" line in the body is content, and only the stamped trailer is dropped', () => {
+  const log = ['PHD Notes:',
+    'Created: a new delivery instruction was added by the CX on 11/18/2026.',
+    '- The CX was reassured.',
+    '',
+    'Created: November 20, 2026 04:51 PM by arunkzn@'].join('\n');
+  const n = IMP.normalise(log);
+  assert.ok(n.indexOf('a new delivery instruction') > 0);
+  assert.equal(n.indexOf('arunkzn@'), -1);
+  assert.equal(parse(log).blocks, 1);                   // and it is not a second incident either
+});
+
+// ---- the agent's own wording, when the catalogue rejects it ----
+test('an off-catalogue Root Cause stays out of the field but its wording is kept in the reference', () => {
+  const r = parse('Root Cause:\n\nAddress-mapping confusion at a shared driveway left the DP searching near a neighbouring property.\n\nPHD Resolution: Customer Reassurance\n');
+  assert.equal(r.rootCause.value, '');
+  assert.match(r.reference, /\*\*Root Cause as written \(not an allowed value\):\*\*/);
+  assert.ok(r.reference.indexOf('Address-mapping confusion') > 0);
+  assert.ok(review(r).unmapped.some(u => u.field === 'Root Cause'));
+});
+
+test('a Root Cause that is in the catalogue is not copied into the reference', () => {
+  const r = parse('Root Cause: Driving Behavior - Other\n\nPHD Resolution: Driver Follow-up\n');
+  assert.equal(r.rootCause.value, 'Driving Behavior - Other');
+  assert.equal(/Root Cause as written/.test(r.reference), false);
+});
+
+// ---- the review asks only what the questionnaire asks ----
+test('a Flex DP import is not asked the questions the editor hides for Flex DP', () => {
+  const flex = 'SIM Root Cause Details:\nIssue: Verbal abuse\nDriv: Flex DP\nDate: 11/15/26\n\nPHD Findings:\n- Netradyne is not applicable for this transporter type.\n';
+  const rv = review(parse(flex));
+  ['Netradyne footage exists', 'Station request made', 'AUSTIN Investigation Findings'].forEach(q => {
+    assert.equal(rv.blank.filter(b => b.field === q).length, 0, 'asked anyway: ' + q);
+    assert.equal(rv.unmapped.filter(u => u.field === q).length, 0, 'reported anyway: ' + q);
+  });
+  // The same log for a DSP DA asks them — and reports the Netradyne sentence ONCE, as unmapped.
+  const dsp = review(parse(flex.replace('Flex DP', 'DSP DA')));
+  ['Station request made', 'AUSTIN Investigation Findings'].forEach(q =>
+    assert.ok(dsp.blank.some(b => b.field === q), 'not asked: ' + q));
+  assert.equal(dsp.blank.filter(b => b.field === 'Netradyne footage exists').length, 0);
+  assert.equal(dsp.unmapped.filter(u => u.field === 'Netradyne footage exists').length, 1);
+});
+
+test('a non-US/CA ticket is not asked the CLEAR question the editor hides there', () => {
+  const r = parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDriv: DSP DA\nDate: 11/15/26\n');
+  const clear = b => /^CLEAR history of POI/.test(b.field);
+  assert.ok(IMP.review(r, { api: ED }).blank.some(clear));
+  assert.equal(IMP.review(r, { api: ED, ro: { usca: false } }).blank.filter(clear).length, 0);
+});
+
+// ---- the one hardcoded mapping is a candidate, not an exemption ----
+test('"Parcel Box" is mapped only when the mapping target is in the injected catalogue', () => {
+  assert.equal(IMP.mapResolution('Parcel Box', { res: CAT.res }).primary, 'Parcel Box Installation');
+  const trimmed = CAT.res.filter(v => v !== 'Parcel Box Installation');
+  const out = IMP.mapResolution('Parcel Box', { res: trimmed });
+  assert.equal(out.primary, '');
+  assert.deepEqual(out.unmapped, ['Parcel Box']);
 });
 
 test('normalise() strips box drawing, bullets and non-breaking spaces without losing content', () => {

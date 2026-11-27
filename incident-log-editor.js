@@ -1105,6 +1105,9 @@ var IL_FULL_HEADS=[
   {re:/^sim root cause details$/, kind:'sim'},
   {re:/^root cause$/, kind:'rootCause'},
   {re:/^phd findings$/, kind:'findings'},
+  // The owner's final shared prompt renames the narrative heading to "Incident Findings:". It is a
+  // full synonym of "PHD Findings:": both spellings read into the same field.
+  {re:/^incident findings$/, kind:'findings'},
   {re:/^(?:investigation|evidence) checklist$/, kind:'checklist'},
   {re:/^related links?$/, kind:'links'},
   {re:/^phd resolution$/, kind:'res'},
@@ -1113,6 +1116,9 @@ var IL_FULL_HEADS=[
   {re:/^evidence details$/, kind:'evidence'},
   {re:/^risk assessment$/, kind:'risk'},
   {re:/^phd notes$/, kind:'notes'},
+  // "PHD Mitigation:" is the final prompt's replacement for "PHD notes:" — the NEEDS HUMAN CHOICE
+  // lines, secondary root causes and secondary ticket links. Same destination as PHD notes.
+  {re:/^phd mitigation$/, kind:'notes'},
   {re:/^internal only\b/, kind:'drop'}
 ];
 function _ilfHeadKind(name){
@@ -2325,11 +2331,13 @@ function ilSimImportClose(apply){
 // Two stages, so no import is ever silent: paste -> Review (what gets filled, what stays blank, what
 // could not be mapped to an allowed value, plus the Primary Case Tag chips) -> Apply. Nothing is
 // written to the form before Apply. The parse comes from incident-log-import.js
-// (window.PHDIncidentImport); when that script is absent the old one-step ilParseFullLog path runs.
+// (window.PHDIncidentImport); when that script is absent, or the parse throws, the dialog stays on
+// the paste stage and OFFERS the old one-step ilParseFullLog path, which takes a second click.
 var _ilfiOpener=null;
 var _ilfiResult=null;   // the reviewed PHDIncidentImport.parse() result, applied by Apply
 var _ilfiReview=null;   // its PHDIncidentImport.review() report (dialog step + the panel)
 var _ilfiNoReview='';   // why the review stage was skipped, said out loud with the status line
+var _ilfiUnreviewed=false;   // the reason is on screen: the next click on the go button applies anyway
 function _ilfiBuild(){
   var bg=document.getElementById('ilLogImport'); if(bg) return bg;
   bg=document.createElement('div'); bg.id='ilLogImport'; bg.className='ilc-bg'; bg.hidden=true;
@@ -2371,7 +2379,9 @@ function _ilfiBuild(){
   window.addEventListener('keydown',_ilfiKeydown,true);
   return bg;
 }
-// review=true shows the review stage (Back + Apply), false the paste stage (Review import).
+// review=true shows the review stage (Back + Apply), false the paste stage (Review import). The
+// paste stage always returns the go button to its reviewing label: an unreviewed apply has to be
+// asked for again from scratch.
 function _ilfiStage(review){
   var p=document.getElementById('ilLogImportPaste'), rv=document.getElementById('ilLogImportReviewPane');
   if(!p || !rv) return;
@@ -2380,34 +2390,54 @@ function _ilfiStage(review){
   set('ilLogImportGo',!!review); set('ilLogImportApply',!review); set('ilLogImportBack',!review);
   var t=document.getElementById('ilLogImportTitle');
   if(t) t.textContent=review ? 'Review this import' : 'Import incident log';
+  if(!review){
+    _ilfiUnreviewed=false;
+    var go=document.getElementById('ilLogImportGo'); if(go) go.textContent='Review import';
+  }
+}
+// The review stage could not be built (no parser module / a parse that threw). The dialog STAYS on
+// the paste stage with the reason on screen and the go button renamed: nothing is written to the
+// form until the owner asks for it a second time, knowing it was not reviewed.
+function _ilfiNoReviewStage(why){
+  _ilfiStage(false);
+  _ilfiNoReview=why;
+  _ilfiUnreviewed=true;
+  var er=document.getElementById('ilLogImportErr');
+  if(er){ er.textContent=why+' Press \u201cApply without a review\u201d to import it anyway, or Cancel.'; er.hidden=false; }
+  var go=document.getElementById('ilLogImportGo');
+  if(go){ go.textContent='Apply without a review'; try{ go.focus(); }catch(e){} }
 }
 // Stage 1 -> stage 2: parse the paste and show the review. Nothing is written to the form here.
 function ilLogImportReview(){
   var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
+  // Second click after a skipped review was explained: apply the legacy one-step import.
+  if(_ilfiUnreviewed){ ilLogImportClose(true); return; }
   var ta=document.getElementById('ilLogImportText'), er=document.getElementById('ilLogImportErr');
   var txt=String(ta.value||'');
   var P=(typeof window!=='undefined') ? window.PHDIncidentImport : null;
-  // No parser module (script failed to load): keep the old one-step import rather than break Import,
-  // but never let a skipped review look like a reviewed one — say which one ran.
+  // No parser module (script failed to load): the old one-step import is still available, but it is
+  // offered, not run — a skipped review must never look like a reviewed one.
   if(!(P && typeof P.parse==='function' && typeof P.review==='function')){
-    _ilfiNoReview='The review step was unavailable (incident-log-import.js did not load), so the import was applied straight to the form \u2014 check every field.';
-    ilLogImportClose(true); return;
+    _ilfiNoReviewStage('The review step is unavailable (incident-log-import.js did not load), so this import cannot be checked before it is applied.');
+    return;
   }
   var L=_ilsLists(), r=null, failed=false;
   if(txt.trim()){
     try{ r=P.parse(txt,{rootCauses:window.RC_ROOT_CAUSES||[], issues:L.issues, res:L.res, api:IncidentLogEditor}); }
     catch(e){ failed=true; }
   }
-  if(failed){   // guarded fallback to ilParseFullLog
-    _ilfiNoReview='The review step could not read this paste, so the import was applied straight to the form \u2014 check every field.';
-    ilLogImportClose(true); return;
+  if(failed){   // offered fallback to ilParseFullLog, never an automatic one
+    _ilfiNoReviewStage('The review step could not read this paste, so this import cannot be checked before it is applied.');
+    return;
   }
   if(!r || !r.known){
     er.textContent=txt.trim() ? 'No incident log sections found in the pasted text.' : 'Paste the full incident log first.';
     er.hidden=false; try{ ta.focus(); }catch(e){} return;
   }
   er.hidden=true; er.textContent='';
-  _ilfiResult=r; _ilfiReview=P.review(r,{api:IncidentLogEditor});
+  // ro = the question gating of the open ticket (region / Flex / pet), so the review never asks for
+  // an answer to a question the questionnaire hides.
+  _ilfiResult=r; _ilfiReview=P.review(r,{api:IncidentLogEditor, ro:_ilqRO()});
   var body=document.getElementById('ilLogImportReviewBody');
   if(body) body.innerHTML=_ilrvHtml(_ilfiReview,r,false);
   _ilfiStage(true);
@@ -2458,9 +2488,9 @@ function _ilfiUnlock(id){
   if(was && pen) pen.classList.add('editing');
 }
 // apply=true writes the reviewed import into the form fields (nothing is saved). The result is the
-// one the review stage parsed (_ilfiResult); without it (no parser module / a parse that threw) the
-// old one-step ilParseFullLog path runs and the status line says the review was skipped
-// (_ilfiNoReview), which — unlike a plain summary — does not auto-hide.
+// one the review stage parsed (_ilfiResult); without it the owner asked for the old one-step
+// ilParseFullLog path a second time after _ilfiNoReviewStage explained why no review was possible,
+// and the status line says so (_ilfiNoReview), which — unlike a plain summary — does not auto-hide.
 function ilLogImportClose(apply){
   var bg=document.getElementById('ilLogImport'); if(!bg || bg.hidden) return;
   if(apply){
@@ -2536,20 +2566,21 @@ function ilLogImportClose(apply){
     var summary=ilFullLogSummary(r,n);
     // The reviewed import leaves its report on screen (dismissible, no auto-hide): a silent partial
     // import is the failure mode being designed out. The old path keeps its 5-second status line.
+    var noRv=_ilfiNoReview ? _ilfiNoReview+' It was applied without a review \u2014 check every field.' : '';
     if(_ilfiReview) ilImportReviewShow(_ilfiReview,r,summary);
     else {
       var st=document.getElementById('ilLogImportStatus');
       if(st){
-        st.textContent=_ilfiNoReview ? _ilfiNoReview+' '+summary : summary;
+        st.textContent=noRv ? noRv+' '+summary : summary;
         st.hidden=false;
         clearTimeout(st._ilfHide);
         // The skipped-review notice stays until the next import; a plain summary still auto-hides.
-        if(!_ilfiNoReview) st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
+        if(!noRv) st._ilfHide=setTimeout(function(){ st.hidden=true; st.textContent=''; },5000);
       }
     }
-    _ileToast(_ilfiNoReview ? _ilfiNoReview : summary);
+    _ileToast(noRv ? noRv : summary);
   } else bg.hidden=true;
-  _ilfiResult=null; _ilfiReview=null; _ilfiNoReview='';
+  _ilfiResult=null; _ilfiReview=null; _ilfiNoReview=''; _ilfiUnreviewed=false;
   var op=_ilfiOpener; _ilfiOpener=null;
   if(op && op.focus) try{ op.focus(); }catch(e){}
 }
@@ -2607,13 +2638,18 @@ function _ilrvRow(g,x,goto){
   if(g.k==='filled') tail='<span class="ilrv-val">'+_ileEsc(_ilrvCut(x.value,140))+'</span>'+(x.source?'<span class="ilrv-src">'+_ileEsc(_ilrvCut(x.source,100))+'</span>':'');
   else if(g.k==='blank') tail='<span class="ilrv-why">'+_ileEsc(x.why||'')+'</span>';
   else tail='<span class="ilrv-raw">'+_ileEsc(_ilrvCut(x.raw,120))+'</span>'+(x.catalogue?'<span class="ilrv-src">not in '+_ileEsc(_ilrvCut(x.catalogue,80))+'</span>':'');
-  return '<li class="ilrv-row"><span class="ilrv-f">'+_ileEsc(x.field||'')+'</span>'+tail+
+  // An assumed value (a Cnt nobody stated, defaulted to 0) is marked, and its group opens by default
+  // below — the stated / assumed difference is the one thing this row exists to show.
+  return '<li class="ilrv-row'+(x.assumed?' ilrv-assumed':'')+'"><span class="ilrv-f">'+_ileEsc(x.field||'')+'</span>'+tail+
     (el ? '<button type="button" class="ilrv-go" data-kind="'+t.kind+'" data-key="'+_ileEsc(t.key)+'" onclick="ilImportGoto(this)">Go to field</button>' : '')+'</li>';
 }
 function _ilrvHtml(rv,r,goto){
   rv=rv||{};
   var h='';
   if(rv.multi && rv.multi.warning) h+='<p class="ilrv-warn">'+_ileEsc(rv.multi.warning)+'</p>';
+  // Anything the paste states that contradicts itself (an "Outreaches to DA:" label on a Flex DP
+  // incident): shown, never silently dropped.
+  (rv.warnings||[]).forEach(function(w){ if(w) h+='<p class="ilrv-warn">'+_ileEsc(w)+'</p>'; });
   var tags=rv.tags||[];
   if(tags.length) h+='<div class="ilrv-tags"><span class="ilrv-tags-lbl">Primary Case Tag \u2014 click a tag to copy it</span>'+
     '<span class="ail-tagrow ail-tagrow-in">'+tags.map(_ilTagChip).join('')+'</span></div>';
@@ -2623,8 +2659,9 @@ function _ilrvHtml(rv,r,goto){
   if(r && r.dateSource) extra.push('Date read from: '+_ilrvCut(r.dateSource,90));
   if(extra.length) h+='<p class="ilrv-note">'+extra.map(function(x){ return _ileEsc(x); }).join('<br>')+'</p>';
   IL_RV_GROUPS.forEach(function(g){
-    var rows=rv[g.k]||[];
-    h+='<details class="ilrv-g ilrv-'+g.cls+'"'+((g.k!=='filled' && rows.length)?' open':'')+'>'+
+    var rows=rv[g.k]||[], assumed=rows.filter(function(x){ return x && x.assumed; }).length;
+    // Filled starts collapsed (it is the long, uninteresting group) unless it holds an assumed value.
+    h+='<details class="ilrv-g ilrv-'+g.cls+'"'+(((g.k!=='filled' || assumed) && rows.length)?' open':'')+'>'+
       '<summary class="ilrv-sum">'+g.title+' <span class="ilrv-n">'+rows.length+'</span></summary>'+
       (rows.length ? '<ul class="ilrv-list">'+rows.map(function(x){ return _ilrvRow(g,x,goto); }).join('')+'</ul>'
                    : '<p class="ilrv-none">Nothing in this group.</p>')+
@@ -4281,6 +4318,9 @@ var IncidentLogEditor=(function(){
     '.ilrv-val{color:#2a3340;word-break:break-word}',
     '.ilrv-raw{color:#b42318;word-break:break-word}',
     '.ilrv-why{color:#5c6773}',
+  // An assumed value (nobody stated it) reads in the gap colour, not as a stated fact.
+  '.ilrv-assumed .ilrv-val{color:#8a5a00;font-weight:700}',
+  '.ilrv-assumed .ilrv-src{color:#8a5a00;font-style:normal}',
     '.ilrv-src{color:#8793a0;font-size:.92em;font-style:italic;word-break:break-word}',
     '.ilrv-none{margin:0;padding:0 10px 8px;font-size:.76em;color:#8793a0}',
     '#incidentModal button.ilrv-go{margin:0 0 0 auto;padding:2px 9px!important;border:1px solid #d4dce4!important;border-radius:999px!important;background:#fff!important;color:#1577a0!important;font-family:inherit;font-size:.92em;font-weight:700;cursor:pointer;box-shadow:none!important;flex:0 0 auto}',
@@ -4652,6 +4692,8 @@ var IncidentLogEditor=(function(){
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     // Pure helpers the whole-log importer (incident-log-import.js) is handed as its `api` object.
     _ilsExact:_ilsExact, _ilfInvestKey:_ilfInvestKey, _ilfAnswer:_ilfAnswer, _ilfHeadKind:_ilfHeadKind,
+    // The import review reports a question only when the questionnaire would ask it.
+    _ilqRegionHidden:_ilqRegionHidden, ilIsFlexDriv:ilIsFlexDriv,
     IL_EMT_URL_PRE:IL_EMT_URL_PRE, IL_EMT_URL_POST:IL_EMT_URL_POST, IL_EXTRA_SECS:IL_EXTRA_SECS, IL_REF_HEAD:IL_REF_HEAD,
     IL_SIM_FIELDS:IL_SIM_FIELDS, IL_INVEST_QS:IL_INVEST_QS, ilSimFmtDate:ilSimFmtDate, ilSimParseDate:ilSimParseDate,
     ilSimDriv:ilSimDriv, ilSimHiCount:ilSimHiCount, ilSimImport:ilSimImport, ilParseSim:ilParseSim,
