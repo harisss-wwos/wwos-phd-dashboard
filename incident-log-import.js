@@ -19,6 +19,11 @@
 //     (window.IZ_CATS / RC_ROOT_CAUSES / RC_RESOLUTIONS, passed in as o.issues / o.rootCauses /
 //     o.res): a value that is not in its catalogue leaves the field blank and is reported under
 //     review().unmapped. The one mapping the spec states is "Parcel Box" -> "Parcel Box Installation".
+//   - NEVER LOSE THE AGENT'S WORDING either. A Root Cause or a Resolution the catalogue rejects is
+//     kept verbatim in the reference block under its own heading (IL_IMP_RC_RAW_HEAD /
+//     IL_IMP_RES_RAW_HEAD), worded so re-importing that text can never read it back into the field,
+//     and the allowed half of a compound resolution is written into PHD notes under
+//     "**PHD Resolution:**" (the slot ilCopyResExtra carries into a Copy).
 //   - NEVER guess a "PHD Investigation for mitigation" answer. A structured checklist line wins
 //     (api._ilfInvestKey / api._ilfAnswer), else the IL_EVIDENCE_RULES prose table, else the key stays
 //     absent and is reported under review().blank. A rule whose answer is not one of the question's
@@ -31,9 +36,15 @@
 //   - Several incidents in one paste are never silently merged, whether the two logs come from the
 //     same agent or from two different ones: splitIncidents cuts on a repeated heading from ANY
 //     format, every block is reported (blocks, incidents[]) and only the first is applied.
-//   - The review never asks for an answer the editor would not ask for: a question hidden for the
-//     ticket's region or for a Flex DP transporter is left out of the report, and a question that is
-//     already reported as unmappable is not also reported as blank.
+//   - The review never asks for an answer the editor would not ask for: every question the
+//     questionnaire hides by its own three rules (region / Flex DP / pet, a Customer Service
+//     Escalation root cause, a Community-Member POI — api._ilqAutoHidden) is left out of the report,
+//     and a question that is already reported as unmappable is not also reported as blank.
+//   - A severity nobody wrote down is the owner's standing rule, not a guess: spec section 2 states
+//     "no EMT processed or no severity = Sev 5", so parse() reports severity '' with
+//     severityAssumed '5' and the review shows that row as a marked default (the same way an
+//     unstated Cnt reads as "defaulted to 0"). The editor only applies it when no severity has been
+//     chosen yet, so a severity read from the ticket title still wins.
 //
 // Injected api (the deps-injection pattern the server modules use; pass IncidentLogEditor, or bind it
 // once with withApi(api)). Used at call time, never at load time, so there is no load-order coupling:
@@ -49,8 +60,8 @@
 // ORDER — only off the headings.
 //
 // Exports one global (window.PHDIncidentImport) / module.exports: normalise, detect, detectFamilies,
-// splitIncidents, splitSections, IL_IMP_LABELS, extractFields, resolveDate, mapResolution,
-// IL_EVIDENCE_RULES, investFromProse, routeExtras, ilCaseTags, parse, review, withApi.
+// familyMarkers, splitIncidents, splitSections, IL_IMP_LABELS, extractFields, resolveDate,
+// mapResolution, IL_EVIDENCE_RULES, investFromProse, routeExtras, ilCaseTags, parse, review, withApi.
 // ====================================================================================
 (function (root) {
 
@@ -158,6 +169,22 @@ function detectFamilies(text){
     for(var i=0;i<f.markers.length;i++){
       if(f.markers[i][3] && f.markers[i][0].test(s)){ out.push(f.format); return; }
     }
+  });
+  return out;
+}
+// Every signature marker each family matched, with the line it was found on -> [{format, markers:[],
+// lines:[]}]. A paste that could not be split names these in its warning, so the owner is told WHAT
+// made it look like two logs instead of being asked to take the warning on trust.
+function familyMarkers(text){
+  var s=String(text==null?'':text), lines=s.replace(/\r\n?/g,'\n').split('\n'), out=[];
+  IL_IMP_FORMATS.forEach(function(f){
+    var names=[], at=[];
+    f.markers.forEach(function(m){
+      if(!m[3] || !m[0].test(s)) return;
+      names.push(m[2]);
+      for(var i=0;i<lines.length;i++){ if(m[0].test(lines[i])){ at.push(i+1); break; } }
+    });
+    if(names.length) out.push({format:f.format, markers:names, lines:at});
   });
   return out;
 }
@@ -841,6 +868,27 @@ var IL_IMP_INVEST_KEYS=['dup','poi','susp','negFb','histCx','locSim','cortex','l
 // Deliberately NOT the "Root Cause:" label, so re-importing the reference text never reads it back
 // into the Root Cause field.
 var IL_IMP_RC_RAW_HEAD='Root Cause as written (not an allowed value)';
+// The same treatment for the resolution: a value outside the 12 leaves "Res:" blank, but the words
+// the agent wrote are kept in the reference under this heading (again not a re-readable "Res" label,
+// so a re-import of the reference text never puts an off-catalogue value back in the field).
+var IL_IMP_RES_RAW_HEAD='PHD Resolution as written (not an allowed value)';
+// The notes heading the additional resolutions of a compound go under: the slot the editor's
+// ilCopyResExtra carries straight under the Copy's "**PHD Resolution**: <value>" line.
+var IL_IMP_RES_NOTE_HEAD='**PHD Resolution:**';
+// Spec section 2: "Often absent entirely -> default Sev 5 (owner's existing rule: no EMT processed or
+// no severity = Sev 5)". Reported as an assumption (severityAssumed), never as a stated value.
+var IL_IMP_SEV_DEFAULT='5';
+// lines -> the notes with those lines under the "**PHD Resolution:**" heading (reused when the notes
+// already carry that heading, so there is never a second one).
+function _notesWithRes(notes,lines){
+  var body=(lines||[]).filter(function(l){ return String(l).trim(); }).join('\n');
+  if(!body) return String(notes==null?'':notes);
+  var at=String(notes==null?'':notes).split('\n'), idx=-1;
+  for(var i=0;i<at.length;i++){ if(/^\s*\*\*PHD Resolution:\*\*\s*$/i.test(at[i])){ idx=i; break; } }
+  if(idx<0) return (at.join('\n').trim() ? at.join('\n').trim()+'\n\n' : '')+IL_IMP_RES_NOTE_HEAD+'\n'+body;
+  at.splice(idx+1,0,body);
+  return at.join('\n').trim();
+}
 // text + {rootCauses, issues, res, api} -> the whole import. Several incidents: every block is
 // reported and only the first is applied.
 function parse(text,o){
@@ -873,6 +921,18 @@ function parse(text,o){
     if(rcKeep) reference=reference ? reference+'\n\n'+rcKeep : rcKeep;
   }
   var res=mapResolution(v.res||'', {res:o.res, additional:v.resAdd||'', text:block});
+  // An off-catalogue resolution leaves "Res:" blank (never guessed) — and, exactly like the Root
+  // Cause above, its wording is kept in the reference instead of surviving only in a dismissible
+  // panel. A compound keeps its whole line, a partly-mapped one keeps just the rejected pieces.
+  if(res.unmapped.length || (res.raw && !res.primary)){
+    var resKeep=_block(IL_IMP_RES_RAW_HEAD, res.primary ? res.unmapped.slice() : [res.raw || res.unmapped.join(' + ')]);
+    if(resKeep) reference=reference ? reference+'\n\n'+resKeep : resKeep;
+  }
+  // The allowed half of a compound ("Delivery Instruction + Customer Reassurance") is a real
+  // resolution the owner actioned: the SIM "Res:" keeps the primary only, so the rest goes into PHD
+  // notes under "**PHD Resolution:**", the slot ilCopyResExtra carries into a Copy (plan item 5).
+  var notes=ex.notes;
+  if(res.additional.length) notes=_notesWithRes(notes, res.additional.map(function(x){ return '- Additional resolution actioned: '+x; }));
   // SIM Root Cause Details: the extracted values go back through the editor's own import rules
   // (exact-match-only Issue / Res, Driv / Date normalisation, Cnt default 0).
   var simVals={Issue:issue.value, SID:v.SID||'', Driv:v.Driv||'', Date:v.Date||'', TID:v.TID||'',
@@ -882,6 +942,8 @@ function parse(text,o){
   var emtId=v.emt || v.emtRelated || (typeof api.ilEmtNumber==='function' ? api.ilEmtNumber([block]) : '');
   var pre=api.IL_EMT_URL_PRE||'', post=api.IL_EMT_URL_POST||'';
   var tags=ilCaseTags(block);
+  // The severity as STATED, plus the owner's standing default when the log states none (spec §2).
+  var sev=(typeof api.ilSevFromText==='function' ? api.ilSevFromText(block) : '');
   // The two outreach items, and the label-vs-Driv mismatch the final prompt warns about.
   var och=_outreachFrom(secs), wantWho=IL_IMP_OUTREACH_WHO[_nk(v.Driv||'')]||'';
   var ochMiss=(och.who && wantWho && och.who!==wantWho)
@@ -889,19 +951,25 @@ function parse(text,o){
     : '';
   // Two agent shapes in one paste that could NOT be split: say so rather than hand over a blended
   // record. Failing loud beats merging silently.
-  var fams=detectFamilies(raw);
+  var fams=detectFamilies(raw), marks=familyMarkers(raw);
+  // Name the markers that made it look like two logs (and the line each was found on), so the owner
+  // can see which two shapes were mixed and where, instead of being asked to trust the warning.
+  var why=marks.filter(function(m){ return fams.indexOf(m.format)>=0; }).map(function(m){
+    return m.format+': '+m.markers.map(function(nm,i){ return nm+(m.lines[i]?' (line '+m.lines[i]+')':''); }).join(', ');
+  }).join('; ');
   var suspect=(all.length<2 && fams.length>1)
-    ? 'Two agent formats appear in this paste ('+fams.join(', ')+') and it could not be split into separate incidents \u2014 import one incident at a time and check every field.'
+    ? 'Two agent formats appear in this paste ('+fams.join(', ')+') and it could not be split into separate incidents \u2014 import one incident at a time and check every field. What was seen: '+why+'.'
     : '';
   return {
     format:det.format, detect:det, blocks:all.length, incidents:all.map(function(b){ return {index:b.index, heading:b.heading, chars:b.text.length}; }),
-    families:fams, multiSuspect:suspect, outreach:och, outreachMismatch:ochMiss, needsChoice:_needsChoice(block),
+    families:fams, familyMarkers:marks, multiSuspect:suspect, outreach:och, outreachMismatch:ochMiss,
+    needsChoice:_needsChoice(block),
     sim:sim, simValues:simVals, sources:src, rootCause:rc, issue:issue,
     findings:ex.findings, invest:inv, investQualifiers:quals, investUnmapped:pro.unmapped,
-    notes:ex.notes, determination:ex.determination, evidence:ex.evidence, risk:ex.risk, reference:reference,
+    notes:notes, determination:ex.determination, evidence:ex.evidence, risk:ex.risk, reference:reference,
     phdSimLink:v.phdSim||'', emtId:emtId, emtLink:emtId ? pre+emtId+post : '',
     res:res.primary, additionalResolutions:res.additional, resUnmapped:res.unmapped, resRaw:res.raw,
-    tags:tags, severity:(typeof api.ilSevFromText==='function' ? api.ilSevFromText(block) : ''),
+    tags:tags, severity:sev, severityAssumed:sev ? '' : IL_IMP_SEV_DEFAULT,
     dateSource:dr.source, dateCandidates:dr.candidates, known:ex.known
   };
 }
@@ -913,28 +981,41 @@ function _investOwner(api){
   return o;
 }
 // True when the editor would not ask this question at all for this incident: the review must not
-// demand an answer the form never shows. Same rule the questionnaire uses (api._ilqRegionHidden).
-function _investHidden(api,key,ro){
+// demand an answer the form never shows. The questionnaire hides a question by THREE rules — region /
+// Flex DP / pet, a "Customer Service Escalation" root cause, and a Community-Member POI — and
+// api._ilqAutoHidden is the one that combines all three, so that is what is asked here.
+// a = the answers that gate (the POI value this paste states, else the one already in the form).
+function _investHidden(api,key,ro,a){
   if(!ro) return false;
   var own=_investOwner(api)[key];
   if(!own) return false;
+  if(typeof api._ilqAutoHidden==='function') return !!api._ilqAutoHidden(own,a||{},ro);
   if(typeof api._ilqRegionHidden==='function') return !!api._ilqRegionHidden(own,ro);
   return !!((own.usCa && ro.usca===false) || (own.noFlex && ro.flex===true) || (own.petOnly && ro.pet===false));
 }
 // The gating facts for this import: whatever the open ticket already knows (o.ro, the editor's
-// _ilqRO()) plus the driver type this very paste states, since a "Driv: Flex DP" import hides the
-// Flex-only questions the moment it is applied.
+// _ilqRO()) plus what this very paste states, since an import applies its own Driv and Root Cause
+// the moment it lands — "Driv: Flex DP" hides the Flex-only questions and a Customer Service
+// Escalation root cause hides all but four.
 function _investRO(r,ro){
   ro=ro||{};
   var driv=String((r.simValues||{}).Driv||'').replace(/[^A-Za-z]/g,'');
-  return {usca:ro.usca, flex:(ro.flex===true || /^flex/i.test(driv)), pet:ro.pet};
+  return {usca:ro.usca, flex:(ro.flex===true || /^flex/i.test(driv)), pet:ro.pet,
+    rootCause:((r.rootCause&&r.rootCause.value)||ro.rootCause||'')};
+}
+// The POI answer that gates: this paste's, else the one already in the form (o.answers, the editor's
+// _ilqReadAnswers()). Only "poi" matters today — it is the one answer IL_POI_CM_HIDE keys off.
+function _investAnswers(r,answers){
+  var poi=(r.invest||{}).poi;
+  return {poi:(poi==null||poi==='') ? ((answers||{}).poi||'') : poi};
 }
 // The single report both the dialog's review step and the panel render. o.ro (optional) = the
-// {usca, flex, pet} gating of the open ticket; without it only what the paste states can gate.
+// {usca, flex, pet, rootCause} gating of the open ticket and o.answers its current questionnaire
+// answers; without them only what the paste states can gate.
 function review(r,o){
   o=o||{}; var api=o.api||{}, defs=_investDefs(api), filled=[], blank=[], unmapped=[];
   r=r||{};
-  var ro=_investRO(r,o.ro), reported={};
+  var ro=_investRO(r,o.ro), ans=_investAnswers(r,o.answers), reported={};
   var sv=r.simValues||{}, sf=(r.sim&&r.sim.fields)||{}, src=r.sources||{};
   // What the LOG said for a SIM key, not what survived validation: simValues already holds the
   // blanked Issue / Res, so an off-catalogue value has to be read from the raw capture or the owner
@@ -960,7 +1041,7 @@ function review(r,o){
   // filled and otherwise left out.
   var optional={determination:1, evidence:1, notes:1, reference:1};
   [['rootCause', r.rootCause&&r.rootCause.value], ['res', r.res], ['phdSimLink', r.phdSimLink],
-   ['emtLink', r.emtLink], ['severity', r.severity], ['findings', r.findings&&'(filled)'],
+   ['emtLink', r.emtLink], ['findings', r.findings&&'(filled)'],
    ['determination', r.determination&&'(filled)'], ['evidence', r.evidence&&'(filled)'],
    ['risk', r.risk&&'(filled)'], ['notes', r.notes&&'(filled)'], ['reference', r.reference&&'(filled)']
   ].forEach(function(p){
@@ -969,6 +1050,13 @@ function review(r,o){
     if(p[1]) filled.push({field:label, value:String(p[1]), source:src[p[0]]||''});
     else if(!optional[p[0]]) blank.push({field:label, why: stated ? 'the pasted value is not an allowed option' : 'the log does not state it'});
   });
+  // Severity: a stated one is a filled field; an unstated one is the owner's standing Sev 5 rule
+  // (spec §2), reported as the marked default it is — the same shape an unstated Cnt gets above.
+  var sevLbl=IL_IMP_LABEL_TEXT.severity;
+  if(r.severity) filled.push({field:sevLbl, value:String(r.severity), source:src.severity||''});
+  else if(r.severityAssumed) filled.push({field:sevLbl, value:String(r.severityAssumed),
+    source:'not stated \u2014 defaulted to Sev '+r.severityAssumed, assumed:true});
+  else blank.push({field:sevLbl, why:'the log does not state it'});
   // The two outreach items are kept as stated (they are not questionnaire questions).
   [['outreachCx','Outreaches to CX/POI',(r.outreach&&r.outreach.cx)||''],
    ['outreachTr',(r.outreach&&r.outreach.label)||'Outreaches to the transporter',(r.outreach&&r.outreach.transporter)||'']
@@ -979,7 +1067,7 @@ function review(r,o){
   if(r.rootCause && r.rootCause.raw && !r.rootCause.value) unmapped.push({field:'Root Cause', raw:r.rootCause.raw, catalogue:'RC_ROOT_CAUSES'});
   (r.resUnmapped||[]).forEach(function(x){ unmapped.push({field:'PHD Resolution', raw:x, catalogue:'RC_RESOLUTIONS (12)'}); });
   (r.investUnmapped||[]).forEach(function(x){
-    if(x.key && _investHidden(api,x.key,ro)) return;      // the editor does not ask this question
+    if(x.key && _investHidden(api,x.key,ro,ans)) return;   // the editor does not ask this question
     var got=(r.invest||{})[x.key];
     if(x.key && got!=null && got!=='') return;            // a checklist line answered it after all
     if(x.key) reported[x.key]=1;                          // reported here, so never ALSO as blank
@@ -989,7 +1077,7 @@ function review(r,o){
     var def=defs[k], label=(def&&def.label)||k, a=(r.invest||{})[k];
     if(a!=null && a!==''){ filled.push({field:label, value:String(a)+((r.investQualifiers||{})[k] ? ' \u2014 '+(r.investQualifiers||{})[k] : ''), source:'PHD Investigation for mitigation'}); return; }
     if(reported[k]) return;                               // already under "not mapped to an allowed value"
-    if(_investHidden(api,k,ro)) return;                   // hidden for this driver type / region
+    if(_investHidden(api,k,ro,ans)) return;               // hidden: region / Flex / pet, CSE root cause, CM POI
     blank.push({field:label, why:'no evidence in the paste supports an answer'});
   });
   // "NEEDS HUMAN CHOICE: <field>" lines are gaps the agent flagged on purpose. They merge into the
@@ -1005,8 +1093,12 @@ function review(r,o){
   });
   var n=r.blocks||0, warnings=[];
   if(r.outreachMismatch) warnings.push(r.outreachMismatch);
+  // multi.blocks: the heading each pasted incident opens with, so the owner reads WHICH blocks were
+  // found (and that the first one is the one applied) rather than only a count.
+  var blocks=(n>1) ? (r.incidents||[]).map(function(b){ return {index:b.index, heading:b.heading, applied:b.index===0}; }) : [];
   return {filled:filled, blank:blank, unmapped:unmapped, tags:r.tags||[], warnings:warnings,
-    multi:{count:n, warning: n>1 ? n+' incidents were pasted \u2014 only the first was imported. Import the others one at a time.' : (r.multiSuspect||'')}};
+    multi:{count:n, blocks:blocks,
+      warning: n>1 ? n+' incidents were pasted \u2014 only the first was imported. Import the others one at a time.' : (r.multiSuspect||'')}};
 }
 
 // ---- api ----
@@ -1015,7 +1107,7 @@ function withApi(api){
   var b={};
   Object.keys(IMP).forEach(function(k){ b[k]=IMP[k]; });
   b.parse=function(t,o){ o=o||{}; return parse(t, {rootCauses:o.rootCauses, issues:o.issues, res:o.res, api:o.api||api}); };
-  b.review=function(r,o){ o=o||{}; return review(r, {api:o.api||api, ro:o.ro}); };
+  b.review=function(r,o){ o=o||{}; return review(r, {api:o.api||api, ro:o.ro, answers:o.answers}); };
   b.extractFields=function(t,o){ o=o||{}; o.api=o.api||api; return extractFields(t,o); };
   b.resolveDate=function(t,o){ o=o||{}; o.api=o.api||api; return resolveDate(t,o); };
   b.investFromProse=function(t,o){ o=o||{}; o.api=o.api||api; return investFromProse(t,o); };
@@ -1023,7 +1115,7 @@ function withApi(api){
   b.withApi=withApi;
   return b;
 }
-var IMP={ normalise:normalise, detect:detect, detectFamilies:detectFamilies,
+var IMP={ normalise:normalise, detect:detect, detectFamilies:detectFamilies, familyMarkers:familyMarkers,
   splitIncidents:splitIncidents, splitSections:splitSections,
   IL_IMP_LABELS:IL_IMP_LABELS, IL_IMP_FORMATS:IL_IMP_FORMATS, IL_IMP_INVEST_KEYS:IL_IMP_INVEST_KEYS,
   extractFields:extractFields, resolveDate:resolveDate, mapResolution:mapResolution,

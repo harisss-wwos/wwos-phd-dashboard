@@ -708,6 +708,36 @@ test('the same two formats in the other order split too, and then the first one 
   assert.equal(r.sim.fields.SID, undefined);          // WET1 belongs to the second incident
 });
 
+// The warning is the only thing between the owner and a wrong record, so it says WHICH blocks were
+// found (and which one was applied) and, when the paste could not be cut at all, which markers made
+// it look like two logs.
+test('a two-incident paste lists the blocks it found and marks the one that was imported', () => {
+  const rv = review(parse(HARISSS_LOG + '\n\n' + NOBREGAK_LOG));
+  assert.equal(rv.multi.count, 2);
+  assert.equal(rv.multi.blocks.length, 2);
+  assert.equal(rv.multi.blocks[0].applied, true);
+  assert.equal(rv.multi.blocks[1].applied, false);
+  assert.match(rv.multi.blocks[0].heading, /SIM Title/);
+  assert.match(rv.multi.blocks[1].heading, /Determination/);
+  // One incident: no block list to show.
+  assert.deepEqual(review(parse(HARISSS_LOG)).multi.blocks, []);
+});
+
+test('an unsplittable two-format paste names the markers it saw, with their line numbers', () => {
+  const flofalgu = ['Resolution: Customer Reassurance', '',
+    'Incident as reported:', "A DSP DA out of WMO4 saw the CX's dog running loose.", '',
+    'Why this resolution:', 'The CX secured the dog and gave written reassurance.'].join('\n');
+  const r = parse(flofalgu + '\n\n' + HARISSS_LOG);
+  assert.equal(r.blocks, 1);
+  const w = review(r).multi.warning;
+  assert.match(w, /Two agent formats appear in this paste/);
+  assert.match(w, /What was seen:/);
+  assert.match(w, /harisss: SIM Root Cause Details: \(line \d+\)/);
+  assert.match(w, /flofalgu: Incident as reported: \(line \d+\)/);
+  // Every named marker belongs to a family that was actually detected.
+  assert.deepEqual(r.familyMarkers.map(m => m.format).filter(f => r.families.indexOf(f) < 0), []);
+});
+
 test('two prose logs with no opening sentence are still two incidents', () => {
   const log = ['Resolution: Customer Reassurance',
     '',
@@ -763,6 +793,64 @@ test('a Root Cause that is in the catalogue is not copied into the reference', (
   assert.equal(/Root Cause as written/.test(r.reference), false);
 });
 
+// The resolution gets the same treatment: "Res:" stays blank, and the words the agent wrote land in
+// a field instead of surviving only in a panel the owner can dismiss.
+test('an off-catalogue Resolution stays out of the field but its wording is kept in the reference', () => {
+  const r = parse('Root Cause: Driving Behavior - Other\n\nPHD Resolution: Driver Education\n');
+  assert.equal(r.res, '');
+  assert.deepEqual(r.resUnmapped, ['Driver Education']);
+  assert.match(r.reference, /\*\*PHD Resolution as written \(not an allowed value\):\*\*/);
+  assert.match(r.reference, /Driver Education/);
+  assert.ok(review(r).unmapped.some(u => u.field === 'PHD Resolution' && u.raw === 'Driver Education'));
+  // The kept heading is deliberately not a readable "Res" label: re-importing that text can never
+  // put the rejected value back into the field.
+  assert.equal(parse(r.reference).res, '');
+  assert.deepEqual(parse(r.reference).resUnmapped, []);
+});
+
+test('a compound resolution keeps its whole line in the reference and its allowed half in PHD notes', () => {
+  const r = parse('Resolution: Delivery Instruction + Customer Reassurance\n\nIncident as reported:\nA DSP DA out of WMO4 was shouted at by the CX.\n');
+  assert.equal(r.res, '');
+  assert.deepEqual(r.additionalResolutions, ['Customer Reassurance']);
+  assert.match(r.reference, /PHD Resolution as written \(not an allowed value\)/);
+  assert.match(r.reference, /Delivery Instruction \+ Customer Reassurance/);
+  // PHD notes carries the allowed half under the slot a Copy reads (ilCopyResExtra).
+  assert.match(r.notes, /\*\*PHD Resolution:\*\*/);
+  assert.match(r.notes, /- Additional resolution actioned: Customer Reassurance/);
+  assert.match(ED.ilCopyResExtra(ED.ilSplitCopyNotesRes(r.notes).res, r.res), /Customer Reassurance/);
+  // A primary that IS allowed keeps its field, and only the rejected piece goes to the reference.
+  const m = parse('Resolution:\n- Primary Mitigation Actioned: Delivery Hint\n- Additional Mitigations Actioned: Customer Reassurance, Driver Misconduct Reported\n');
+  assert.equal(m.res, 'Delivery Hint');
+  assert.match(m.reference, /PHD Resolution as written \(not an allowed value\)/);
+  assert.match(m.reference, /Driver Misconduct Reported/);
+  assert.equal(/Delivery Hint/.test(m.reference), false);
+  assert.match(m.notes, /- Additional resolution actioned: Customer Reassurance/);
+});
+
+// ---- the severity nobody wrote down ----
+// format-spec.md section 2: "Often absent entirely -> default Sev 5 (owner's existing rule: no EMT
+// processed or no severity = Sev 5)". It is reported as the default it is, never as a stated value.
+test('a log with no severity carries the owner\'s Sev 5 default, marked as a default', () => {
+  const r = parse("Determination:\nThe material allegation is Substantiated.\n\nPHD Findings:\nA DSP DA was delivering at a CX residence on 26NOV'26.\n");
+  assert.equal(r.severity, '');
+  assert.equal(r.severityAssumed, '5');
+  const rv = review(r), row = rv.filled.filter(f => f.field === 'Severity')[0];
+  assert.ok(row, 'no Severity row');
+  assert.equal(row.value, '5');
+  assert.equal(row.assumed, true);
+  assert.match(row.source, /not stated/);
+  assert.equal(rv.blank.filter(b => b.field === 'Severity').length, 0);
+});
+
+test('a stated severity is read as stated, with no default attached', () => {
+  const r = parse('SIM Title: US Customer Incident Escalation - Sev 4 - Verbal abuse\n\nSIM Root Cause Details:\nIssue: Verbal abuse\nDate: 11/15/26\n');
+  assert.equal(r.severity, '4');
+  assert.equal(r.severityAssumed, '');
+  const row = review(r).filled.filter(f => f.field === 'Severity')[0];
+  assert.equal(row.value, '4');
+  assert.ok(!row.assumed);
+});
+
 // ---- the review asks only what the questionnaire asks ----
 test('a Flex DP import is not asked the questions the editor hides for Flex DP', () => {
   const flex = 'SIM Root Cause Details:\nIssue: Verbal abuse\nDriv: Flex DP\nDate: 11/15/26\n\nPHD Findings:\n- Netradyne is not applicable for this transporter type.\n';
@@ -784,6 +872,55 @@ test('a non-US/CA ticket is not asked the CLEAR question the editor hides there'
   const clear = b => /^CLEAR history of POI/.test(b.field);
   assert.ok(IMP.review(r, { api: ED }).blank.some(clear));
   assert.equal(IMP.review(r, { api: ED, ro: { usca: false } }).blank.filter(clear).length, 0);
+});
+
+// The questionnaire hides a question by three rules, not one: the region / Flex / pet rule above,
+// a "Customer Service Escalation" root cause, and a Community-Member POI. The review follows all
+// three (the editor's own _ilqAutoHidden), so the "Blank — needs you" group never holds a row with
+// no field behind it.
+const CSE_HIDES = ['Negative Delivery Feedbacks reported in SIM against the Transporter',
+  'Location Historical incidents in SIM records (UPID)', 'Cortex Driver Trace added to SIM & EMT',
+  'Location Historical incidents in EMT records (Physical address)',
+  'CLEAR history of POI (Any violent/related charges exists?)', 'Station request made',
+  'Netradyne footage exists', 'Additional packages delivered after incident?',
+  'Delivery instructions present', 'Delivery instructions updated after incident?',
+  'AUSTIN Investigation Findings'];
+
+test('a Customer Service Escalation root cause is not asked the questions the editor hides for it', () => {
+  const log = 'Root Cause: Customer Service Escalation\n\nSIM Root Cause Details:\nIssue: Verbal abuse\nDriv: DSP DA\nDate: 11/15/26\n';
+  const r = parse(log);
+  assert.equal(r.rootCause.value, 'Customer Service Escalation');
+  const rv = review(r);
+  CSE_HIDES.forEach(q => {
+    assert.equal(rv.blank.filter(b => b.field === q).length, 0, 'asked anyway: ' + q);
+    assert.equal(rv.unmapped.filter(u => u.field === q).length, 0, 'reported anyway: ' + q);
+  });
+  // The four it does ask are still asked.
+  ['Does current ticket have any duplicate', 'Is POI the CX', 'CX Account suspension requested from GSOC?']
+    .forEach(q => assert.ok(rv.blank.some(b => b.field === q), 'not asked: ' + q));
+  // Any other root cause asks them all.
+  const other = review(parse(log.replace('Customer Service Escalation', 'Driving Behavior - Other')));
+  CSE_HIDES.forEach(q => assert.ok(other.blank.some(b => b.field === q), 'not asked: ' + q));
+});
+
+test('a Community-Member POI is not asked the questions that answer removes from the form', () => {
+  const hides = ['CX Account suspension requested from GSOC?',
+    'Historical incidents against CX in SIM [If CX is POI]',
+    'Location Historical incidents in SIM records (UPID)', 'Cortex Driver Trace added to SIM & EMT',
+    'Location Historical incidents in EMT records (Physical address)',
+    'CLEAR history of POI (Any violent/related charges exists?)', 'Station request made',
+    'Netradyne footage exists', 'Additional packages delivered after incident?',
+    'Delivery instructions present', 'Delivery instructions updated after incident?'];
+  const r = parse('PHD Investigation for mitigation:\n- Is POI the CX: Community Member\n\nSIM Root Cause Details:\nIssue: Verbal abuse\nDriv: DSP DA\nDate: 11/15/26\n');
+  assert.equal(r.invest.poi, 'Community Member (Unknown)');
+  const rv = review(r);
+  hides.forEach(q => assert.equal(rv.blank.filter(b => b.field === q).length, 0, 'asked anyway: ' + q));
+  assert.ok(rv.blank.some(b => b.field === 'Does current ticket have any duplicate'));
+  // The same gating when the paste is silent and the open form already holds that answer.
+  const quiet = parse('SIM Root Cause Details:\nIssue: Verbal abuse\nDriv: DSP DA\nDate: 11/15/26\n');
+  const rvq = IMP.review(quiet, { api: ED, answers: { poi: 'Community Member (Unknown)' } });
+  hides.forEach(q => assert.equal(rvq.blank.filter(b => b.field === q).length, 0, 'asked anyway: ' + q));
+  assert.ok(review(quiet).blank.some(b => b.field === 'Cortex Driver Trace added to SIM & EMT'));
 });
 
 // ---- the one hardcoded mapping is a candidate, not an exemption ----

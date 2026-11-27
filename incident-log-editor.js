@@ -1252,7 +1252,9 @@ function ilFullLogSummary(r,investN){
     if(r.drivInferred) parts.push('Driv: '+r.drivInferred+' (from the text)');
   }
   if(r.rootCause.found){ if(r.rootCause.value) parts.push('Root Cause'); else nm.unshift('Root Cause'); }
-  if(r.severity) parts.unshift('Severity'); else nm.unshift('Severity');
+  if(r.severity) parts.unshift('Severity');
+  else if(r.severityAssumed) parts.unshift('Severity (not stated, defaulted to '+r.severityAssumed+')');
+  else nm.unshift('Severity');
   if(r.findings) parts.push('PHD Findings');
   var n=investN==null ? Object.keys(r.invest).length : investN;
   if(n) parts.push('Investigation ('+n+(n===1?' answer)':' answers)'));
@@ -2435,9 +2437,9 @@ function ilLogImportReview(){
     er.hidden=false; try{ ta.focus(); }catch(e){} return;
   }
   er.hidden=true; er.textContent='';
-  // ro = the question gating of the open ticket (region / Flex / pet), so the review never asks for
-  // an answer to a question the questionnaire hides.
-  _ilfiResult=r; _ilfiReview=P.review(r,{api:IncidentLogEditor, ro:_ilqRO()});
+  // ro + answers = the question gating of the open ticket (region / Flex / pet, the Root Cause and
+  // the POI answer), so the review never asks for an answer to a question the questionnaire hides.
+  _ilfiResult=r; _ilfiReview=P.review(r,{api:IncidentLogEditor, ro:_ilqRO(), answers:_ilqReadAnswers()});
   var body=document.getElementById('ilLogImportReviewBody');
   if(body) body.innerHTML=_ilrvHtml(_ilfiReview,r,false);
   _ilfiStage(true);
@@ -2518,10 +2520,12 @@ function ilLogImportClose(apply){
     // Root Cause: exact match only; otherwise left as it is.
     var rc=document.getElementById('ilRootCause');
     if(rc && r.rootCause.value){ rc.value=r.rootCause.value; ilRefreshSelectUI(); ilRootCauseChanged(); }
-    // Severity: found in the text -> selected; not found -> a severity already chosen (title / user)
-    // stays, otherwise the row is left empty with the amber "Select a severity" mark.
+    // Severity: found in the text -> selected. Not found -> a severity already chosen (title / user)
+    // stays; otherwise the owner's standing rule applies (no severity stated = Sev 5, spec §2,
+    // reported as a marked default in the review), and only a parse that offers no default at all
+    // leaves the row empty with the amber "Select a severity" mark.
     if(r.severity) ilSetSeverity(r.severity);
-    else if(!ilGetSeverity()) ilSetSeverity('',{need:true});
+    else if(!ilGetSeverity()) ilSetSeverity(r.severityAssumed||'', r.severityAssumed?null:{need:true});
     var put=function(id,v,append){
       var el=document.getElementById(id); if(!el) return;
       _ilfiUnlock(id);
@@ -2647,6 +2651,12 @@ function _ilrvHtml(rv,r,goto){
   rv=rv||{};
   var h='';
   if(rv.multi && rv.multi.warning) h+='<p class="ilrv-warn">'+_ileEsc(rv.multi.warning)+'</p>';
+  // Which blocks were found, and which of them this import applied: the owner should not have to
+  // take a two-incident warning on trust.
+  if(rv.multi && (rv.multi.blocks||[]).length>1)
+    h+='<ul class="ilrv-blocks">'+rv.multi.blocks.map(function(b){
+      return '<li>'+_ileEsc(_ilrvCut(b.heading||('Incident '+(b.index+1)),110))+(b.applied?' <span class="ilrv-blocks-on">imported</span>':'')+'</li>';
+    }).join('')+'</ul>';
   // Anything the paste states that contradicts itself (an "Outreaches to DA:" label on a Flex DP
   // incident): shown, never silently dropped.
   (rv.warnings||[]).forEach(function(w){ if(w) h+='<p class="ilrv-warn">'+_ileEsc(w)+'</p>'; });
@@ -4298,6 +4308,9 @@ var IncidentLogEditor=(function(){
     '.ilrv-body{margin-top:8px;max-height:42vh;overflow:auto}',
     '.ilrv-warn{margin:0 0 8px;padding:6px 10px;font-size:.78em;font-weight:700;color:#8a5a00;background:#fff3e0;border:1px solid #f6ddb8;border-radius:7px}',
     '.ilrv-note{margin:0 0 8px;font-size:.76em;line-height:1.5;color:#5c6773}',
+    // The blocks a multi-incident paste was cut into, under that warning.
+    '.ilrv-blocks{margin:-4px 0 8px;padding:0 0 0 22px;font-size:.76em;line-height:1.5;color:#5c6773}',
+    '.ilrv-blocks-on{font-weight:800;color:#1f6f43}',
     '.ilrv-tags{margin:0 0 8px}',
     '.ilrv-tags-lbl{display:block;margin-bottom:5px;font-size:.72em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a4100}',
     '.ilrv-g{margin:0 0 6px;border:1px solid #e6eaee;border-radius:8px;background:#f7f9fb}',
@@ -4692,8 +4705,11 @@ var IncidentLogEditor=(function(){
     parse:parseIncidentOutput, serialize:ilSerializeFields, build:buildIncidentOutput,
     // Pure helpers the whole-log importer (incident-log-import.js) is handed as its `api` object.
     _ilsExact:_ilsExact, _ilfInvestKey:_ilfInvestKey, _ilfAnswer:_ilfAnswer, _ilfHeadKind:_ilfHeadKind,
-    // The import review reports a question only when the questionnaire would ask it.
-    _ilqRegionHidden:_ilqRegionHidden, ilIsFlexDriv:ilIsFlexDriv,
+    // The import review reports a question only when the questionnaire would ask it: _ilqAutoHidden
+    // is the rule that combines all three hiding reasons (region / Flex / pet, a Customer Service
+    // Escalation root cause, a Community-Member POI), so the browser api must carry it too.
+    _ilqAutoHidden:_ilqAutoHidden, _ilqRegionHidden:_ilqRegionHidden, _ilqPoiHidden:_ilqPoiHidden,
+    _ilqCsHidden:_ilqCsHidden, ilIsCsEsc:ilIsCsEsc, ilIsFlexDriv:ilIsFlexDriv,
     IL_EMT_URL_PRE:IL_EMT_URL_PRE, IL_EMT_URL_POST:IL_EMT_URL_POST, IL_EXTRA_SECS:IL_EXTRA_SECS, IL_REF_HEAD:IL_REF_HEAD,
     IL_SIM_FIELDS:IL_SIM_FIELDS, IL_INVEST_QS:IL_INVEST_QS, ilSimFmtDate:ilSimFmtDate, ilSimParseDate:ilSimParseDate,
     ilSimDriv:ilSimDriv, ilSimHiCount:ilSimHiCount, ilSimImport:ilSimImport, ilParseSim:ilParseSim,
