@@ -1792,20 +1792,21 @@ function daysAgo(iso){
   const d=Math.round((Date.now()-cd.getTime())/864e5);
   return d<=0?'Today':(d===1?'1 day ago':d+' days ago');
 }
-// Severity number is read from the TITLE (not the Severity field). Handles "Severity 4",
-// "Severity level 4", "Severity level - 4", "Sev 4", "SEV4", "Severity: 4", "Sev: 4", etc. Only a
-// valid PHD severity (3/4/5) is accepted; anything else (Pending / Unknown / None / 0-2 / absent)
-// returns '' so the UI shows a blinking placeholder "#".
-function sevFromTitle(title){
+// Severity number as STATED in the TITLE (not the Severity field). Handles "Severity 4",
+// "Severity level 4", "Severity level - 4", "Sev 4", "Severity: 4", "Sev: 4", etc. (a glued "SEV4"
+// is not a shape the data uses and the \b after "sev" does not match it). Every digit counts, in
+// range or not: "Severity 2" states its severity as plainly as "Sev 4", so the row must not call it
+// missing. '' means the title states no number at all (Pending / Unknown / None / absent) — only
+// then is there something for the UI to flag.
+function sevStatedInTitle(title){
   var m=String(title||'').match(/\bsev(?:erity)?\b\s*(?:level)?\s*[-:#]?\s*([0-9])/i);
-  var n=m?m[1]:'';
-  return (n==='3'||n==='4'||n==='5')?n:'';
+  return m?m[1]:'';
 }
 // Severity tag HTML. A title that already states a severity needs no chip at all — the row would
 // only be repeating it. A title that states none gets a blinking "SEV #", where the '#' stays a
 // placeholder rather than a guessed number, so the row reads "this is missing".
 function sevTagHtml(t){
-  if(sevFromTitle(t&&t.title)) return '';
+  if(sevStatedInTitle(t&&t.title)) return '';
   return '<span class="mtc-sev sev-unknown" title="Severity not found in the title">SEV #</span>';
 }
 // Recognised country/region codes (mirrors the server's Countries-report set). The My Tickets
@@ -2580,7 +2581,7 @@ function paintLatestCell(i,c,unavailable){
   const pTitle=plain+((c&&c.at)?(' \u00b7 '+fmtTZ(c.at,TZ_ZONE[MY_TZ]||TZ_ZONE.IST)+' '+MY_TZ):'');
   const last=document.getElementById('clast-'+i);
   if(last){ last.innerHTML=pHtml; if(plain)last.title=pTitle; }
-  // Collapsed header shows the last comment too — but falls back to "No comments added" when none.
+  // Collapsed header shows the last comment too — but falls back to a muted "no comment yet".
   const head=document.getElementById('chead-'+i);
   if(head){
     if(c&&c.text){ head.innerHTML=pHtml; head.title=pTitle; head.classList.remove('mtc-head-last-empty'); }
