@@ -62,6 +62,17 @@ const TAG_LIST = {
   },
 };
 
+// The same rule as TAG_LIST, in JavaScript, for a caller that already has the document in Node and
+// only needs a handful of rows (see /api/my-tickets). Keeping both forms here means the shapes the
+// data actually holds — a single tag, a comma-separated list, padded values — are split one way.
+// A space is NOT a separator: some tags contain one ('driver harm').
+function splitTags(v) {
+  const raw = Array.isArray(v) ? v : String(v == null ? '' : v).replace(/[;\n]/g, ',').split(',');
+  const out = [];
+  raw.forEach((t) => { const s = String(t == null ? '' : t).trim(); if (s) out.push(s); });
+  return out;
+}
+
 // SORT: most tags first (that is the point of the page), then the newest created ticket, then the
 // ticket id. The id makes the order total, so paging can never repeat or skip a row when two tickets
 // share a tag count and a created time.
@@ -151,6 +162,6 @@ async function handleGet(query, deps) {
 }
 
 module.exports = {
-  DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, URL_BASE, HAS_TAGS, TAG_LIST, SORT,
+  DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, URL_BASE, HAS_TAGS, TAG_LIST, SORT, splitTags,
   parsePage, parsePageSize, pagePipeline, titlesPipeline, handleGet,
 };

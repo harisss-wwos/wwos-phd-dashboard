@@ -4689,7 +4689,7 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
     // All my open tickets across all quarters. Index-friendly: AssigneeIdentity (ci) + Status.
     const rows = await coll.find(
       { AssigneeIdentity: ciExact(me), Status: { $in: OPEN_STATUSES } },
-      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, _reopened: 1, Labels: 1, AssigneeIdentity: 1, q: 1, Country: 1 } }
+      { projection: { _id: 0, ShortId: 1, IssueId: 1, IssueUrl: 1, Title: 1, Status: 1, CreateDate: 1, ResolvedDate: 1, _reopened: 1, Labels: 1, AssigneeIdentity: 1, q: 1, Country: 1, Tags: 1 } }
     ).toArray();
     const _nowMs = Date.now();
     // Country/region code for a ticket: prefer the Country field, else the leading 2-3 letter code
@@ -4725,6 +4725,11 @@ app.get('/api/my-tickets', requireRole('user'), async (req, res) => {
         color: ticketColor(t, _nowMs),   // age colour (purple/black/red/yellow/green) — matches BY AGE tiles
         priority: hasPriorityLabel(t.Labels),
         noEmt: hasNoEmt(t.Title, t.Labels),
+        // AutoSIM tags (ticket_docs.Tags), split with the shared rule. The My Queue row renders the
+        // driver type / TRS / suspension indicators from these and filters on them. Only Tags was
+        // added to the projection — Title and RootCauseDetails are the two largest fields in this
+        // collection and nothing new here needs them.
+        tags: simTags.splitTags(t.Tags),
       });
     });
     out.sort((a, b) => new Date(a.createDate) - new Date(b.createDate)); // oldest first
