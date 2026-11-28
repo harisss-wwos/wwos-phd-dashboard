@@ -818,15 +818,35 @@ function requireOwnerOrManager(req, res, next) {
 }
 // The one Page ZERO ticket selection (read-only): tickets created OR resolved in the year. The table and
 // the CSV export both use it, so the same docs are deduped in the same order. extra = more fields to project.
-async function pageZeroDocs(year, extra) {
-  const coll = await getCollection(COLLECTIONS.ticketDocs);
+function pageZeroStages(year, extra) {
   const cdExpr = { $convert: { input: '$CreateDate', to: 'date', onError: null, onNull: null } };
   const rdExpr = { $convert: { input: '$ResolvedDate', to: 'date', onError: null, onNull: null } };
   const Y0 = new Date(Date.UTC(year, 0, 1)), Y1 = new Date(Date.UTC(year + 1, 0, 1));
-  return coll.aggregate([
+  return [
     { $project: Object.assign({ _id: 0, ShortId: 1, IssueId: 1, Status: 1, ClosureCode: 1, RootCauseDetails: 1, Country: 1, Title: 1, cd: cdExpr, rd: rdExpr }, extra || {}) },
     { $match: { $or: [{ cd: { $gte: Y0, $lt: Y1 } }, { rd: { $gte: Y0, $lt: Y1 } }] } },
-  ], { allowDiskUse: true }).toArray();
+  ];
+}
+async function pageZeroDocs(year, extra) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  return coll.aggregate(pageZeroStages(year, extra), { allowDiskUse: true }).toArray();
+}
+// Same docs, same order, read as `slices` consecutive $skip / $limit slices of the same pipeline in
+// parallel. The Atlas link is limited PER CONNECTION (measured: one cursor ~55-70 kB/s, 8 parallel
+// cursors ~3.7x faster), and the Incident Explorer pull is ~15 MB. The slices are concatenated in
+// order, so the result equals one plain pass; if the count does not match (the collection changed
+// mid-read) it falls back to one plain pass.
+async function pageZeroDocsSliced(year, extra, slices) {
+  const coll = await getCollection(COLLECTIONS.ticketDocs);
+  const stages = pageZeroStages(year, extra), opts = { allowDiskUse: true };
+  const c = await coll.aggregate(stages.concat([{ $count: 'n' }]), opts).toArray();
+  const n = c.length ? c[0].n : 0;
+  const size = Math.ceil(n / slices);
+  if (slices < 2 || size < 500) return coll.aggregate(stages, opts).toArray();
+  const parts = await Promise.all(Array.from({ length: slices }, (_, i) =>
+    coll.aggregate(stages.concat([{ $skip: i * size }, { $limit: size }]), opts).toArray()));
+  const docs = [].concat(...parts);
+  return docs.length === n ? docs : coll.aggregate(stages, opts).toArray();
 }
 app.get('/api/page-zero', requireOwnerOrManager, async (req, res) => {
   try {
@@ -914,22 +934,44 @@ function ieCountryOf(t) {
   return fix ? fix.code : c;
 }
 function ieDropCache() { dropCachedReports(IE_CACHE_PREFIX); }
+const IE_FETCH_SLICES = 8;            // parallel cursors for the ticket pull (pageZeroDocsSliced)
+const _ieFlight = createSingleFlight();   // concurrent cold reads share one ticket pull / one build
+let _ieDocs = null;                   // { key: year:latestUploadAt, docs } - the last ticket pull (read-only)
+// The Incident Explorer ticket pull for one (year, latest upload). Kept until the next upload, so an
+// approval / Restore / regions edit rebuilds the model from these docs (seconds) instead of pulling
+// the ~15 MB again. buildExplorer never mutates the docs.
+async function ieDocs(year, latestUploadAt) {
+  const key = year + ':' + (latestUploadAt || '-');
+  if (_ieDocs && _ieDocs.key === key) return _ieDocs.docs;
+  return _ieFlight.run('docs:' + key, async () => {
+    const docs = await pageZeroDocsSliced(year, { IssueUrl: 1, ResolvedByIdentity: 1, RootCause: 1, Tags: 1, Labels: 1 }, IE_FETCH_SLICES);
+    _ieDocs = { key, docs };
+    return docs;
+  });
+}
 async function ieModel(year) {
-  const { latestUploadAt } = await eirLatestFileMeta();
-  const regions = (await (await getCollection(COLLECTIONS.regions)).find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()).map(mapRegion);
-  const approvedIds = new Set((await (await getCollection(COLLECTIONS.sanitizationExcluded)).find({}, { projection: { _id: 0, shortId: 1 } }).toArray())
-    .map(d => String((d && d.shortId) || '').trim()).filter(Boolean));
+  // Three small independent reads, in parallel (latestUploadAt = the newest data_log entry's publishedAt || at).
+  const [{ stamp: latestUploadAt }, regionDocs, exclDocs] = await Promise.all([
+    eirDataStamp(),
+    getCollection(COLLECTIONS.regions).then(c => c.find(REGION_REAL_FILTER).sort({ order: 1, _id: 1 }).toArray()),
+    getCollection(COLLECTIONS.sanitizationExcluded).then(c => c.find({}, { projection: { _id: 0, shortId: 1 }, batchSize: 10000 }).toArray()),   // one round trip, no getMore
+  ]);
+  const regions = regionDocs.map(mapRegion);
+  const approvedIds = new Set(exclDocs.map(d => String((d && d.shortId) || '').trim()).filter(Boolean));
   const key = IE_CACHE_PREFIX + year + ':' + (latestUploadAt || '-') + ':' + ieApprovedSig(approvedIds) + ':' + regions.map(r => r.name + '=' + r.countries.join('.')).join('|');
   // The key changes with every upload, regions edit, approval and Restore, so the entry never goes stale: no TTL.
   let model = getStaleCachedReport(key);
   if (!model) {
-    const docs = await pageZeroDocs(year, { IssueUrl: 1, ResolvedByIdentity: 1, RootCause: 1, Tags: 1, Labels: 1 });
-    model = ieBuildExplorer(docs, {
-      year, now: new Date(), regions, countryOf: ieCountryOf, approvedErrorIds: approvedIds,
-      resolutionLabelOf: doc => perfResolutionGroupLabelOf(doc, true), resolverName: perfResolverName,
+    model = await _ieFlight.run('model:' + key, async () => {
+      const docs = await ieDocs(year, latestUploadAt);
+      const m = ieBuildExplorer(docs, {
+        year, now: new Date(), regions, countryOf: ieCountryOf, approvedErrorIds: approvedIds,
+        resolutionLabelOf: doc => perfResolutionGroupLabelOf(doc, true), resolverName: perfResolverName,
+      });
+      pruneCachedReports(IE_CACHE_PREFIX, 1);
+      setCachedReport(key, m);
+      return m;
     });
-    pruneCachedReports(IE_CACHE_PREFIX, 1);
-    setCachedReport(key, model);
   }
   return { model, source: { latestUploadAt: latestUploadAt || null } };
 }
