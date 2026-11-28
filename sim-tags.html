@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Anti-FOUC: hide the body until topbar-auth.js injects its CSS + builds the chrome. -->
+<style>html.tb-booting body{visibility:hidden!important}</style>
+<script>document.documentElement.className+=' tb-booting';setTimeout(function(){document.documentElement.classList.remove('tb-booting');},2000);</script>
+<noscript><style>html.tb-booting body{visibility:visible!important}</style></noscript>
+<!-- Keep the section hidden until the shared chrome (title bar + menu column) has wrapped it. -->
+<style>#wrap{visibility:hidden}#tbHomeChrome #wrap,html.tb-wrap-timeout #wrap{visibility:visible}</style>
+<script>setTimeout(function(){document.documentElement.classList.add('tb-wrap-timeout');},8000);</script>
+<noscript><style>#wrap{visibility:visible!important}</style></noscript>
+<title>SIM Tag Tracker · WWOS-GSOC PHD Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--o:#ff9900;--oh:#ec7211;--t:#d5dbdb;--tm:#879596;--bd:#2a2a2a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#000;color:var(--t);min-height:100vh}
+.top-bar{background:#121820;border-bottom:1px solid var(--bd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;visibility:hidden}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo img{height:28px;width:auto;display:block}
+.logo span{font-size:1.15em;font-weight:700;color:#fff;line-height:1}
+.wrap{padding:32px 24px;width:auto;max-width:none;margin:0}
+</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="app-light.css?v=5">
+<style id="st-light">
+/* SIM Tag Tracker — the same dark navy hero + orange rule as PHD Resolutions / Errors in Resolved,
+   then one white card holding the discovered-tag tally and the ticket table. Scoped under .st. */
+#wrap.wrap{padding-top:0!important;padding-bottom:28px!important}
+.st{--ink:#1b2026;--mut:#5c6773;--line:#e2e6ea;--soft:#f5f6f8;--acc:#ec7211;--acc-bg:#fff3e8;--acc-ink:#9a4100;
+  --red:#b42318;--red-bg:#fdecec;--grn:#1a7a43;--grn-bg:#e5f5ec;--focus:#f0a35a;--navy:#161d2d;container-type:inline-size;color:var(--ink)}
+.st button{font-family:inherit}
+.st :is(button,a,input,select):focus-visible{outline:3px solid var(--focus,#f0a35a);outline-offset:2px}
+.st-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---- Hero ---- */
+.st-hero{position:relative;overflow:hidden;border-radius:12px;padding:26px 30px 26px 34px;margin-bottom:16px;color:#e9edf3;
+  background:radial-gradient(110% 160% at 100% 0%,rgba(236,114,17,.30),transparent 55%),linear-gradient(135deg,#131a2a,#1f2a40);
+  box-shadow:0 18px 40px -26px rgba(20,30,50,.75)}
+.st-hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-mask-image:linear-gradient(90deg,transparent 20%,#000 75%);mask-image:linear-gradient(90deg,transparent 20%,#000 75%)}
+.st-hero::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#ff9f2e,var(--acc))}
+.st-hero-in{position:relative;display:flex;gap:18px;align-items:flex-start}
+.st-hero-ic{width:50px;height:50px;border-radius:12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(236,114,17,.16);color:#ffb26b;border:1px solid rgba(236,114,17,.4)}
+.st-hero-txt{min-width:0}
+.st-eyebrow{font-size:.7em;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ffb26b;margin-bottom:8px}
+.st-hero h1{color:#fff!important;font-size:2.15em;font-weight:800;letter-spacing:-.9px;line-height:1.08;margin:0}
+.st-sub{margin-top:10px;max-width:78ch;font-size:.94em;line-height:1.6;color:rgba(233,237,243,.82)}
+.st-sub b{color:#fff;font-weight:700}
+.st-hero-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.st-hero-chips li{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:.76em;font-weight:700;
+  color:#e9edf3;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+.st-hero-chips li::before{content:'';width:6px;height:6px;border-radius:50%;background:#ffb26b}
+.st-hero-chips li b{color:#fff;font-weight:800}
+.st-hero-chips li.is-acc{background:rgba(236,114,17,.18);border-color:rgba(236,114,17,.5);color:#ffd2a8}
+.st-hero-chips li.is-skel::before{display:none}
+
+/* ---- Card ---- */
+.st-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px -6px rgba(20,30,50,.18);padding:20px 22px;overflow:hidden}
+.st-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#ec7211,#f7b21a 55%,#7fb38f)}
+.st-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:14px}
+.st-head-t{display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1 1 320px}
+.st-head-ic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--acc-bg);color:#b5530a}
+.st-head h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0;font-size:1.2em;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.st-head h2:focus{outline:none}
+.st-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);
+  font-size:.66em;font-weight:800;color:#3a4552;font-variant-numeric:tabular-nums}
+.st-order{margin:5px 0 0;color:var(--mut);font-size:.86em;font-weight:600;line-height:1.5}
+.st-err{display:flex;align-items:flex-start;gap:8px;margin:0 0 12px;padding:9px 12px;border-radius:8px;background:var(--red-bg);border:1px solid #f2b8b1;color:var(--red);font-size:.86em;font-weight:700;line-height:1.45}
+.st-err:empty{display:none}
+.st-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:none;border-radius:8px;background:var(--navy);color:#f4f3ef;font-size:.86em;font-weight:800;cursor:pointer;transition:background .15s}
+.st-btn:hover{background:#0f1420}
+
+/* ---- Discovered tags (grouped out of the data, never a hardcoded list) ---- */
+.st-tags{margin:0 0 16px;padding:12px 14px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.st-tags-h{display:flex;align-items:center;gap:8px;margin:0 0 9px;font-size:.7em;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+/* The tally is as long as the data makes it (78 distinct tags today), so it is capped at about four
+   rows and scrolls — the table stays near the top of the card instead of being pushed off-screen.
+   The chips are ordered by count, so the tags that matter are the ones on show. */
+.st-tags-list{display:flex;flex-wrap:wrap;gap:7px;list-style:none;margin:0;padding:0 2px 0 0;max-height:132px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#c3ccd4 transparent}
+.st-tags-list li{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:99px;background:#fff;border:1px solid #d7dde3;font-size:.78em;font-weight:700;color:#2a3340}
+.st-tags-list li b{padding:1px 7px;border-radius:99px;background:var(--acc-bg);color:var(--acc-ink);font-size:.92em;font-weight:800;font-variant-numeric:tabular-nums}
+.st-tags-list li.is-skel{width:150px;height:26px;border-color:var(--line)}
+
+/* ---- Table ---- */
+.st-tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table.st-tbl{width:100%;border-collapse:collapse;font-size:.88em}
+.st-tbl th{position:sticky;top:0;z-index:1;background:#f8f9fb;border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;
+  font-size:.78em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.st-tbl td{border-bottom:1px solid #eef1f4;padding:9px 12px;vertical-align:top;color:var(--ink)}
+.st-tbl tbody tr:last-child td{border-bottom:none}
+.st-tbl tbody tr:hover td{background:#fcfdfe}
+.st-c-when{width:1%;white-space:nowrap;color:var(--mut);font-weight:600;font-variant-numeric:tabular-nums}
+.st-c-id{width:1%;white-space:nowrap}
+.st-c-id a{color:#1565a0;font-weight:800;text-decoration:none;font-variant-numeric:tabular-nums}
+.st-c-id a:hover{text-decoration:underline}
+.st-c-title{min-width:260px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+.st-c-tags{width:1%}
+.st-rowtags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.st-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;background:var(--acc-bg);border:1px solid #f7c99c;color:var(--acc-ink);
+  font-size:.86em;font-weight:700;white-space:nowrap}
+.st-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:7px;margin-right:7px;
+  background:var(--navy);color:#ffd2a8;font-size:.82em;font-weight:800;font-variant-numeric:tabular-nums}
+.st-dash{color:#9aa6b1;font-weight:600}
+
+/* ---- Pager ---- */
+.st-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+.st-pager-t{color:var(--mut);font-size:.84em;font-weight:700;font-variant-numeric:tabular-nums}
+.st-pager-b{display:inline-flex;align-items:center;gap:8px}
+.st-pg{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid #d4dade;border-radius:8px;background:#fff;color:#3a4552;
+  font-size:.84em;font-weight:800;cursor:pointer;transition:border-color .15s,background .15s}
+.st-pg:hover:not(:disabled){border-color:#9aa6b1;background:var(--soft);color:var(--ink)}
+.st-pg:disabled{opacity:.45;cursor:default}
+
+/* ---- Loading / empty / denied states ---- */
+.st-skel{display:block;border-radius:6px;background:linear-gradient(90deg,#eceff2 25%,#f6f7f9 40%,#eceff2 60%);background-size:400% 100%;animation:stShim 1.4s ease infinite}
+.st-skel-d{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.18) 40%,rgba(255,255,255,.08) 60%);background-size:400% 100%}
+@keyframes stShim{0%{background-position:100% 0}100%{background-position:0 0}}
+.st-state{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin:0;padding:16px 18px;border-radius:10px;border:1px solid var(--line);background:#fafbfc}
+.st-state.is-bad{border-color:#f2b8b1;background:#fffafa}
+.st-state-ic{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);color:var(--mut)}
+.st-state.is-bad .st-state-ic{background:var(--red-bg);color:var(--red)}
+.st-state-txt{flex:1 1 260px;min-width:0}
+.st-state-t{margin:0;font-size:1em;font-weight:800;color:var(--ink)}
+.st-state-p{margin:3px 0 0;font-size:.86em;line-height:1.5;color:var(--mut)}
+.st-state .st-btn{align-self:center}
+
+/* ---- One orchestrated entrance on the first loaded paint ---- */
+@keyframes stUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.st.is-hero-anim .st-hero{animation:stUp .45s ease both}
+.st.is-anim .st-card{animation:stUp .45s ease .08s both}
+@media (prefers-reduced-motion:reduce){.st *,.st *::before,.st *::after{animation:none!important;transition:none!important}}
+
+/* ---- Narrow layouts: the table stacks into labelled blocks ---- */
+@container (max-width:720px){
+  .st-tbl-wrap{overflow-x:visible;border:none;border-radius:0}
+  .st-tbl,.st-tbl tbody,.st-tbl tr,.st-tbl td{display:block;width:auto}
+  .st-tbl thead{display:none}
+  .st-tbl tbody tr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .st-tbl td{border:none;padding:3px 0}
+  .st-tbl td::before{content:attr(data-h);display:block;font-size:.7em;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);margin-bottom:2px}
+  .st-c-title{min-width:0}
+}
+@media (max-width:700px){
+  .st-hero{padding:22px 18px 22px 22px}
+  .st-hero-ic{display:none}
+  .st-hero h1{font-size:1.6em;letter-spacing:-.5px}
+  .st-sub{font-size:.86em}
+  .st-card{padding:18px 14px}
+  .st-head-ic{display:none}
+}
+</style>
+</head>
+<body data-nav-active="sim-tags" data-back-href="index.html" data-back-label="Home">
+<div class="top-bar" style="visibility:hidden">
+  <a class="logo" href="index.html"><img src="gsoc-logo.svg" alt="GSOC"><span>WWOS-GSOC PHD Dashboard</span></a>
+</div>
+<div class="wrap" id="wrap"></div>
+
+<script src="icons.js?v=3"></script>
+<script src="api-config.js"></script>
+<script src="topbar-auth.js?v=245"></script>
+<script>
+(function(){
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var ic=function(n,s){ return window.icon?window.icon(n,s||18):''; };
+var ICO_RETRY='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>';
+var A=window.PHDAuth;
+// Owner only, and the SERVER is the authority: GET /api/sim-tags answers 403 to every account but
+// harisss, so this check only decides what the page bothers to draw. Mirrors sanitization-score.js
+// isOwner (OWNER = 'harisss') and the gate on the route.
+var OWNERS=['harisss'];
+function me(){ var u=A&&A.getUser&&A.getUser(); return String((u&&u.username)||'').trim().toLowerCase(); }
+function isOwner(){ return OWNERS.indexOf(me())>=0; }
+function errMsg(r,fallback){ return (r&&r.data&&r.data.error)||(fallback+' (HTTP '+(r?r.status:'?')+').'); }
+
+var PAGE_SIZE=50;
+// Server payload: { page, pageSize, total, pageCount, tagCount, tags:[{tag,count}], rows:[...] }.
+var DATA=null, PAGE=1, LOADING=true, LOAD_ERR='', DENIED=false, FIRST=true, HERO_FIRST=true;
+
+// CreateDate is mixed Date / string in ticket_docs, so the server hands over an ISO string (or null
+// when the value could not be read as a date at all).
+function fmtWhen(v){
+  if(!v) return '';
+  var d=new Date(v);
+  if(isNaN(d.getTime())) return String(v);
+  return d.toLocaleString('en-US',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+}
+function num(n){ return Number(n||0).toLocaleString('en-US'); }
+
+// One persistent polite live region (outside #wrap, so re-renders never replace it).
+function liveEl(){
+  var el=document.getElementById('stLive');
+  if(!el){ el=document.createElement('span'); el.id='stLive'; el.className='st-sr'; el.setAttribute('aria-live','polite'); el.setAttribute('role','status'); document.body.appendChild(el); }
+  return el;
+}
+function announce(msg){ var live=liveEl(); live.textContent=''; setTimeout(function(){ live.textContent=msg; },30); }
+
+function heroHtml(){
+  var chips;
+  if(DENIED) chips='<li>Owner only</li>';
+  else if(LOADING) chips='<li class="is-skel" aria-hidden="true"><span class="st-skel st-skel-d" style="width:104px;height:10px"></span></li><li class="is-skel" aria-hidden="true"><span class="st-skel st-skel-d" style="width:140px;height:10px"></span></li>';
+  else if(!DATA) chips='<li>Not loaded</li>';
+  else chips='<li><b>'+num(DATA.total)+'</b>&nbsp;tagged '+(DATA.total===1?'ticket':'tickets')+'</li>'
+    +'<li><b>'+num(DATA.tagCount)+'</b>&nbsp;distinct '+(DATA.tagCount===1?'tag':'tags')+' in the data</li>'
+    +'<li class="is-acc">Most tags first</li>';
+  return '<section class="st-hero"><div class="st-hero-in">'
+    +'<span class="st-hero-ic" aria-hidden="true">'+ic('bolt',26)+'</span>'
+    +'<div class="st-hero-txt"><p class="st-eyebrow">PHD Dashboard</p><h1>SIM Tag Tracker</h1>'
+    +'<p class="st-sub">Every ticket an <b>AutoSIM rule</b> has tagged, heaviest first. The tags arrive with the normal ticket upload, in the SIM <b>Tags</b> field, and the list below is read straight out of the data \u2014 a tag from a rule deployed tomorrow shows up here on its own.</p>'
+    +'<ul class="st-hero-chips">'+chips+'</ul></div></div></section>';
+}
+
+function tagsHtml(){
+  var inner;
+  if(LOADING) inner='<li class="is-skel" aria-hidden="true"></li><li class="is-skel" aria-hidden="true"></li><li class="is-skel" aria-hidden="true"></li>';
+  else if(!DATA||!DATA.tags||!DATA.tags.length) inner='<li>No tags in the data yet</li>';
+  else inner=DATA.tags.map(function(t){ return '<li>'+esc(t.tag)+'<b>'+num(t.count)+'</b></li>'; }).join('');
+  return '<div class="st-tags"><p class="st-tags-h">'+ic('hash',13)+'Tags found in the data</p><ul class="st-tags-list">'+inner+'</ul></div>';
+}
+
+function rowsHtml(){
+  if(LOADING){
+    var sk='';
+    for(var i=0;i<8;i++) sk+='<tr><td data-h="Created"><span class="st-skel" style="width:120px;height:12px"></span></td>'
+      +'<td data-h="Ticket ID"><span class="st-skel" style="width:60px;height:12px"></span></td>'
+      +'<td data-h="Title"><span class="st-skel" style="width:70%;height:12px"></span></td>'
+      +'<td data-h="Tags applied"><span class="st-skel" style="width:150px;height:12px"></span></td></tr>';
+    return sk;
+  }
+  if(!DATA||!DATA.rows||!DATA.rows.length) return '';
+  return DATA.rows.map(function(r){
+    var tags=(r.tags||[]).map(function(t){ return '<span class="st-tag">'+esc(t)+'</span>'; }).join('');
+    var when=fmtWhen(r.created);
+    var id=r.url?('<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(r.shortId)+'</a>'):esc(r.shortId);
+    return '<tr>'
+      +'<td class="st-c-when" data-h="Created">'+(when?esc(when):'<span class="st-dash">\u2014</span>')+'</td>'
+      +'<td class="st-c-id" data-h="Ticket ID">'+id+'</td>'
+      +'<td class="st-c-title" data-h="Title">'+(r.title?esc(r.title):'<span class="st-dash">\u2014</span>')+'</td>'
+      +'<td class="st-c-tags" data-h="Tags applied"><div class="st-rowtags"><span class="st-n" title="'+r.tagCount+' '+(r.tagCount===1?'tag':'tags')+'">'+r.tagCount+'</span>'+tags+'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function pagerHtml(){
+  if(LOADING||!DATA||!DATA.total) return '';
+  var from=(DATA.page-1)*DATA.pageSize+1, to=Math.min(DATA.total,DATA.page*DATA.pageSize);
+  return '<div class="st-pager"><span class="st-pager-t">Showing '+num(from)+'\u2013'+num(to)+' of '+num(DATA.total)+' \u00b7 page '+num(DATA.page)+' of '+num(DATA.pageCount)+'</span>'
+    +'<span class="st-pager-b">'
+    +'<button type="button" class="st-pg" id="stPrev"'+(DATA.page<=1?' disabled':'')+'>'+ic('arrow-left',13)+'Previous</button>'
+    +'<button type="button" class="st-pg" id="stNext"'+(DATA.page>=DATA.pageCount?' disabled':'')+'>Next'+ic('arrow-left',13).replace('<svg','<svg style="transform:rotate(180deg)"')+'</button>'
+    +'</span></div>';
+}
+
+function stateHtml(bad,icon,title,body,retry){
+  return '<div class="st-state'+(bad?' is-bad':'')+'"><span class="st-state-ic" aria-hidden="true">'+ic(icon,20)+'</span>'
+    +'<div class="st-state-txt"><p class="st-state-t">'+esc(title)+'</p><p class="st-state-p">'+body+'</p></div>'
+    +(retry?'<button type="button" class="st-btn" id="stRetry">'+ICO_RETRY+'Try again</button>':'')+'</div>';
+}
+
+function cardHtml(){
+  if(DENIED){
+    return '<section class="st-card">'+stateHtml(false,'lock','This page is for the owner',
+      'The SIM Tag Tracker shows the tickets the AutoSIM rules have tagged, and it is limited to <b>harisss</b>. The server enforces that on the endpoint itself, so there is nothing to see here on another account.',false)+'</section>';
+  }
+  if(LOAD_ERR){
+    return '<section class="st-card">'+stateHtml(true,'alert-triangle','Could not load the tagged tickets',esc(LOAD_ERR),true)+'</section>';
+  }
+  var head='<div class="st-head"><div class="st-head-t"><span class="st-head-ic" aria-hidden="true">'+ic('ticket',18)+'</span>'
+    +'<div><h2 id="stHead" tabindex="-1">Tagged tickets'+(LOADING||!DATA?'':'<span class="st-count">'+num(DATA.total)+'</span>')+'</h2>'
+    +'<p class="st-order">Most tags first, then the newest ticket, then the ticket id.</p></div></div></div>';
+  var empty=(!LOADING&&DATA&&!DATA.rows.length)
+    ? stateHtml(false,'inbox','No tagged tickets on this page','Only tickets that actually carry at least one SIM tag are listed here.',false)
+    : '';
+  var table=empty?'':'<div class="st-tbl-wrap"><table class="st-tbl"><thead><tr>'
+    +'<th scope="col">Created</th><th scope="col">Ticket ID</th><th scope="col">Title</th><th scope="col">Tags applied</th>'
+    +'</tr></thead><tbody>'+rowsHtml()+'</tbody></table></div>';
+  return '<section class="st-card">'+head+tagsHtml()+empty+table+pagerHtml()+'</section>';
+}
+
+function render(){
+  var wrap=document.getElementById('wrap'); if(!wrap) return;
+  var cls='st'+(HERO_FIRST?' is-hero-anim':'')+((FIRST&&!LOADING)?' is-anim':'');
+  wrap.innerHTML='<div class="'+cls+'">'+heroHtml()+cardHtml()+'</div>';
+  HERO_FIRST=false;
+  if(!LOADING) FIRST=false;
+  var prev=document.getElementById('stPrev'); if(prev) prev.onclick=function(){ go(PAGE-1); };
+  var next=document.getElementById('stNext'); if(next) next.onclick=function(){ go(PAGE+1); };
+  var retry=document.getElementById('stRetry'); if(retry) retry.onclick=function(){ load(true); };
+}
+
+function go(p){
+  if(LOADING) return;
+  if(!DATA||p<1||p>DATA.pageCount||p===PAGE) return;
+  PAGE=p; load();
+}
+
+async function load(fromRetry){
+  if(!A||!A.getUser||!A.getUser()){ LOADING=false; DENIED=true; render(); return; }   // guest: nothing to ask for
+  if(!isOwner()){ LOADING=false; DENIED=true; render(); announce('This page is limited to the owner.'); return; }
+  LOADING=true; LOAD_ERR=''; render();
+  announce('Loading tagged tickets\u2026');
+  var r=null;
+  try{ r=await A.api('GET','/api/sim-tags?page='+PAGE+'&pageSize='+PAGE_SIZE); }catch(e){}
+  LOADING=false;
+  if(r&&r.status===403){ DENIED=true; render(); return; }
+  if(r&&r.ok&&r.data&&Array.isArray(r.data.rows)){
+    DATA=r.data; PAGE=DATA.page||PAGE;
+    render();
+    var h=document.getElementById('stHead'); if(h&&fromRetry) h.focus();
+    announce('Loaded '+DATA.rows.length+' of '+DATA.total+' tagged tickets.');
+    return;
+  }
+  LOAD_ERR=r?errMsg(r,'The server could not return the tagged tickets'):'The server could not be reached.';
+  render();
+  announce('Couldn\u2019t load the tagged tickets.');
+  if(fromRetry){ var rb=document.getElementById('stRetry'); if(rb) rb.focus(); }
+}
+
+liveEl();
+load();
+})();
+</script>
+</body>
+</html>

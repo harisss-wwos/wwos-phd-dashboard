@@ -25,6 +25,7 @@ const sanUpdate = require('./sanitization-update');
 const sanValidateStore = require('./sanitization-validate-store');
 const resolvedErrors = require('./resolved-errors');
 const leave = require('./leave');
+const simTags = require('./sim-tags');
 const { createSingleFlight } = require('./single-flight');
 const ticketRules = require('./ticket-rules');   // shared TEST / NON-PHD / malformed-country title rules (Sanitization + Incident Explorer)
 const hiLinesErrors = require('./hi-lines-errors');
@@ -4094,6 +4095,34 @@ app.post('/api/leave', requireRole('user'), async (req, res) => {
   } catch (e) {
     console.error('leave mark error:', e && (e.stack || e.message));
     res.status(500).json({ error: 'Could not save the leave.' });
+  }
+});
+// GET /api/sim-tags?page=&pageSize= (sim-tags.html SIM Tag Tracker; logic in ./sim-tags.js). One row
+// per ticket carrying at least one AutoSIM tag (ticket_docs.Tags), most-tagged first, plus the
+// distinct tag tally. OWNER ONLY: requireRole('user') makes an anonymous call 401 and
+// simTags.handleGet makes every account but harisss 403 before the collection is touched, so hiding
+// the page and its nav entry is presentation, not the permission. STRICTLY READ-ONLY.
+// The whole payload is aggregated in MongoDB (see sim-tags.js) and cached under the upload stamp
+// through the shared report cache, which invalidateReportCache() clears on every upload — so the
+// first reader after an upload pays and the rest are free. SIMTAG_CACHE_TTL_MS is only a backstop
+// against a missed invalidation.
+const SIMTAG_CACHE_PREFIX = 'simtag:v1:';
+const SIMTAG_CACHE_TTL_MS = 12 * 3600 * 1000;
+const SIMTAG_CACHE_KEYS = 8;   // the handful of pages a session actually visits
+app.get('/api/sim-tags', requireRole('user'), async (req, res) => {
+  try {
+    if (!sanIsOwner(req.user.username)) return res.status(403).json({ error: 'The SIM Tag Tracker is visible only to harisss.' });
+    const page = simTags.parsePage(req.query.page), pageSize = simTags.parsePageSize(req.query.pageSize);
+    const data = await eirDataStamp();
+    const key = SIMTAG_CACHE_PREFIX + (data.stamp || '-') + ':' + page + ':' + pageSize;
+    const hit = getCachedReportTtl(key, SIMTAG_CACHE_TTL_MS);
+    if (hit) return res.json(hit);
+    const out = await simTags.handleGet({ page, pageSize }, { user: req.user, coll: await getCollection(COLLECTIONS.ticketDocs) });
+    if (out.status === 200) { setCachedReport(key, out.body); pruneCachedReports(SIMTAG_CACHE_PREFIX, SIMTAG_CACHE_KEYS); }
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    console.error('sim-tags error:', e && (e.stack || e.message));
+    res.status(500).json({ error: 'Could not load the tagged tickets.' });
   }
 });
 // POST /api/my-sanitization/error-review { shortIds:[<=500], action:'approve'|'return', note } and

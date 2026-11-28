@@ -2815,6 +2815,7 @@
     'tool-blurbs': { title: 'Blurbs', icon: 'message', tone: 'teal' }, 'tool-hashtags': { title: 'Hashtags', icon: 'hash', tone: 'teal' },
     'tool-paging': { title: 'Paging', icon: 'map-pin', tone: 'teal' }, 'tool-prompts': { title: 'Prompts', icon: 'message', tone: 'teal' },
     'hashtags': { title: 'Hashtags', icon: 'hash', tone: 'teal' }, 'blurb-log': { title: 'Blurb Log', icon: 'history', tone: 'violet' },
+    'sim-tags': { title: 'SIM Tag Tracker', icon: 'bolt', tone: 'amber' },
     'hashtag-log': { title: 'Hashtag Log', icon: 'history', tone: 'violet' }, 'paging-log': { title: 'Paging Log', icon: 'history', tone: 'violet' },
     'important-cases': { title: 'Unique Cases', icon: 'star', tone: 'amber' },
     'calendar': { title: 'Calendar', icon: 'calendar', tone: 'blue' }
@@ -3311,6 +3312,10 @@
       + navBtn('sla-breach.html', 'Breaches (>240h)', 'clock')
       + navBtn('station-request.html', 'Station Requests', 'map-pin')
       + navBtn('hashtags.html', '#Hashtags (Trends)', 'hash')
+      // SIM Tag Tracker (sim-tags.html): the tickets the AutoSIM rules have tagged, heaviest first.
+      // Listed for harisss alone (tbSanIsOwner), next to the other tag-led view. GET /api/sim-tags
+      // enforces the same rule on the endpoint, so hiding the entry is presentation, not permission.
+      + (li && tbSanIsOwner() ? navBtn('sim-tags.html', 'SIM Tag Tracker', 'bolt', 'Tickets tagged by the AutoSIM rules') : '')
       + navBtn('hi-resolved.html', 'Recurring Cases', 'repeat')
       // Errors in Resolved (errors-in-resolved.html): the only way in used to be a top-bar chip,
       // which was removed, leaving the page reachable by URL alone. It sits next to the other
