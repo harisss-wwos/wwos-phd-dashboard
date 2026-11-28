@@ -712,9 +712,9 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mt.is-anim .mtc:nth-child(4){animation-delay:.12s}.mt.is-anim .mtc:nth-child(n+5){animation-delay:.16s}
 
 .mtc-head{display:flex;align-items:center;gap:8px 10px;padding:12px 14px 10px 20px;flex-wrap:wrap}
-.mtc .mtc-cb{order:0}.mtc .mtc-ago{order:1}.mtc .mtc-country{order:2}.mtc .mtc-sev{order:3}.mtc .mtc-sbadge{order:4}
+.mtc .mtc-cb{order:0}.mtc .mtc-ago{order:1}.mtc .mtc-country{order:2}.mtc .mtc-sev{order:3}.mtc .mtc-dt{order:4}
 .mtc .mtc-mk.emt{order:5}.mtc .mtc-mk.sr{order:6}.mtc .mtc-tid{order:7}.mtc .mtc-copy{order:8}.mtc .mtc-title{order:9}.mtc .mtc-head-last{order:9}.mtc .mtc-head-right{order:10}
-.mtc.viewed .mtc-cb{order:0}.mtc.viewed .mtc-country{order:1}.mtc.viewed .mtc-sev{order:2}.mtc.viewed .mtc-sbadge{order:3}.mtc.viewed .mtc-mk.emt{order:4}
+.mtc.viewed .mtc-cb{order:0}.mtc.viewed .mtc-country{order:1}.mtc.viewed .mtc-sev{order:2}.mtc.viewed .mtc-dt{order:3}.mtc.viewed .mtc-mk.emt{order:4}
 .mtc.viewed .mtc-mk.sr{order:5}.mtc.viewed .mtc-tid{order:6}.mtc.viewed .mtc-copy{order:7}.mtc.viewed .mtc-head-last{order:8}.mtc.viewed .mtc-head-right{order:9}
 
 .mtc-cb{width:22px;height:22px;padding:0;border-radius:6px;background:#fff;border:1.5px solid #b9c2cb;flex-shrink:0;cursor:pointer;display:grid;place-items:center;color:#fff;transition:background .15s,border-color .15s}
@@ -726,13 +726,28 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc-country{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;padding:2px 9px;border-radius:99px;font-size:.7em;font-weight:800;letter-spacing:.5px;
   background:#e9f0fb;color:#1f4f9a;border:1px solid #c9daf3;text-transform:uppercase}
 .mtc-country.mtc-country-na{color:var(--mt-red);background:var(--mt-red-bg);border:1px dashed #e89a92;animation:mtBlink 1s steps(1,end) infinite}
+/* Severity: no chip at all when the title states one; a blinking "SEV #" when it does not. */
 .mtc-sev{height:22px;padding:0 9px;border-radius:99px;display:inline-grid;place-items:center;font-size:.7em;font-weight:800;letter-spacing:.4px;white-space:nowrap;flex-shrink:0;line-height:1;border:1px solid transparent}
-.mtc-sev.sev-3{color:var(--mt-amb);background:var(--mt-amb-bg);border-color:#f1d58a}
-.mtc-sev.sev-4{color:#9a4100;background:var(--mt-acc-bg);border-color:#f7c99c}
-.mtc-sev.sev-5{color:var(--mt-red);background:var(--mt-red-bg);border-color:#f2b8b1}
 .mtc-sev.sev-unknown{min-width:24px;color:var(--mt-red);background:var(--mt-red-bg);border:1px dashed #e89a92;animation:mtBlink 1s steps(1,end) infinite}
 @keyframes mtBlink{50%{opacity:.3}}
-.mtc-sbadge{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:.72em;font-weight:800;color:#9a4100;background:var(--mt-acc-bg);border:1px solid #f7c99c;flex-shrink:0;cursor:default}
+/* ---- AutoSIM tag indicators (ticket_docs.Tags) ----
+   Driver type: one solid chip, white text, colour per type — blue DSP / green FLEX / red HUB. */
+.mtc-dt{height:22px;padding:0 9px;border-radius:4px;display:inline-grid;place-items:center;font-size:.7em;font-weight:800;letter-spacing:.06em;white-space:nowrap;flex-shrink:0;line-height:1;color:#fff;cursor:default}
+.mtc-dt.dsp{background:#0a4f91;border:1px solid #0a4f91}
+.mtc-dt.flex{background:#1b6b33;border:1px solid #1b6b33}
+.mtc-dt.hub{background:#b01818;border:1px solid #b01818}
+/* TRS / customer-service escalation: solid black, STATIC — it marks where the case came from. */
+.mtc-trs{height:22px;padding:0 9px;border-radius:4px;display:inline-grid;place-items:center;font-size:.7em;font-weight:800;letter-spacing:.06em;white-space:nowrap;flex-shrink:0;line-height:1;
+  background:#16191f;border:1px solid #16191f;color:#fff;cursor:default}
+/* Suspended account: text only, no background, larger than the surrounding row text, pulsing. */
+.mtc-susp{display:inline-block;flex-shrink:0;color:#b01818;font-size:.95em;font-weight:900;letter-spacing:.06em;white-space:nowrap;cursor:default;
+  transform-origin:center;animation:mtPulse 1.15s ease-in-out infinite}
+@keyframes mtPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+/* Netradyne camera (DSP rows only): blinks until pressed, then greys out and stops. */
+.mtc-cam{display:grid;place-items:center;width:24px;height:24px;padding:0;border-radius:5px;border:1px solid #bcd8f2;background:#f3f9ff;color:#0a6ed1;flex-shrink:0;cursor:pointer}
+.mtc-cam.live{animation:mtCamBlink 1.1s ease-in-out infinite}
+@keyframes mtCamBlink{0%,100%{box-shadow:0 0 0 0 rgba(10,110,209,.55)}50%{box-shadow:0 0 0 5px rgba(10,110,209,0)}}
+.mtc-cam.pressed{background:#f3f4f6;border-color:#e0e4e9;color:#6b7681;opacity:.4;animation:none}
 .mtc-mk{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
 .mtc-mk.sr{background:var(--mt-amb-bg);color:var(--mt-amb)}
 .mtc-mk.emt{background:var(--mt-red-bg);color:var(--mt-red)}
@@ -848,7 +863,7 @@ td.mt-actions .btn svg{flex-shrink:0}
 .mtc.temp .mtc-bar{max-height:0!important;opacity:0!important;padding-top:0!important;padding-bottom:0!important;pointer-events:none!important;visibility:hidden}
 .mtc.temp .mtc-panel{grid-template-rows:0fr!important;pointer-events:none!important;visibility:hidden}
 .mtc.temp .mtc-head{padding-bottom:12px}
-.mtc.temp :is(.mtc-cb,.mtc-ago,.mtc-ago-short,.mtc-sbadge,.mtc-copy,.mtc-country,.mtc-head-last,.mtc-mk,.mtc-pill,.mtc-sev,.mtc-icons.mtc-icons-collapsed){display:none!important}
+.mtc.temp :is(.mtc-cb,.mtc-ago,.mtc-ago-short,.mtc-copy,.mtc-country,.mtc-head-last,.mtc-mk,.mtc-pill,.mtc-sev,.mtc-dt,.mtc-trs,.mtc-susp,.mtc-cam,.mtc-icons.mtc-icons-collapsed){display:none!important}
 .mtc.temp .mtc-tid{text-decoration:none!important;display:inline!important}
 .mtc.temp .mtc-title,.mtc.temp.viewed .mtc-title{display:inline-block!important;flex:1 1 auto;min-width:0;text-decoration:none;color:#5c6773}
 .mtc.temp::before{background:#8793a0}
@@ -1413,10 +1428,14 @@ const ATTACH_FLAGS=[
   // Edit/Delete) if one does. See ticketIconsHtml()'s handler for the add-vs-view branch.
   { kind:'ilog',      icon:'add-report',     label:'Incident log icon',       title:'Add or view this ticket\u2019s incident log (final mitigation + hashtags).' },
 ];
-const ATTACH_SETS={ dtrace:new Set(), important:new Set() };
+// netra = the DSP row's Netradyne camera: "I have reviewed this footage". Not one of the
+// ATTACH_FLAGS icon buttons (it lives in the row head, next to SUSPENDED), but it uses the SAME
+// per-user mechanism as dtrace / important above — attachKey() namespaces the set by username in
+// localStorage — so it is one analyst's own mark and never changes what the rest of the team sees.
+const ATTACH_SETS={ dtrace:new Set(), important:new Set(), netra:new Set() };
 function attachKey(kind){ var u=A.getUser(); return 'phd_mytickets_'+kind+'_'+((u&&u.username)||'anon'); }
 function loadAttachFlags(){
-  ATTACH_FLAGS.forEach(function(f){
+  ATTACH_FLAGS.concat([{kind:'netra'}]).forEach(function(f){
     try{ var raw=localStorage.getItem(attachKey(f.kind)); ATTACH_SETS[f.kind]=new Set(raw?JSON.parse(raw):[]); }
     catch(e){ ATTACH_SETS[f.kind]=new Set(); }
   });
@@ -1435,6 +1454,28 @@ function toggleAttach(kind, sid, ev){
   document.querySelectorAll('.mtc-att[data-kind="'+kind+'"][data-sid="'+safe+'"]').forEach(function(el){ el.classList.toggle('on', on); if(el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', on?'true':'false'); });
 }
 window.toggleAttach=toggleAttach;
+// The Netradyne camera on a DSP row. Marks the ticket's footage reviewed BY THIS USER and stops the
+// blink; pressing again clears the mark, the way the important star toggles. It does not open
+// Netradyne — nothing in the ticket data carries a Netradyne URL, so there is no link to follow.
+// Persisted through saveAttachFlag/attachKey (per-user localStorage); nothing is written to the
+// shared database, so one analyst's mark is invisible to every other account.
+var MT_CAM_OFF_TITLE='Netradyne \u2014 you have not marked this reviewed yet';
+var MT_CAM_ON_TITLE='Netradyne \u2014 you marked this reviewed (click to undo)';
+function toggleNetra(sid, ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  sid=String(sid);
+  const set=ATTACH_SETS.netra; if(!set) return;
+  const on=!set.has(sid);
+  if(on) set.add(sid); else set.delete(sid);
+  saveAttachFlag('netra');
+  var safe=sid.replace(/"/g,'');
+  document.querySelectorAll('.mtc-cam[data-sid="'+safe+'"]').forEach(function(el){
+    el.classList.toggle('pressed', on); el.classList.toggle('live', !on);
+    el.setAttribute('aria-pressed', on?'true':'false');
+    el.title=on?MT_CAM_ON_TITLE:MT_CAM_OFF_TITLE;
+  });
+}
+window.toggleNetra=toggleNetra;
 // Force a given flag OFF for a ticket. Generic helper; no-op if the flag is already off, or if
 // ATTACH_SETS[kind] doesn't exist for some reason.
 function clearAttach(kind, sid){
@@ -1760,10 +1801,11 @@ function sevFromTitle(title){
   var n=m?m[1]:'';
   return (n==='3'||n==='4'||n==='5')?n:'';
 }
-// Severity tag HTML. Known sev -> solid tag "SEV 4". Unknown -> a blinking "SEV #" placeholder.
+// Severity tag HTML. A title that already states a severity needs no chip at all — the row would
+// only be repeating it. A title that states none gets a blinking "SEV #", where the '#' stays a
+// placeholder rather than a guessed number, so the row reads "this is missing".
 function sevTagHtml(t){
-  var n=sevFromTitle(t&&t.title);
-  if(n) return '<span class="mtc-sev sev-'+n+'" title="Severity '+n+' (from title)">SEV '+n+'</span>';
+  if(sevFromTitle(t&&t.title)) return '';
   return '<span class="mtc-sev sev-unknown" title="Severity not found in the title">SEV #</span>';
 }
 // Recognised country/region codes (mirrors the server's Countries-report set). The My Tickets
@@ -1774,6 +1816,55 @@ function countryTagHtml(t){
   var raw=String((t&&t.country)||'').toUpperCase().replace(/[^A-Z]/g,'');
   if(raw&&MT_COUNTRY_CODES[raw]) return '<span class="mtc-country" title="Country / region">'+esc(raw)+'</span>';
   return '<span class="mtc-country mtc-country-na" title="Country / region unknown">N/A</span>';
+}
+
+// ---- AutoSIM tag indicators (ticket_docs.Tags, via /api/my-tickets `tags`) ----
+// The server sends `tags` already split (server/sim-tags.js splitTags). The data holds one of two
+// shapes — a single tag ("driver_type_dsp_da") or a comma-separated list — never an array, and
+// values can carry padding. A space is NOT a separator: some tags contain one ("driver harm").
+// Re-normalising here keeps the row correct against a payload cached before `tags` existed.
+function mtTagSet(t){
+  var v=(t&&t.tags)||[];
+  if(!Array.isArray(v)) v=String(v).replace(/[;\n]/g,',').split(',');
+  var s=new Set();
+  v.forEach(function(x){ x=String(x==null?'':x).trim().toLowerCase(); if(x) s.add(x); });
+  return s;
+}
+// Driver type: [class, tag, label, tooltip]. A ticket shows exactly one chip or none — the first
+// match wins, so a ticket carrying two driver tags can never render two chips.
+var MT_DRIVER_TAGS=[
+  ['dsp', 'driver_type_dsp_da',  'DSP',  'DSP DA'],
+  ['flex','driver_type_flex_dp', 'FLEX', 'Flex DP'],
+  ['hub', 'driver_type_hub_da',  'HUB',  'Hub DA']
+];
+var MT_TRS_TAG='trs_cs_escalation';
+var MT_SUSP_TAG='account_suspension_present';
+function mtDriverOf(t){
+  var s=mtTagSet(t);
+  for(var i=0;i<MT_DRIVER_TAGS.length;i++){ if(s.has(MT_DRIVER_TAGS[i][1])) return MT_DRIVER_TAGS[i]; }
+  return null;   // untagged, or a driver type we don't badge (e.g. driver_type_not_identified)
+}
+function driverTagHtml(t){
+  var d=mtDriverOf(t); if(!d) return '';
+  return '<span class="mtc-dt '+d[0]+'" title="'+esc(d[3])+' \u00b7 '+d[1]+'">'+d[2]+'</span>';
+}
+function trsTagHtml(t){
+  if(!mtTagSet(t).has(MT_TRS_TAG)) return '';
+  return '<span class="mtc-trs" title="TRS / customer service escalation \u00b7 '+MT_TRS_TAG+'">TRS</span>';
+}
+function suspTagHtml(t){
+  if(!mtTagSet(t).has(MT_SUSP_TAG)) return '';
+  return '<span class="mtc-susp" title="Account suspension present \u00b7 '+MT_SUSP_TAG+'">SUSPENDED</span>';
+}
+// Netradyne camera. DSP ONLY — Netradyne does not apply to Flex or Hub, so nothing is rendered for
+// them (not a greyed-out button). Blinks until pressed; pressed = greyed out, blink stopped.
+function camBtnHtml(t){
+  var d=mtDriverOf(t); if(!d||d[0]!=='dsp') return '';
+  var sid=String(t&&t.shortId||''); var sidAttr=esc(sid);
+  var seen=ATTACH_SETS.netra&&ATTACH_SETS.netra.has(sid);
+  return '<button type="button" class="mtc-cam'+(seen?' pressed':' live')+'" data-sid="'+sidAttr+'"'+
+    ' title="'+(seen?MT_CAM_ON_TITLE:MT_CAM_OFF_TITLE)+'" aria-label="Netradyne footage reviewed \u00b7 '+sidAttr+'"'+
+    ' aria-pressed="'+(seen?'true':'false')+'" onclick="toggleNetra(\''+sidAttr+'\',event)">'+ic('camera',14)+'</button>';
 }
 // Compact age for the COLLAPSED header tag: "8D" / "1D" / "0D" (shown like the status "W" badge).
 function daysAgoShort(iso){
@@ -1936,11 +2027,11 @@ let FIRST_PAINT=true;   // run the staggered entrance animation only on the firs
 let LOADED_AT=null;     // when /api/my-tickets last answered (hero "Refreshed" chip)
 let LOAD_SEQ=0;         // guards against an older (retried) fetch painting over a newer one
 // Client-side quick filters (session only): search text, time-left bucket, hide viewed cards.
-const FILTER={f:'all',hideViewed:false,country:'all'};
+const FILTER={f:'all',hideViewed:false,country:'all',tag:'all'};
 // The selected filter button + Hide viewed are remembered per user (localStorage), so a refresh or
 // coming back to the page keeps them. Restored once, on the first render (the user is known then).
 function filterKey(){ var u=A.getUser(); return 'phd_mytickets_filter_'+((u&&u.username)||'anon'); }
-function saveFilter(){ try{ localStorage.setItem(filterKey(), JSON.stringify({f:FILTER.f, hideViewed:!!FILTER.hideViewed, country:FILTER.country||'all'})); }catch(e){} }
+function saveFilter(){ try{ localStorage.setItem(filterKey(), JSON.stringify({f:FILTER.f, hideViewed:!!FILTER.hideViewed, country:FILTER.country||'all', tag:FILTER.tag||'all'})); }catch(e){} }
 let FILTER_RESTORED=false;
 function restoreFilter(){
   if(FILTER_RESTORED) return; FILTER_RESTORED=true;
@@ -1949,6 +2040,7 @@ function restoreFilter(){
     if(typeof MT_FILTERS!=='undefined' && MT_FILTERS.some(function(x){ return x[0]===s.f; })) FILTER.f=s.f;
     FILTER.hideViewed=!!s.hideViewed;
     if(s.country) FILTER.country=String(s.country);   // dropped later if that country is no longer in the list
+    if(s.tag && typeof MT_TAG_FILTERS!=='undefined' && MT_TAG_FILTERS.some(function(x){ return x[0]===s.tag; })) FILTER.tag=s.tag;
   }catch(e){}
 }
 
@@ -2058,7 +2150,7 @@ function kpiHtml(){
     kpiCard('is-good','check-circle','Temporarily resolved',temp,'Working view \u00b7 not saved to the database',n?temp/n:0)+
     '</div>';
 }
-function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed||FILTER.country!=='all'); }
+function anyFilter(){ return !!(FILTER.f!=='all'||FILTER.hideViewed||FILTER.country!=='all'||FILTER.tag!=='all'); }
 // Quick-filter buttons (one active at a time; 'Hide viewed' is a separate on/off toggle).
 //   overdue = past the 240h deadline · red = due within 72h (about to cross the SLA)
 //   A resolved-and-reopened ticket (server colour 'purple') belongs to P only: it is excluded from
@@ -2125,6 +2217,31 @@ function countrySelHtml(){
   return '<label class="mt-country" title="Filter by country">'+ic('globe',14)+
     '<select id="mtCountry" aria-label="Filter by country">'+opts.join('')+'</select></label>';
 }
+// SIM-tag dropdown, immediately LEFT of the countries dropdown: All / DSP / FLEX / HUB / TRS.
+// [key, label, tag]. It COMPOSES with the colour chips, the countries dropdown and the sort —
+// applyFilters() ANDs all of them, so picking a tag narrows what the others already left visible
+// instead of resetting them. Reuses the .mt-country pill so the styling and width match.
+var MT_TAG_FILTERS=[
+  ['all', 'All',  ''],
+  ['dsp', 'DSP',  'driver_type_dsp_da'],
+  ['flex','FLEX', 'driver_type_flex_dp'],
+  ['hub', 'HUB',  'driver_type_hub_da'],
+  ['trs', 'TRS',  'trs_cs_escalation']
+];
+function tagMatches(t,k){
+  if(!k||k==='all') return true;
+  var e=MT_TAG_FILTERS.filter(function(x){ return x[0]===k; })[0];
+  return !!e && mtTagSet(t).has(e[2]);
+}
+function tagSelHtml(){
+  var cnt={}; MT_TAG_FILTERS.forEach(function(x){ cnt[x[0]]=0; });
+  (TICKETS||[]).forEach(function(t){ MT_TAG_FILTERS.forEach(function(x){ if(tagMatches(t,x[0])) cnt[x[0]]++; }); });
+  var opts=MT_TAG_FILTERS.map(function(x){
+    return '<option value="'+x[0]+'"'+(FILTER.tag===x[0]?' selected':'')+'>'+x[1]+(x[0]==='all'?'':' ('+cnt[x[0]]+')')+'</option>';
+  });
+  return '<label class="mt-country" title="Filter by SIM tag (driver type / TRS escalation)">'+ic('filter',14)+
+    '<select id="mtTag" aria-label="Filter by SIM tag">'+opts.join('')+'</select></label>';
+}
 function toolsHtml(){
   const c={}; MT_FILTERS.forEach(function(x){ c[x[0]]=0; });
   TICKETS.forEach(function(t){ MT_FILTERS.forEach(function(x){ if(ticketMatches(t,x[0])) c[x[0]]++; }); });
@@ -2139,7 +2256,7 @@ function toolsHtml(){
     ic('calendar',15)+'<span class="mt-sort-dir">'+dirDesc+'</span><span class="mt-sort-arrow" aria-hidden="true">'+arrow+'</span></button>';
   return '<div class="mt-tools" role="search" aria-label="Filter tickets">'+
     '<div class="mt-chips" role="group" aria-label="Filter tickets">'+MT_FILTERS.map(function(x){ return chip(x[0],x[1],x[2],x[3]); }).join('')+'</div>'+
-    '<div class="mt-tools-end">'+countrySelHtml()+'<span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
+    '<div class="mt-tools-end">'+tagSelHtml()+countrySelHtml()+'<span class="mt-shown" id="mtShown" aria-live="polite"></span>'+sortBtn+'</div>'+
     '<div class="mt-alert" id="mtPreviewErr" role="alert" hidden>'+ic('alert-triangle',14)+' Comment previews and incident-log status couldn\u2019t be loaded.'+
       '<button type="button" class="mt-btn-sm" onclick="retryPreviews(this)">'+ic('refresh',12)+' Retry</button></div>'+
   '</div>';
@@ -2168,6 +2285,7 @@ function applyFilters(){
     const t=bySid[card.getAttribute('data-sid')];
     let ok=!t||ticketMatches(t,FILTER.f);
     if(ok && t && FILTER.country!=='all' && countryOf(t)!==FILTER.country) ok=false;
+    if(ok && t && FILTER.tag!=='all' && !tagMatches(t,FILTER.tag)) ok=false;
     if(ok && FILTER.hideViewed && card.classList.contains('viewed')) ok=false;
     card.hidden=!ok; if(ok) shown++;
   });
@@ -2184,8 +2302,9 @@ function applyFilters(){
   }
 }
 function clearFilters(){
-  FILTER.f='all'; FILTER.hideViewed=false; FILTER.country='all'; saveFilter();
+  FILTER.f='all'; FILTER.hideViewed=false; FILTER.country='all'; FILTER.tag='all'; saveFilter();
   const cs=document.getElementById('mtCountry'); if(cs) cs.value='all';
+  const ts=document.getElementById('mtTag'); if(ts) ts.value='all';
   const hv=document.getElementById('mtHideViewed'); if(hv){ hv.setAttribute('aria-pressed','false'); hv.innerHTML=hideViewedInner(false); }
   document.querySelectorAll('.mt-chip[data-f]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-f')==='all')); });
   applyFilters();
@@ -2200,8 +2319,10 @@ document.addEventListener('click',function(ev){
   if(t.closest('[data-clear-filters]')) clearFilters();
 });
 document.addEventListener('change',function(ev){
-  const s=ev.target; if(!s||s.id!=='mtCountry') return;
-  FILTER.country=s.value||'all'; saveFilter(); applyFilters();
+  const s=ev.target; if(!s) return;
+  // Each dropdown sets only its own slice of FILTER, so the two never reset one another.
+  if(s.id==='mtCountry'){ FILTER.country=s.value||'all'; saveFilter(); applyFilters(); return; }
+  if(s.id==='mtTag'){ FILTER.tag=s.value||'all'; saveFilter(); applyFilters(); return; }
 });
 async function retryPreviews(btn){ setBusy(btn,true,'Retrying\u2026'); try{ await fillLatestComments(); }finally{ setBusy(btn,false); } }
 
@@ -2272,7 +2393,6 @@ function ticketIsNoEmt(t){ return (t && t.noEmt) || (t && t.title && MT_NO_EMT_R
 function cardHtml(t,i,editor){
   const rem=remaining(t.deadline);
   const st=String(t.status||'');
-  const letter=st.trim().charAt(0).toUpperCase()||'?';
   const sid=String(t.shortId);
   const viewed=VIEWED.has(sid);
   const temp=TEMP_RESOLVED.has(sid);
@@ -2286,8 +2406,8 @@ function cardHtml(t,i,editor){
       <button type="button" class="mtc-cb${viewed?' on':''}" title="Mark as viewed" aria-label="Mark ${esc(sid)} as viewed" aria-pressed="${viewed?'true':'false'}" onclick="toggleViewed('${esc(sid)}',this)">${ic('check',12)}</button>
       <span class="mtc-ago">${esc(daysAgo(t.createDate))}</span>
       <span class="mtc-ago-short" title="${esc(daysAgo(t.createDate))}">${esc(daysAgoShort(t.createDate))}</span>
-      <span class="mtc-sbadge" title="${esc(st)}" role="img" aria-label="Status: ${esc(st||'unknown')}">${esc(letter)}</span>
       ${sevTagHtml(t)}
+      ${driverTagHtml(t)}
       <span class="mtc-mk emt${ticketIsNoEmt(t)?'':' off'}" title="No EMT ticket" role="img" aria-label="No EMT ticket">${ic('no-entry',14)}</span>
       <span class="mtc-mk sr${t.priority?'':' off'}" title="Station Request / Address Exclusion" role="img" aria-label="Station Request / Address Exclusion">${ic('map-pin',14)}</span>
       <a class="mtc-tid" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(sid)}</a>
@@ -2295,8 +2415,9 @@ function cardHtml(t,i,editor){
       ${t.title?('<span class="mtc-title" title="'+titleTip(t.title)+'">'+titleHtml(t.title)+'</span>'):'<span class="mtc-title"></span>'}
       ${temp?tempAtPillHtml(sid):''}
       ${countryTagHtml(t)}
-      <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">${known?'No comments added':skl}</span>
+      <span class="mtc-head-last mtc-head-last-empty" id="chead-${i}">${known?'no comment yet':skl}</span>
       <span class="mtc-head-right">
+        ${trsTagHtml(t)}${suspTagHtml(t)}${camBtnHtml(t)}
         <span class="mtc-pill mtc-pill-right ${rem.cls||'ok'}" title="Time left until the 240h deadline">${esc(rem.txt)}${(rem.cls==='over')?'':' left'}</span>
         <span class="mtc-icons mtc-icons-collapsed" id="ticons-c-${i}">${ticketIconsHtml(i,true)}</span>
         <button type="button" class="mtc-b mtc-viewlog" title="View the incident log and comments" aria-label="View incident log for ${esc(sid)}" onclick="openViewIncident(${i})">${ic('clipboard',13)} View incident log</button>
@@ -2463,7 +2584,7 @@ function paintLatestCell(i,c,unavailable){
   const head=document.getElementById('chead-'+i);
   if(head){
     if(c&&c.text){ head.innerHTML=pHtml; head.title=pTitle; head.classList.remove('mtc-head-last-empty'); }
-    else { head.textContent='No comments added'; head.removeAttribute('title'); head.classList.add('mtc-head-last-empty'); }
+    else { head.textContent='no comment yet'; head.removeAttribute('title'); head.classList.add('mtc-head-last-empty'); }
   }
 }
 
