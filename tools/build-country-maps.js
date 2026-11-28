@@ -13,7 +13,9 @@
 //      in mapshaper), fits into a 1000 x 650 viewBox and writes the SVG itself (own attributes and escaping).
 //   4. Matches every GeoNames admin1 name (= every State name the explorer can show) to one region and bakes
 //      the names into the path as data-states="a|b". Fails on an ambiguous / conflicting / unexpected match.
-//   5. Validates (region count, ids, non-empty paths, size budget), writes the files, rewrites maps/README.md.
+//   5. Projects every explorer City of the country (server/zip-geo.js cityPoints) with the same projection, inset
+//      move and fit, into maps/<ISO2>-cities.json (see buildCities).
+//   6. Validates (region count, ids, non-empty paths, size budget), writes the files, rewrites maps/README.md.
 //   The temp folder is always deleted at the end unless --keep-temp is passed.
 // No dependencies of its own (Node >= 18: fetch, crypto, fs, child_process).
 'use strict';
@@ -21,7 +23,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const { execFileSync } = require('child_process');
+const zipGeo = require('../server/zip-geo');   // city list + lat / lon for maps/<ISO2>-cities.json
 
 const NE_VERSION = '5.1.2';
 const SRC_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v' + NE_VERSION + '/geojson/ne_10m_admin_1_states_provinces.geojson';
@@ -319,7 +323,9 @@ async function buildCountry(ms, cfg, all, built) {
     g1 = JSON.parse(o['out.json']);
   } catch (e) { return { cfg, problems: [cfg.iso2 + ': mapshaper dissolve/proj failed: ' + (e && e.message)] }; }
 
-  // Insets (projected units): placed next to the mainland bbox, 2% of its width apart.
+  // Insets (projected units): placed next to the mainland bbox, 2% of its width apart. insetTf[rid] keeps each
+  // move so the city points of those regions get exactly the same one.
+  const insetTf = {};
   if (cfg.insets && cfg.insets.length) {
     const insetKeys = new Set(); cfg.insets.forEach(i => i.keys.forEach(k => insetKeys.add(k)));
     const main = bboxOfPolys([].concat.apply([], g1.features.filter(f => !insetKeys.has(f.properties.rid)).map(f => polysOf(f.geometry))));
@@ -333,7 +339,9 @@ async function buildCountry(ms, cfg, all, built) {
       else if (ins.place === 'left-top') { x0 = main[0] - gap - w; y0 = main[3] - h; }
       else if (ins.place === 'left-bottom') { x0 = main[0] - gap - w; y0 = main[1]; }
       else throw new Error(cfg.iso2 + ': unknown inset place ' + ins.place);
-      fs_.forEach(f => { f.geometry = mapCoords(f.geometry, pt => [x0 + (pt[0] - b[0]) * s, y0 + (pt[1] - b[1]) * s]); });
+      const tf = pt => [x0 + (pt[0] - b[0]) * s, y0 + (pt[1] - b[1]) * s];
+      ins.keys.forEach(k => { insetTf[k] = tf; });
+      fs_.forEach(f => { f.geometry = mapCoords(f.geometry, tf); });
     });
   }
   // Fit.
@@ -353,7 +361,7 @@ async function buildCountry(ms, cfg, all, built) {
   const toPx = pt => [Math.round((offX + (pt[0] - fb[0]) * scale) * 10), Math.round((offY + (fb[3] - pt[1]) * scale) * 10)];
   const byRid = {};
   g2.features.forEach(f => { byRid[f.properties.rid] = f; });
-  const paths = [];
+  const paths = [], ringsOf = {};
   regions.forEach(r => {
     const f = byRid[r.key];
     const rings = [];
@@ -365,6 +373,7 @@ async function buildCountry(ms, cfg, all, built) {
     }));
     let big = null; rings.forEach(x => { if (!big || x.a > big.a) big = x; });
     const keepRings = rings.filter(x => x === big || x.a >= MIN_RING_PX2).map(x => x.r);
+    ringsOf[r.key] = keepRings;
     const d = ringsToPath(keepRings);
     if (!d) problems.push(cfg.iso2 + ': region ' + r.key + ' has an empty path');
     if (!/^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(r.iso)) problems.push(cfg.iso2 + ': bad ISO code ' + r.iso);
@@ -372,6 +381,11 @@ async function buildCountry(ms, cfg, all, built) {
   });
   const ids = new Set(paths.map(p => p.r.iso));
   if (ids.size !== paths.length) problems.push(cfg.iso2 + ': duplicate region ids');
+
+  // City points (maps/<ISO2>-cities.json): the same projection, inset move and fit as the paths above.
+  let cities;
+  try { cities = await buildCities(ms, cfg, proj, m.map, insetTf, toPx, ringsOf); }
+  catch (e) { return { cfg, problems: [cfg.iso2 + ': city points failed: ' + (e && e.message)] }; }
 
   const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<!-- ' + escXmlComment(cfg.name) + ', ' + escXmlComment(cfg.level) + '. Natural Earth Admin 1 (1:10m) v' + NE_VERSION + ', public domain.\n' +
@@ -386,7 +400,7 @@ async function buildCountry(ms, cfg, all, built) {
   const how = m.how, cnt = { code: 0, name: 0, alias: 0, file: 0 };
   Object.keys(how).forEach(n => { cnt[how[n]]++; });
   return {
-    cfg, problems, svg, bytes, excluded, neFeatures: feats.length,
+    cfg, problems, svg, bytes, excluded, neFeatures: feats.length, cities,
     report: {
       regions: regions.length, universe: universe.length, matched: Object.keys(m.map).length, cnt,
       aliases: Object.keys(how).filter(n => how[n] === 'alias').map(n => n + ' -> ' + m.map[n]),
@@ -397,6 +411,85 @@ async function buildCountry(ms, cfg, all, built) {
   };
 }
 function escXmlComment(s) { return String(s).replace(/--/g, '- -'); }
+
+// Distance from a point to the nearest edge of rings of [x, y] (same units).
+function distToRings(x, y, rings) {
+  let best = Infinity;
+  (rings || []).forEach(r => {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const ax = r[j][0], ay = r[j][1], dx = r[i][0] - ax, dy = r[i][1] - ay, L = dx * dx + dy * dy;
+      const t = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)) : 0;
+      const qx = ax + t * dx - x, qy = ay + t * dy - y, d = Math.sqrt(qx * qx + qy * qy);
+      if (d < best) best = d;
+    }
+  });
+  return best;
+}
+// Even-odd point-in-polygon over rings of [x, y] (any units; used on integer tenths).
+function inRings(x, y, rings) {
+  let inside = false;
+  (rings || []).forEach(r => {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+  });
+  return inside;
+}
+// maps/<ISO2>-cities.json: per explorer State name (only names that are on this map), its cities A->Z as
+//   { names: 'City A|City B', xy: [xA, yA, xB, yB] } — x / y in tenths of a viewBox unit (the SVG's own space).
+// City list and lat / lon: server/zip-geo.js cityPoints() (the explorer's own state / city derivation and
+// ambiguity rule, so the names match the explorer's City nodes exactly; the location rule is CITY_POINT_RULE).
+// A city is left out of `names` (the page lists it as 'without a known location') when it has no usable
+// GeoNames point, its point is inside one of the config's drop boxes (islets not drawn), it cannot be projected,
+// it falls outside the viewBox, or it lies more than CITY_MAX_OUT_PX from its own region's drawn shape (a remote
+// islet that is not drawn, a GeoNames point that contradicts its state, or the PR municipality 'Florida', which
+// the explorer files under the state Florida). US + PR: a (state, city) already taken from US.txt is not re-read
+// from PR.txt. stats.outside = placed points just outside their own region's simplified path (coastal points).
+const CITY_MAX_OUT_PX = 50;   // viewBox units (5% of the map width)
+async function buildCities(ms, cfg, proj, nameToRid, insetTf, toPx, ringsOf) {
+  const list = [], seen = new Set(), stats = { cities: 0, placed: 0, noLocation: 0, outside: 0, far: [] };
+  (cfg.files || []).forEach(cc => {
+    zipGeo.cityPoints(cc).forEach((cs, state) => {
+      const rid = nameToRid[state]; if (!rid) return;
+      cs.forEach((pt, city) => {
+        const pk = state + '\u0001' + city; if (seen.has(pk)) return;
+        seen.add(pk); stats.cities++;
+        if (!pt || (cfg.drop || []).some(bx => inBox(pt.lon, pt.lat, bx))) { stats.noLocation++; return; }
+        list.push({ state, city, rid, lon: pt.lon, lat: pt.lat });
+      });
+    });
+  });
+  const byState = {};
+  if (list.length) {
+    const fc = { type: 'FeatureCollection', features: list.map((c, i) => ({ type: 'Feature', properties: { i }, geometry: { type: 'Point', coordinates: [c.lon, c.lat] } })) };
+    const o = await ms.applyCommands('-i pts.json -proj ' + proj + ' -o out.json format=geojson', { 'pts.json': fc });
+    const got = new Array(list.length).fill(null);
+    JSON.parse(o['out.json']).features.forEach(f => { const g = f.geometry; if (g && g.type === 'Point' && isFinite(g.coordinates[0]) && isFinite(g.coordinates[1])) got[f.properties.i] = g.coordinates; });
+    list.forEach((c, i) => {
+      let q = got[i];
+      if (!q) { stats.noLocation++; return; }
+      if (insetTf[c.rid]) q = insetTf[c.rid](q);
+      const p = toPx(q);
+      if (!(p[0] >= 0 && p[0] <= VIEW_W * 10 && p[1] >= 0 && p[1] <= VIEW_H * 10)) { stats.noLocation++; return; }
+      if (!inRings(p[0], p[1], ringsOf[c.rid])) {
+        const d = distToRings(p[0], p[1], ringsOf[c.rid]) / 10;
+        if (d > CITY_MAX_OUT_PX) { stats.noLocation++; stats.far.push(c.state + ' / ' + c.city + ' (' + Math.round(d) + ' px)'); return; }
+        stats.outside++;
+      }
+      stats.placed++;
+      (byState[c.state] = byState[c.state] || []).push([c.city, p[0], p[1]]);
+    });
+  }
+  const states = {};
+  Object.keys(byState).sort().forEach(s => {
+    const rows = byState[s].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    states[s] = { names: rows.map(r => r[0]).join('|'), xy: [].concat.apply([], rows.map(r => [r[1], r[2]])) };
+  });
+  const json = JSON.stringify({ country: cfg.iso2, unit: 0.1, rule: zipGeo.CITY_POINT_RULE, states }) + '\n';
+  if (list.some(c => c.city.indexOf('|') >= 0)) throw new Error('a city name contains "|"');
+  return { json, bytes: Buffer.byteLength(json, 'utf8'), gzip: zlib.gzipSync(json, { level: 9 }).length, stats };
+}
 
 // ---- README -----------------------------------------------------------------------------------------------
 function readmeText(results, meta) {
@@ -410,6 +503,12 @@ function readmeText(results, meta) {
   }).join('\n');
   const excl = results.filter(r => r.excluded.length).map(r => '- ' + r.cfg.iso2 + ': ' + r.excluded.join('; ')).join('\n');
   const total = results.reduce((a, r) => a + r.bytes, 0);
+  const cityRows = results.map(r => {
+    const s = r.cities.stats;
+    return '| ' + r.cfg.iso2 + ' | ' + s.cities + ' | ' + s.placed + ' | ' + s.noLocation + ' | ' + s.outside + ' | ' + (r.cities.bytes / 1024).toFixed(1) + ' KB | ' + (r.cities.gzip / 1024).toFixed(1) + ' KB |';
+  }).join('\n');
+  const cityTotal = results.reduce((a, r) => a + r.cities.bytes, 0), cityGz = results.reduce((a, r) => a + r.cities.gzip, 0);
+  const cityFar = results.filter(r => r.cities.stats.far.length).map(r => '- ' + r.cfg.iso2 + ': ' + r.cities.stats.far.join('; ')).join('\n');
   return '# State / province maps (Incident Explorer)\n\n' +
     'One SVG per country (`<ISO2>.svg`), loaded on demand by `incident-explorer.html` when a country is opened on the world map.\n' +
     'Generated by `tools/build-country-maps.js` — do not edit by hand; rerun the script instead.\n\n' +
@@ -438,11 +537,30 @@ function readmeText(results, meta) {
     'Remote islets are also dropped by lon/lat boxes in the config (US: western Aleutians, NW Hawaiian Islands; GB: Rockall; JP: Ogasawara and other\n' +
     'Tokyo islands south of 32°N; MX: Revillagigedo, Guadalupe; BR: Trindade, Martim Vaz, St Peter and St Paul rocks).\n' +
     'Insets: ES Canarias (bottom left), PT Azores (left, 55%) and Madeira (left).\n\n' +
+    '## City points (`<ISO2>-cities.json`)\n\n' +
+    'One file per country, loaded on demand by `incident-explorer.html` the first time a state is zoomed into, for the city dots.\n\n' +
+    '- Format: `{ country, unit: 0.1, rule, states: { "<explorer State name>": { names: "City A|City B", xy: [xA, yA, xB, yB] } } }`.\n' +
+    '  `x` / `y` are tenths of a unit in the SVG\'s own `viewBox` (divide by 10), so a dot sits exactly where the paths are drawn.\n' +
+    '- Projection: each point goes through the same mapshaper `-proj` as the paths (US: `albersusa +PR`, so Alaska, Hawaii and\n' +
+    '  Puerto Rico move with their shapes; others: the country\'s own `laea`), then the same inset move (ES Canarias, PT Azores /\n' +
+    '  Madeira) and the same fit into the viewBox. Points are not simplified.\n' +
+    '- Cities and their names: `server/zip-geo.js` `cityPoints()` — the explorer\'s own State / City derivation and ambiguity rule, so a\n' +
+    '  name here is exactly an explorer City node under that State (same strings, scoped by State).\n' +
+    '- Location rule: ' + zipGeo.CITY_POINT_RULE + '\n' +
+    '- Left out (the page lists them as "cities without a known location"): no usable GeoNames point, a point inside a drop box\n' +
+    '  (islets not drawn), a point outside the viewBox, or a point more than ' + CITY_MAX_OUT_PX + ' viewBox units (5% of the map width) from its\n' +
+    '  State\'s drawn shape (listed below). US: a State + City already read from US.txt is not re-read from PR.txt.\n' +
+    '- "Outside own region" = placed points within ' + CITY_MAX_OUT_PX + ' units of their region but not inside its simplified path (coastal /\n' +
+    '  island postal points just past the simplified coastline); they are drawn where they project, and the page\'s zoom frame\n' +
+    '  covers every placed point of the State.\n\n' +
+    '| ISO | Cities | Placed | No location | Outside own region | Size | gzip |\n|---|---|---|---|---|---|---|\n' + cityRows + '\n\n' +
+    'Total: ' + (cityTotal / 1024).toFixed(1) + ' KB (' + (cityGz / 1024).toFixed(1) + ' KB gzip).\n\n' +
+    'Too far from their State\'s shape (not placed):\n\n' + (cityFar || '- none') + '\n\n' +
     '## Rebuild\n\n' +
     '```\nnode tools/build-country-maps.js            # download, build all 22, rewrite this README\n' +
     'node tools/build-country-maps.js --dry-run  # validate and report only\n' +
     'node tools/build-country-maps.js --only US,IN --src <local geojson>   # subset (README is not rewritten)\n```\n\n' +
-    'After a rebuild, bump `STATE_MAP_V` in `incident-explorer.html` so browsers fetch the new files.\n';
+    'After a rebuild, bump `STATE_MAP_V` (SVGs) and / or `CITY_MAP_V` (cities files) in `incident-explorer.html` so browsers fetch the new files.\n';
 }
 
 // ---- Main -------------------------------------------------------------------------------------------------
@@ -495,14 +613,22 @@ async function main() {
         ('').padEnd(16) + (r.bytes / 1024).toFixed(1).padStart(6) + ' KB  ' + (p.aliases.join('; ') || '-') + ' | ' + (p.unmatched.map(u => u.name).join('; ') || '-') + ' | ' + (p.noName.join('; ') || '-'));
     });
     console.log('Total ' + (total / 1024).toFixed(1) + ' KB');
+    console.log('\nISO  cities  placed  no location  outside own region  cities.json (gzip)');
+    results.forEach(r => {
+      const c = r.cities, s = c.stats;
+      console.log(r.cfg.iso2.padEnd(4) + String(s.cities).padStart(7) + String(s.placed).padStart(8) + String(s.noLocation).padStart(13) + String(s.outside).padStart(20) +
+        '  ' + (c.bytes / 1024).toFixed(1) + ' KB (' + (c.gzip / 1024).toFixed(1) + ' KB)');
+    });
     if (dry) { console.log('--dry-run: nothing written.'); return; }
     // Write (tmp then rename).
     fs.mkdirSync(OUT_DIR, { recursive: true });
-    results.forEach(r => { const t = path.join(OUT_DIR, '.tmp-' + r.cfg.iso2 + '.svg'); tmpFiles.push(t); fs.writeFileSync(t, r.svg); });
-    results.forEach(r => { fs.renameSync(path.join(OUT_DIR, '.tmp-' + r.cfg.iso2 + '.svg'), path.join(OUT_DIR, r.cfg.iso2 + '.svg')); });
+    const outs = [];
+    results.forEach(r => { outs.push([r.cfg.iso2 + '.svg', r.svg], [r.cfg.iso2 + '-cities.json', r.cities.json]); });
+    outs.forEach(([f, txt]) => { const t = path.join(OUT_DIR, '.tmp-' + f); tmpFiles.push(t); fs.writeFileSync(t, txt); });
+    outs.forEach(([f]) => { fs.renameSync(path.join(OUT_DIR, '.tmp-' + f), path.join(OUT_DIR, f)); });
     if (!only) fs.writeFileSync(path.join(OUT_DIR, 'README.md'), readmeText(results, meta));
     else console.log('--only: maps/README.md not rewritten (run a full build to refresh it).');
-    console.log('Wrote ' + results.length + ' SVG(s) to ' + OUT_DIR);
+    console.log('Wrote ' + results.length + ' SVG(s) and ' + results.length + ' cities file(s) to ' + OUT_DIR);
   } finally {
     tmpFiles.forEach(t => { try { fs.unlinkSync(t); } catch (e) { /* renamed or never written */ } });
     if (keepTemp) console.log('Temp folder kept: ' + tmp);

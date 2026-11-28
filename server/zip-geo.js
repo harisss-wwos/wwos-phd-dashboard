@@ -275,6 +275,51 @@ function geoMeta() {
 }
 function stats() { return { loadMs: STATS.loadMs, from: STATS.from, countries: Object.assign({}, STATS.countries) }; }
 
+// One representative lat / lon per explorer (state, city) of a dataset country — used only by
+// tools/build-country-maps.js for the Incident Explorer's city dots (never at request time).
+// RULE  the city's postal points = the rows of every postal key whose WINNING pair (the ambiguity rule above,
+//       i.e. what geoOf returns for that key) is this (state, city), with a valid lat / lon (finite, in range,
+//       not 0,0). Representative = the point nearest to the mean of those points (ties: first in file order),
+//       so it is always a real postal location of that city. Pairs with no valid point get null.
+// Returns Map(state -> Map(city -> { lat, lon, n } | null)), n = postal points used; Unknown pairs are left out.
+const CITY_POINT_RULE = 'City location = the postal point (GeoNames lat/lon) nearest to the mean of all postal points whose postal code resolves to that state + city (ties: first in file order).';
+function cityPoints(cc) {
+  const file = path.join(DATA_DIR, cc + '.txt');
+  const win = parseCountryFile(cc, file);
+  const acc = new Map();   // pk -> { state, city, pts: [[lat, lon]] }
+  fs.readFileSync(file, 'utf8').split('\n').forEach(line => {
+    if (!line) return;
+    const c = line.split('\t');
+    const key = String(c[1] || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const g = key && win.get(key);
+    if (!g || g.state === UNKNOWN || g.city === UNKNOWN) return;
+    const state = stateOf(cc, c) || UNKNOWN, city = state === UNKNOWN ? UNKNOWN : (cityOf(cc, c) || UNKNOWN);
+    if (state !== g.state || city !== g.city) return;
+    const pk = state + '\u0001' + city;
+    let a = acc.get(pk); if (!a) acc.set(pk, a = { state, city, pts: [] });
+    const lat = parseFloat(c[9]), lon = parseFloat(c[10]);
+    if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && (lat !== 0 || lon !== 0)) a.pts.push([lat, lon]);
+  });
+  // Every winning pair is listed, even when none of its rows has a usable point.
+  win.forEach(g => {
+    if (g.state === UNKNOWN || g.city === UNKNOWN) return;
+    const pk = g.state + '\u0001' + g.city;
+    if (!acc.has(pk)) acc.set(pk, { state: g.state, city: g.city, pts: [] });
+  });
+  const out = new Map();
+  acc.forEach(a => {
+    let best = null;
+    if (a.pts.length) {
+      let mx = 0, my = 0; a.pts.forEach(p => { mx += p[0]; my += p[1]; }); mx /= a.pts.length; my /= a.pts.length;
+      let bd = Infinity;
+      a.pts.forEach(p => { const d = (p[0] - mx) * (p[0] - mx) + (p[1] - my) * (p[1] - my); if (d < bd) { bd = d; best = p; } });
+    }
+    if (!out.has(a.state)) out.set(a.state, new Map());
+    out.get(a.state).set(a.city, best ? { lat: best[0], lon: best[1], n: a.pts.length } : null);
+  });
+  return out;
+}
+
 // CLI: `node zip-geo.js --build` rewrites data/geonames/zip-geo-index.json from the raw <CC>.txt files.
 if (require.main === module && process.argv.indexOf('--build') >= 0) {
   const t0 = Date.now();
@@ -283,4 +328,4 @@ if (require.main === module && process.argv.indexOf('--build') >= 0) {
   console.log('zip-geo: wrote ' + INDEX_FILE + ' (' + Object.keys(j.countries).length + ' countries) in ' + (Date.now() - t0) + ' ms');
 }
 
-module.exports = { UNKNOWN, AMBIGUITY_RULE, datasetCountry, normalizeZip, geoOf, geoMeta, stats };
+module.exports = { UNKNOWN, AMBIGUITY_RULE, CITY_POINT_RULE, datasetCountry, normalizeZip, geoOf, geoMeta, stats, cityPoints };

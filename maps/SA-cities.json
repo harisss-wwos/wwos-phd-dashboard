@@ -1,0 +1,1 @@
+{"country":"SA","unit":0.1,"rule":"City location = the postal point (GeoNames lat/lon) nearest to the mean of all postal points whose postal code resolves to that state + city (ties: first in file order).","states":{}}
